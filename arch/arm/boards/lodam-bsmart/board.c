@@ -48,3 +48,17 @@ static int lodam_imx6ul_bsmart_device_init(void)
 	return 0;
 }
 coredevice_initcall(lodam_imx6ul_bsmart_device_init);
+
+static int lodam_imx6ul_lup400_device_init(void)
+{
+	if (!of_machine_is_compatible("lodam,imx6ul-lup400"))
+		return 0;
+
+	imx6_bbu_internal_spi_i2c_register_handler("spiflash", "/dev/m25p0.barebox",
+		BBU_HANDLER_FLAG_DEFAULT);
+
+	barebox_set_hostname("lodam-lup400");
+
+	return 0;
+}
+coredevice_initcall(lodam_imx6ul_lup400_device_init);

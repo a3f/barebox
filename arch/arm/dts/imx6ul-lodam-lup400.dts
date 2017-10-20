@@ -1,0 +1,102 @@
+/*
+ * The code contained herein is licensed under the GNU General Public
+ * License. You may obtain a copy of the GNU General Public License
+ * Version 2 or later at the following locations:
+ *
+ * http://www.opensource.org/licenses/gpl-license.html
+ * http://www.gnu.org/copyleft/gpl.html
+ */
+
+#include <arm/imx6ul-lodam-lup400.dts>
+
+/ {
+	aliases {
+		state = &state;
+	};
+
+	state: state {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "barebox,state";
+		magic = <0x7d76d5ec>;
+		backend-type = "raw";
+		backend = <&state_storage>;
+		backend-storage-type = "circular";
+
+		bootstate {
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			system0 {
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				remaining_attempts {
+					reg = <0x0 0x4>;
+					type = "uint32";
+					default = <3>;
+				};
+				priority {
+					reg = <0x4 0x4>;
+					type = "uint32";
+					default = <21>;
+				};
+			};
+
+			system1 {
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				remaining_attempts {
+					reg = <0x10 0x4>;
+					type = "uint32";
+					default = <3>;
+				};
+				priority {
+					reg = <0x14 0x4>;
+					type = "uint32";
+					default = <20>;
+				};
+			};
+
+			last_chosen {
+				reg = <0x20 0x4>;
+				type = "uint32";
+				default = <0>;
+			};
+		};
+	};
+};
+
+&norflash {
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		partition@0 {
+			label = "barebox";
+			reg = <0x0 0x100000>;
+		};
+
+		/* space left to let barebox grow */
+
+		/* placed near the end of the NOR flash */
+		barebox_env: partition@380000 {
+			label = "barebox-environment";
+			reg = <0x380000 0x40000>;
+		};
+
+		/* placed at the end of the NOR flash */
+		state_storage: partition@3c0000 {
+			label = "barebox-state";
+			reg = <0x3c0000 0x40000>; /* four times mirrored */
+		};
+};
+
+&gpmi {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		partition@0 {
+			label = "root";
+			reg = <0x0 0x0>;
+		};
+};

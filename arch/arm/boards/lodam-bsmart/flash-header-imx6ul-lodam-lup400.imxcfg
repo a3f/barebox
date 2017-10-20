@@ -1,0 +1,70 @@
+loadaddr 0x80000000
+soc imx6
+dcdofs 0x400
+
+/* Enable all clocks */
+wm 32 0x020c4068 0xffffffff
+wm 32 0x020c406c 0xffffffff
+wm 32 0x020c4070 0xffffffff
+wm 32 0x020c4074 0xffffffff
+wm 32 0x020c4078 0xffffffff
+wm 32 0x020c407c 0xffffffff
+wm 32 0x020c4080 0xffffffff
+
+/* IOMUXC registers */
+wm 32 0x020E04B4 0x000C0000 /* pg. 1801: DDR3 mode */
+wm 32 0x020E04AC 0x00000000 /* pg. 1799: PKE 0 pull keeper disabled */
+wm 32 0x020E027C 0x00000030 /* pg. 1525: 40 Ohm ODT */
+wm 32 0x020E0250 0x00000030 /* pg. 1492: 40 Ohm ODT */
+wm 32 0x020E024C 0x00000030 /* pg. 1489: 40 Ohm ODT */
+wm 32 0x020E0490 0x00000030 /* pg. 1793: DSE_6_R0_6 — R0/6 */
+wm 32 0x020E0288 0x00000030 /* pg. 1534: DSE_6_R0_6 — R0/6 */
+wm 32 0x020E0270 0x00000000 /* pg. 1516: DSE Output driver disabled. */
+wm 32 0x020E0260 0x00000030 /* pg. 1504 */
+wm 32 0x020E0264 0x00000030 /* pg. 1507 */
+wm 32 0x020E04A0 0x00000030 /* pg. 1796 */
+wm 32 0x020E0494 0x00020000 /* pg. 1794 */
+wm 32 0x020E0280 0x00000030 /* pg. 1528 */
+wm 32 0x020E0284 0x00000030 /* pg. 1531 */
+wm 32 0x020E04B0 0x00020000 /* pg. 1800 */
+wm 32 0x020E0498 0x00000030 /* pg. 1795 */
+wm 32 0x020E04A4 0x00000030 /* pg. 1797 */
+wm 32 0x020E0244 0x00000030 /* pg. 1483 */
+wm 32 0x020E0248 0x00000030 /* pg. 1486 */
+
+/* MMDC registers */
+wm 32 0x021B001C 0x00008000 /* pg. 2082: Command CON_REQ */
+/* TODO: Should wait until CON_ACK is 1? ... */
+wm 32 0x021B0800 0xA1390003 /* pg. 2110: ZQ calibration */
+wm 32 0x021B080C 0x00000000 /* pg. 2118: Write delays (all 0) */
+wm 32 0x021B083C 0x41600164 /* pg. 2134: DQS gate control */
+wm 32 0x021B0848 0x40403C3E /* pg. 2139: Read delay lines */
+wm 32 0x021B0850 0x40405652 /* pg. 2143: Write delay lines */
+wm 32 0x021B081C 0x33333333 /* pg. 2124: Read DQ byte0 delay */
+wm 32 0x021B0820 0x33333333 /* pg. 2127: Read DQ byte1 delay */
+wm 32 0x021B082C 0xf3333333 /* pg. 2130: Write DQ byte0 delay */
+wm 32 0x021B0830 0xf3333333 /* pg. 2132: Write DQ byte1 delay */
+wm 32 0x021B08C0 0x00921012 /* pg. 2170: Duty cycle, all default, bar CK_FT0_DCC */
+wm 32 0x021B08b8 0x00000800 /* pg. 2167: Measure unit */
+wm 32 0x021B0004 0x0002002D /* pg. 2069: Core Power Down Control */
+wm 32 0x021B0008 0x00333030 /* pg. 2071: Core ODT Timing Control */
+wm 32 0x021B000C 0x676B52F3 /* pg. 2073: Core Timing Configuration 0 */
+wm 32 0x021B0010 0xB66D8B63 /* pg. 2075: Core Timing Configuration 1 */
+wm 32 0x021B0014 0x01FF00DB /* pg. 2077: Core Timing Configuration 2 */
+wm 32 0x021B0018 0x00201740 /* pg. 2079: Core Misc */
+wm 32 0x021B001C 0x00008000 /* pg. 2082: Command CON_REQ */
+/* TODO: Should wait until CON_ACK is 1? ... */
+wm 32 0x021B002C 0x000026D2 /* pg. 2087: R/W Command Delay */
+wm 32 0x021B0030 0x006B1023 /* pg. 2089: Core Out-of-Reset Delay */
+wm 32 0x021B0040 0x00000047 /* pg. 2095: Core Address Space Partition (RAM_SZ / 32 + 3f) */
+wm 32 0x021B0000 0x83180000 /* pg. 2067: Core Control Register (cols / rows) */
+wm 32 0x021B001C 0x02008032 /* pg. 2082: */
+wm 32 0x021B001C 0x00008033 /* pg. 2082: */
+wm 32 0x021B001C 0x00048031 /* pg. 2082: */
+wm 32 0x021B001C 0x15208030 /* pg. 2082: */
+wm 32 0x021B001C 0x04008040 /* pg. 2082: */
+wm 32 0x021B0020 0x00000800 /* pg. 2085: */
+wm 32 0x021B0818 0x00000227 /* pg. 2122: */
+wm 32 0x021B0004 0x0002552D /* pg. 2069: */
+wm 32 0x021B0404 0x00011006 /* pg. 2099: */
+wm 32 0x021B001C 0x00000000 /* pg. 2082: */

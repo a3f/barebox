@@ -57,3 +57,36 @@ ENTRY_FUNCTION(start_imx6ul_lodam_bsmart, r0, r1, r2)
 
 	imx6ul_barebox_entry(fdt);
 }
+
+BAREBOX_IMD_TAG_STRING(lodam_lup400_memsize_SZ_256M, IMD_TYPE_PARAMETER, "memsize=256", 0);
+
+extern char __dtb_imx6ul_lodam_lup400_start[];
+
+ENTRY_FUNCTION(start_imx6ul_lodam_lup400, r0, r1, r2)
+{
+	void *fdt;
+
+	IMD_USED(lodam_lup400_memsize_SZ_256M);
+
+	imx6ul_cpu_lowlevel_init();
+
+	arm_setup_stack(0x00910000 - 8);
+
+	arm_early_mmu_cache_invalidate();
+
+	relocate_to_current_adr();
+	setup_c();
+	barrier();
+
+	if (IS_ENABLED(CONFIG_DEBUG_LL))
+		setup_uart();
+
+	/* disable all watchdog powerdown counters */
+	writew(0x0, 0x020bc008);
+	writew(0x0, 0x020c0008);
+	writew(0x0, 0x021e4008);
+
+	fdt = __dtb_imx6ul_lodam_lup400_start - get_runtime_offset();
+
+	imx6ul_barebox_entry(fdt);
+}
