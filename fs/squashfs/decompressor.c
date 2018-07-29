@@ -18,6 +18,7 @@
  */
 
 #include <linux/types.h>
+#include <asm/byteorder.h>
 
 #include "squashfs_fs.h"
 #include "squashfs_fs_sb.h"
