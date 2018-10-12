@@ -66,9 +66,17 @@
 #define	AT91_CKGR_PLLAR		0x28			/* PLL A Register */
 #define	AT91_CKGR_PLLBR		0x2c			/* PLL B Register */
 #define		AT91_PMC_DIV		(0xff  <<  0)		/* Divider */
+#define			AT91_PMC_DIV_BYPASS	(1 << 0)		/* Divider bypass */
 #define		AT91_PMC_PLLCOUNT	(0x3f  <<  8)		/* PLL Counter */
 #define		AT91_PMC_OUT		(3     << 14)		/* PLL Clock Frequency Range */
+#define			AT91_PMC_OUT_0		(0 << 14)
+#define			AT91_PMC_OUT_1		(1 << 14)
+#define			AT91_PMC_OUT_2		(2 << 14)
+#define			AT91_PMC_OUT_3		(3 << 14)
 #define		AT91_PMC_MUL		(0x7ff << 16)		/* PLL Multiplier */
+#define			AT91_PMC_MUL_(n)		(((n) << 16) & AT91_PMC_MUL)
+#define		AT91_PMC3_MUL		(0x7f << 18)		/* PLL Multiplier [SAMA5 only]*/
+#define			AT91_PMC3_MUL_(n)		(((n) << 18) & AT91_PMC3_MUL)
 #define		AT91_PMC_USBDIV		(3     << 28)		/* USB Divisor (PLLB only) */
 #define			AT91_PMC_USBDIV_1		(0 << 28)
 #define			AT91_PMC_USBDIV_2		(1 << 28)
