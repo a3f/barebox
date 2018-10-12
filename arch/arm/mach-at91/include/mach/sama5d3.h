@@ -87,6 +87,7 @@
 #define SAMA5D3_BASE_PIOC	0xfffff600
 #define SAMA5D3_BASE_PIOD	0xfffff800
 #define SAMA5D3_BASE_PIOE	0xfffffa00
+#define SAMA5D3_BASE_PMC	0xfffffc00
 #define SAMA5D3_BASE_MPDDRC	0xffffea00
 #define	SAMA5D3_BASE_HSMC	0xffffc000
 #define SAMA5D3_BASE_RSTC	0xfffffe00
