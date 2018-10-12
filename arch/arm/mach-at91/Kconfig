@@ -200,6 +200,7 @@ config ARCH_SAMA5D3
 	select SOC_SAMA5D3
 	select HAS_MACB
 	select HAVE_MACH_ARM_HEAD
+	select HAVE_AT91_LOAD_BAREBOX_SRAM
 
 config ARCH_SAMA5D4
 	bool "SAMA5D4"
@@ -548,6 +549,7 @@ config MACH_MICROCHIP_KSZ9477_EVB
 	select OFDEVICE
 	select COMMON_CLK_OF_PROVIDER
 	select ARM_USE_COMPRESSED_DTB
+	select HAVE_AT91_BOOTSTRAP
 	help
 	  Select this if you are using Microchip's EVB-KSZ9477 Evaluation Kit.
 
