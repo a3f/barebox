@@ -1,6 +1,7 @@
 obj-y += setup.o
 pbl-y += at91_pmc_ll.o
 pbl-$(CONFIG_CLOCKSOURCE_ATMEL_PIT) += early_udelay.o
+pbl-y += ddramc.o
 
 ifeq ($(CONFIG_COMMON_CLK_OF_PROVIDER),)
 obj-y += clock.o
