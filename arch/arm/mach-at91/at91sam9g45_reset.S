@@ -12,7 +12,7 @@
 
 #include <linux/linkage.h>
 #include <mach/hardware.h>
-#include <mach/at91sam9_ddrsdr.h>
+#include <mach/at91_ddrsdrc.h>
 #include <mach/at91_rstc.h>
 
 			.arm
@@ -23,13 +23,13 @@ restart_sam9g45:	ldr	r0, .at91_va_base_sdramc	@ preload constants
 			ldr	r1, .at91_va_base_rstc_cr
 
 			mov	r2, #1
-			mov	r3, #AT91_DDRSDRC_LPCB_POWER_DOWN
+			mov	r3, #AT91C_DDRC2_LPCB_POWERDOWN
 			ldr	r4, =AT91_RSTC_KEY | AT91_RSTC_PERRST | AT91_RSTC_PROCRST
 
 			.balign	32				@ align to cache line
 
-			str	r2, [r0, #AT91_DDRSDRC_RTR]	@ disable DDR0 access
-			str	r3, [r0, #AT91_DDRSDRC_LPR]	@ power down DDR0
+			str	r2, [r0, #HDDRSDRC2_RTR]	@ disable DDR0 access
+			str	r3, [r0, #HDDRSDRC2_LPR]	@ power down DDR0
 			str	r4, [r1]			@ reset processor
 
 			b	.
