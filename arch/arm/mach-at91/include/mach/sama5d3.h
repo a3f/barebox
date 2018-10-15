@@ -19,6 +19,7 @@
 #define AT91_ID_SYS		 1	/* System Peripherals */
 #define SAMA5D3_ID_DBGU		 2	/* debug Unit (usually no special interrupt line) */
 #define SAMA5D3_ID_PIT		 3	/* Periodic Interval Timer Interrupt */
+#define AT91_ID_PIT		 SAMA5D3_ID_PIT
 #define SAMA5D3_ID_WDT		 4	/* Watchdog timer Interrupt */
 #define SAMA5D3_ID_HSMC5	 5	/* Static Memory Controller */
 #define SAMA5D3_ID_PIOA		 6	/* Parallel I/O Controller A */
@@ -84,6 +85,7 @@
 #define SAMA5D3_BASE_EMAC	0xf802c000 /* (EMAC) Base Address */
 #define SAMA5D3_BASE_UDPHS	0xf8030000
 #define AT91_BASE_SYS		0xffffc000
+#define AT91_BASE_PIT		SAMA5D3_BASE_PIT
 
 /*
  * System Peripherals (offset from AT91_BASE_SYS)

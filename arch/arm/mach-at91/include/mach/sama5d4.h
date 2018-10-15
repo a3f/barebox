@@ -17,6 +17,7 @@
  * Peripheral identifiers/interrupts.
  */
 #define SAMA5D4_ID_PIT		 3
+#define AT91_ID_PIT		 SAMA5D4_ID_PIT
 #define SAMA5D4_ID_WDT		 4
 #define SAMA5D4_ID_PIOD		 5
 #define SAMA5D4_ID_USART0	 6
@@ -124,6 +125,7 @@
 
 #define AT91_NB_USART		7
 #define AT91_BASE_SYS		0xf0000000
+#define AT91_BASE_PIT		SAMA5D4_BASE_PIT
 #define AT91_PMC		SAMA5D4_BASE_PMC
 #define AT91_DDRSDRC0		(0xf0010000 - AT91_BASE_SYS)
 #define AT91_RSTC		(0xfc068600 - AT91_BASE_SYS)

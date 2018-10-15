@@ -15,6 +15,9 @@ config HAVE_AT91_UTMI
 config HAVE_AT91_USB_CLK
 	bool
 
+config HAVE_AT91_H32MXDIV
+	bool
+
 config COMMON_CLK_AT91
 	bool
 	select COMMON_CLK
@@ -213,6 +216,7 @@ config ARCH_SAMA5D4
 	select HAS_MACB
 	select AT91SAM9G45_RESET
 	select HAVE_MACH_ARM_HEAD
+	select HAVE_AT91_H32MXDIV
 
 endchoice
 
