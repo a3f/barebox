@@ -94,6 +94,7 @@
 #define SAMA5D4_BASE_SPI0	0xf8010000 /* (SPI0) Base Address */
 #define SAMA5D4_BASE_TC0	0xf801c000 /* (TC0) Base Address */
 #define SAMA5D4_BASE_GMAC0	0xf8020000 /* (GMAC0) Base Address */
+#define SAMA5D3_BASE_SFR	0xf8028000 /* (SFR) Base Address */
 #define SAMA5D4_BASE_USART0	0xf802c000 /* (USART0) Base Address */
 #define SAMA5D4_BASE_USART1	0xf8030000 /* (USART1) Base Address */
 #define SAMA5D4_BASE_HSMCI1	0xfc000000 /* (HSMCI1) Base Address */

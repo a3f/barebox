@@ -79,6 +79,7 @@
 #define	SAMA5D3_BASE_USART1	0xf0020000
 #define SAMA5D3_BASE_GMAC	0xf0028000 /* (GMAC) Base Address */
 #define SAMA5D3_BASE_LCDC	0xf0030000 /* (HLCDC5) Base Address */
+#define SAMA5D3_BASE_SFR	0xf0038000 /* (SFR) Base Address */
 #define SAMA5D3_BASE_HSMCI1	0xf8000000
 #define SAMA5D3_BASE_HSMCI2	0xf8004000
 #define SAMA5D3_BASE_SPI1	0xf8008000
@@ -86,6 +87,7 @@
 #define SAMA5D3_BASE_UDPHS	0xf8030000
 #define AT91_BASE_SYS		0xffffc000
 #define AT91_BASE_PIT		SAMA5D3_BASE_PIT
+#define AT91_BASE_SFR		SAMA5D3_BASE_SFR
 
 /*
  * System Peripherals (offset from AT91_BASE_SYS)
