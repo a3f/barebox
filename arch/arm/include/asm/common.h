@@ -46,6 +46,12 @@ static inline unsigned long get_sp(void)
 	return sp;
 }
 
+/*
+ * At least with GCC 7.3.1, listing sp in the clobber register can generate
+ * erroneous accesses to the fp, even in __naked functions. Therefore _always_
+ * branch to a noinline function as soon as possible (usually after relocation
+ * and c_setup).
+ */
 static inline void arm_setup_stack(unsigned long top)
 {
 	__asm__ __volatile__("mov sp, %0"
