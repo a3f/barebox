@@ -556,8 +556,9 @@ config MACH_AT91SAM9X5EK
 
 config MACH_MICROCHIP_KSZ9477_EVB
 	bool "Microchip EVB-KSZ9477 Evaluation Kit"
-	select OFDEVICE
-	select COMMON_CLK_OF_PROVIDER
+	select OFDEVICE if !AT91_BOOTSTRAP
+	select COMMON_CLK_OF_PROVIDER if !AT91_BOOTSTRAP
+	select HAVE_AT91_BOOTSTRAP
 	help
 	  Select this if you are using Microchip's EVB-KSZ9477 Evaluation Kit.
 
