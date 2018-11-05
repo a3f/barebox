@@ -56,6 +56,7 @@
 #define		AT91_PMC_OSCBYPASS	(1    <<  1)		/* Oscillator Bypass */
 #define		AT91_PMC_MOSCRCEN	(1    <<  3)		/* Main On-Chip RC Oscillator Enable [some SAM9] */
 #define		AT91_PMC_OSCOUNT	(0xff <<  8)		/* Main Oscillator Start-up Time */
+#define			AT91_PMC_OSCOUNT_(x) ((x) << 8)
 #define		AT91_PMC_KEY_MASK	(0xff << 16)		/* MOR Writing Key */
 #define		AT91_PMC_KEY		(0x37 << 16)		/* MOR Writing Key */
 #define		AT91_PMC_MOSCSEL	(1    << 24)		/* Main Oscillator Selection [some SAM9] */
@@ -70,6 +71,10 @@
 #define		AT91_PMC_DIV		(0xff  <<  0)		/* Divider */
 #define		AT91_PMC_PLLCOUNT	(0x3f  <<  8)		/* PLL Counter */
 #define		AT91_PMC_OUT		(3     << 14)		/* PLL Clock Frequency Range */
+#define 		AT91_PMC_OUT_0		(0 << 14)
+#define 		AT91_PMC_OUT_1		(1 << 14)
+#define 		AT91_PMC_OUT_2		(2 << 14)
+#define 		AT91_PMC_OUT_3		(3 << 14)
 #define		AT91_PMC_MUL		(0x7ff << 16)		/* PLL Multiplier */
 #define		AT91_PMC_USBDIV		(3     << 28)		/* USB Divisor (PLLB only) */
 #define			AT91_PMC_USBDIV_1		(0 << 28)
@@ -140,6 +145,7 @@
 #define			AT91_PMC_CSSMCK_MCK		(1 << 8)
 
 #define	AT91_PMC_IER		0x60			/* Interrupt Enable Register */
+#define		AT91_PMC_MOSCXTS	(1 << 0)		/* Oscillator Startup Time */
 #define	AT91_PMC_IDR		0x64			/* Interrupt Disable Register */
 #define	AT91_PMC_SR		0x68			/* Status Register */
 #define		AT91_PMC_MOSCS		(1 <<  0)		/* MOSCS Flag */
