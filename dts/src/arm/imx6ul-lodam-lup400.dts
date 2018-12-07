@@ -1,0 +1,570 @@
+/*
+ * The code contained herein is licensed under the GNU General Public
+ * License. You may obtain a copy of the GNU General Public License
+ * Version 2 or later at the following locations:
+ *
+ * http://www.opensource.org/licenses/gpl-license.html
+ * http://www.gnu.org/copyleft/gpl.html
+ */
+
+/dts-v1/;
+
+#include "arm/imx6ul.dtsi"
+
+/ {
+	model = "Lodam Freescale i.MX6 UltraLite LUP400 Board";
+	compatible = "lodam,imx6ul-lup400", "fsl,imx6ul";
+
+	backlight_display: backlight-display {
+		compatible = "pwm-backlight";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_backlight>;
+		pwms = <&pwm4 0 20000>;
+		brightness-levels = <0 16 32 48 64 80 96 112 128 144 160 176 192 208 224 240 255>;
+		default-brightness-level = <16>;
+		power-supply = <&reg_5v0>;
+		status = "okay";
+	};
+
+	chosen {
+		stdout-path = &uart1;
+
+		environment@0 {
+			compatible = "barebox,environment";
+			device-path = &norflash, "partname:barebox-environment";
+		};
+	};
+
+	leds: leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_leds>;
+
+		led1: led1 {
+			label = "green";
+			gpios = <&gpio1 0 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+
+		led2: led2 {
+			label = "red";
+			gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+			default-state = "on";
+		};
+	};
+
+	panel {
+		compatible = "sitronix,st75320";
+		backlight = <&backlight_display>;
+		reset-gpios = <&gpio3 3 GPIO_ACTIVE_LOW>;
+		power-supply = <&reg_3v3>;
+
+		/* V3 in mV */
+		st75320,contrast-levels = <10700 10800 10900 11000 11100 11200 11300 11400 11500 11600 11700 11800 11900 12000>;
+		st75320,default-contrast-level = <8>;
+		/* coefficients in mV  */
+		st75320,temperature-coefficients = <0 0
+						    0 0
+						    0 0
+						    0 0
+						    0 0
+						    0 0
+						    0 0
+						    0 0>;
+		/* Lodam example values from email attachment
+		st75320,temperature-coefficients = <(-55) (-25)
+						    0 0
+						    0 (-5)
+						    (-10) (-10)
+						    (-15) (-15)
+						    (-20) (-25)
+						    (-35) (-45)
+						    (-75) (-75)>;
+		*/
+		port {
+			st75320_in: endpoint {
+				remote-endpoint = <&lcdif_out>;
+			};
+		};
+	};
+
+	regulators {
+		compatible = "simple-bus";
+
+		reg_3v3: 3v3 {
+			compatible = "regulator-fixed";
+			regulator-name = "3v3";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+
+		reg_5v0: 5v0 {
+			compatible = "regulator-fixed";
+			regulator-name = "5v0";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			regulator-always-on;
+		};
+
+		reg_usbh1_vbus: usb-h1-vbus {
+			compatible = "regulator-fixed";
+			enable-active-high;
+			gpio = <&gpio2 12 GPIO_ACTIVE_HIGH>;
+			regulator-name = "usb_h1_vbus";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+		};
+
+		reg_vref_3v3: vref-3v3 {
+			compatible = "regulator-fixed";
+			regulator-name = "vref_3v3";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+	};
+};
+
+&adc1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_adc1>;
+	vref-supply = <&reg_vref_3v3>;
+	num-channels = <10>;
+	status = "okay";
+};
+
+/* &can1 { */
+/* 	pinctrl-names = "default"; */
+/* 	pinctrl-0 = <&pinctrl_flexcan1>; */
+/* 	xceiver-supply = <&reg_3p3v>; */
+/* }; */
+
+&ecspi1 {
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <&gpio4 26 0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi1>;
+	status = "okay";
+
+	norflash: m25p80@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <54000000>;
+		reg = <0>;
+	};
+};
+
+&gpio1 {
+	gpio-line-names = "", "", "PMIC_INT_B", "GNSS_ENABLE", "/Bluetooth_Reset", "", "", "",
+			  "", "", "", "", "", "", "", "",
+			  "", "", "/MODEM_IO", "/MODEM_RESET", "", "", "", "",
+			  "", "", "LMC_TransmitEnable", "AUX_TransmitEnable", "", "", "/ONOFF_DETECT", "BAT_MEAS_ENAB";
+};
+
+&gpio2 {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+			  "AUX_PWREN", "AUX_PWR_OC", "", "USB_MODEM_PWREN", "", "", "/USB_HUB_RESET", "",
+			  "", "", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "";
+};
+
+&gpio4 {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "",
+			  "", "", "", "", "", "", "", "USB_5V_present",
+			  "LMC_ON_PULSE", "", "", "", "", "", "", "";
+};
+
+&gpmi {
+	#address-cells = <1>;
+	#size-cells = <1>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_gpmi_nand>;
+	nand-on-flash-bbt;
+	status = "okay";
+};
+
+&i2c2 {
+	clock-frequency = <400000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c2>;
+	status = "okay";
+};
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog>;
+
+	pinctrl_hog: hoggrp {
+		/* adjust settings of some pads to save battery power */
+		fsl,pins = <
+			/* Input signal is always defined externally => no PU/PD */
+			MX6UL_PAD_BOOT_MODE0__GPIO5_IO10	0x0
+			MX6UL_PAD_BOOT_MODE1__GPIO5_IO11	0x0
+
+			/* Input signal is always defined externally => no PU/PD */
+			MX6UL_PAD_SNVS_TAMPER0__GPIO5_IO00	0x0
+			MX6UL_PAD_SNVS_TAMPER1__GPIO5_IO01	0x0
+			MX6UL_PAD_SNVS_TAMPER2__GPIO5_IO02	0x0
+			MX6UL_PAD_SNVS_TAMPER3__GPIO5_IO03	0x0
+			MX6UL_PAD_SNVS_TAMPER4__GPIO5_IO04	0x0
+			MX6UL_PAD_SNVS_TAMPER5__GPIO5_IO05	0x0
+			MX6UL_PAD_SNVS_TAMPER6__GPIO5_IO06	0x0
+			MX6UL_PAD_SNVS_TAMPER7__GPIO5_IO07	0x0
+			MX6UL_PAD_SNVS_TAMPER8__GPIO5_IO08	0x0
+			MX6UL_PAD_SNVS_TAMPER9__GPIO5_IO09	0x0
+
+			/* Input signal is always defined externally => no PU/PD */
+			MX6UL_PAD_JTAG_MOD__SJC_MOD		0x0
+			MX6UL_PAD_JTAG_TMS__SJC_TMS		0x0
+			MX6UL_PAD_JTAG_TDI__SJC_TDI		0x0
+			MX6UL_PAD_JTAG_TCK__SJC_TCK		0x0
+			MX6UL_PAD_JTAG_TRST_B__SJC_TRSTB	0x0
+
+			/* Input signal is always defined externally => no PU/PD */
+			MX6UL_PAD_ENET2_RX_DATA1__GPIO2_IO09	0x0
+			MX6UL_PAD_ENET2_RX_EN__GPIO2_IO10	0x0
+			MX6UL_PAD_ENET2_RX_ER__GPIO2_IO15	0x0
+
+			/* Input signal is always defined externally => no PU/PD */
+			MX6UL_PAD_SD1_CMD__GPIO2_IO16		0x0
+			MX6UL_PAD_SD1_CLK__GPIO2_IO17		0x0
+			MX6UL_PAD_SD1_DATA2__GPIO2_IO20		0x0
+			MX6UL_PAD_SD1_DATA3__GPIO2_IO21		0x0
+			MX6UL_PAD_CSI_MCLK__GPIO4_IO17		0x0
+			MX6UL_PAD_CSI_PIXCLK__GPIO4_IO18	0x0
+
+			/* Output with default configuration */
+			MX6UL_PAD_JTAG_TDO__SJC_TDO		0x31
+		>;
+	};
+
+	pinctrl_adc1: adc1grp {
+		fsl,pins = <
+			MX6UL_PAD_GPIO1_IO06__GPIO1_IO06	0x0	/* BAT_MEAS */
+			MX6UL_PAD_GPIO1_IO07__GPIO1_IO07	0x0	/* MAINS_MEAS */
+			MX6UL_PAD_GPIO1_IO08__GPIO1_IO08	0x0	/* 0V8_Vref */
+			MX6UL_PAD_GPIO1_IO09__GPIO1_IO09	0x0	/* NTC Temp. sensor */
+			MX6UL_PAD_UART5_RX_DATA__GPIO1_IO31	0x1b020	/* BAT_MEAS_ENABLE */
+		>;
+	};
+
+	pinctrl_backlight: backlightgrp {
+		fsl,pins = <
+			MX6UL_PAD_GPIO1_IO05__PWM4_OUT		0x000b0	/* PWM Backlight */
+		>;
+	};
+
+	pinctrl_diverse_power_related: diverse-power-related-grp {
+		fsl,pins = <
+			MX6UL_PAD_CSI_DATA03__GPIO4_IO24	0x00020	/* LMC_ON_PULSE */
+			MX6UL_PAD_GPIO1_IO02__GPIO1_IO02	0x1b000	/* PMIC_INT_B */
+		>;
+	};
+
+	pinctrl_ecspi1: ecspi1grp {
+		fsl,pins = <
+			MX6UL_PAD_CSI_DATA04__ECSPI1_SCLK	0x000b1	/* eCSPI1.SCLK */
+			MX6UL_PAD_CSI_DATA05__GPIO4_IO26	0x000b1	/* eCSPI1.SS0 */
+			MX6UL_PAD_CSI_DATA06__ECSPI1_MOSI	0x000b1	/* eCSPI1.MOSI */
+			MX6UL_PAD_CSI_DATA07__ECSPI1_MISO	0x10000	/* eCSPI1.MISO */
+		>;
+	};
+
+	pinctrl_flexcan1: flexcan1grp {
+		fsl,pins = <
+			MX6UL_PAD_SD1_DATA0__FLEXCAN1_TX	0x1b020	/* CAN1_TX */
+			MX6UL_PAD_SD1_DATA1__FLEXCAN1_RX	0x1b020	/* CAN1_RX */
+		>;
+	};
+
+	pinctrl_gpmi_nand: gpmi-nand {
+		fsl,pins = <
+			MX6UL_PAD_NAND_CLE__RAWNAND_CLE         0xb0b1	/* NAND_CLE */
+			MX6UL_PAD_NAND_ALE__RAWNAND_ALE         0xb0b1	/* NAND_ALE */
+			MX6UL_PAD_NAND_WP_B__RAWNAND_WP_B       0xb0b1	/* NAND_nWP */
+			MX6UL_PAD_NAND_READY_B__RAWNAND_READY_B 0xb000	/* NAND_nREADY */
+			MX6UL_PAD_NAND_CE0_B__RAWNAND_CE0_B     0xb0b1	/* NAND_nCE0 */
+			MX6UL_PAD_NAND_CE1_B__RAWNAND_CE1_B     0x0	/* NAND_nCE1, has external 10k PD */
+			MX6UL_PAD_NAND_DQS__RAWNAND_DQS		0x0	/* NAND_DQS, has external 10k PD */
+			MX6UL_PAD_NAND_RE_B__RAWNAND_RE_B       0xb0b1	/* NAND_nRE */
+			MX6UL_PAD_NAND_WE_B__RAWNAND_WE_B       0xb0b1	/* NAND_nWE */
+			MX6UL_PAD_NAND_DATA00__RAWNAND_DATA00   0xb0b1	/* NAND_DATA0 */
+			MX6UL_PAD_NAND_DATA01__RAWNAND_DATA01   0xb0b1	/* NAND_DATA1 */
+			MX6UL_PAD_NAND_DATA02__RAWNAND_DATA02   0xb0b1	/* NAND_DATA2 */
+			MX6UL_PAD_NAND_DATA03__RAWNAND_DATA03   0xb0b1	/* NAND_DATA3 */
+			MX6UL_PAD_NAND_DATA04__RAWNAND_DATA04   0xb0b1	/* NAND_DATA4 */
+			MX6UL_PAD_NAND_DATA05__RAWNAND_DATA05   0xb0b1	/* NAND_DATA5 */
+			MX6UL_PAD_NAND_DATA06__RAWNAND_DATA06   0xb0b1	/* NAND_DATA6 */
+			MX6UL_PAD_NAND_DATA07__RAWNAND_DATA07   0xb0b1	/* NAND_DATA7 */
+		>;
+	};
+
+	pinctrl_i2c2: i2c2grp {
+		fsl,pins = <
+			MX6UL_PAD_CSI_VSYNC__I2C2_SDA		0x820	/* I2C_SDA */
+			MX6UL_PAD_CSI_HSYNC__I2C2_SCL		0x820	/* I2C_SCL */
+		>;
+	};
+
+	pinctrl_kpp: kppgrp {
+		fsl,pins = <
+			MX6UL_PAD_ENET1_RX_DATA0__KPP_ROW00	0x1f820	/* kpp_ROW0 */
+			MX6UL_PAD_ENET1_RX_EN__KPP_ROW01	0x1f820	/* kpp_ROW1 */
+			MX6UL_PAD_ENET1_TX_DATA1__KPP_ROW02	0x1f820	/* kpp_ROW2 */
+			MX6UL_PAD_ENET1_TX_CLK__KPP_ROW03	0x1f820	/* kpp_ROW3 */
+			MX6UL_PAD_ENET1_RX_DATA1__KPP_COL00	0x1f820	/* kpp_COL0 */
+			MX6UL_PAD_ENET1_TX_DATA0__KPP_COL01	0x1f820	/* kpp_COL1 */
+			MX6UL_PAD_ENET1_TX_EN__KPP_COL02	0x1f820	/* kpp_COL2 */
+			MX6UL_PAD_ENET1_RX_ER__KPP_COL03	0x1f820	/* kpp_COL3 */
+			MX6UL_PAD_UART5_TX_DATA__GPIO1_IO30	0x1b020	/* !ONOFF_Detect */
+		>;
+	};
+
+	pinctrl_lcdif_ctrl: lcdifctrlgrp {
+		fsl,pins = <
+			MX6UL_PAD_LCD_CLK__LCDIF_WR_RWN		0x10b0	/* !LCD_WR */
+			MX6UL_PAD_LCD_ENABLE__LCDIF_RD_E	0x10b0	/* !LCD_RD */
+			MX6UL_PAD_LCD_HSYNC__LCDIF_RS		0x10b0	/* LCD_RS */
+			MX6UL_PAD_LCD_VSYNC__GPIO3_IO03		0xb0	/* !LCD_RESET */
+			MX6UL_PAD_LCD_RESET__LCDIF_CS		0x10b0	/* !LCD_CS */
+		>;
+	};
+
+	pinctrl_lcdif_dat: lcdifdatgrp {
+		fsl,pins = <
+			MX6UL_PAD_LCD_DATA00__LCDIF_DATA00	0x10b0	/* LCD_DATA00 */
+			MX6UL_PAD_LCD_DATA01__LCDIF_DATA01	0x10b0	/* LCD_DATA01 */
+			MX6UL_PAD_LCD_DATA02__LCDIF_DATA02	0x10b0	/* LCD_DATA02 */
+			MX6UL_PAD_LCD_DATA03__LCDIF_DATA03	0x10b0	/* LCD_DATA03 */
+			MX6UL_PAD_LCD_DATA04__LCDIF_DATA04	0x10b0	/* LCD_DATA04 */
+			MX6UL_PAD_LCD_DATA05__LCDIF_DATA05	0x10b0	/* LCD_DATA05 */
+			MX6UL_PAD_LCD_DATA06__LCDIF_DATA06	0x10b0	/* LCD_DATA06 */
+			MX6UL_PAD_LCD_DATA07__LCDIF_DATA07	0x10b0	/* LCD_DATA07 */
+			MX6UL_PAD_LCD_DATA08__LCDIF_DATA08	0x10b0	/* LCD_DATA08 */
+			MX6UL_PAD_LCD_DATA09__LCDIF_DATA09	0x10b0	/* LCD_DATA09 */
+			MX6UL_PAD_LCD_DATA10__LCDIF_DATA10	0x10b0	/* LCD_DATA10 */
+			MX6UL_PAD_LCD_DATA11__LCDIF_DATA11	0x10b0	/* LCD_DATA11 */
+			MX6UL_PAD_LCD_DATA12__LCDIF_DATA12	0x10b0	/* LCD_DATA12 */
+			MX6UL_PAD_LCD_DATA13__LCDIF_DATA13	0x10b0	/* LCD_DATA13 */
+			MX6UL_PAD_LCD_DATA14__LCDIF_DATA14	0x10b0	/* LCD_DATA14 */
+			MX6UL_PAD_LCD_DATA15__LCDIF_DATA15	0x10b0	/* LCD_DATA15 */
+
+			MX6UL_PAD_LCD_DATA16__LCDIF_DATA16	0x1b020	/* BT_CFG4[0] */
+			MX6UL_PAD_LCD_DATA17__LCDIF_DATA17	0x0	/* BT_CFG4[1], has external 10k PD */
+			MX6UL_PAD_LCD_DATA18__LCDIF_DATA18	0x0	/* BT_CFG4[2], has external 10k PD */
+			MX6UL_PAD_LCD_DATA19__LCDIF_DATA19	0x0	/* BT_CFG4[3], has external 10k PU */
+			MX6UL_PAD_LCD_DATA20__LCDIF_DATA20	0x0	/* BT_CFG4[4], has external 10k PD */
+			MX6UL_PAD_LCD_DATA21__LCDIF_DATA21	0x0	/* BT_CFG4[5], has external 10k PD */
+			MX6UL_PAD_LCD_DATA22__LCDIF_DATA22	0x0	/* BT_CFG4[6], has external 10k PD */
+			MX6UL_PAD_LCD_DATA23__LCDIF_DATA23	0x0	/* BT_CFG4[7], has external 10k PD */
+		>;
+	};
+
+	pinctrl_leds: ledsgrp {
+		fsl,pins = <
+			/* Output with low speed & no DSE */
+			MX6UL_PAD_GPIO1_IO00__GPIO1_IO00	0x0030	/* !LED1 */
+			MX6UL_PAD_GPIO1_IO01__GPIO1_IO01	0x0030	/* !LED2 */
+		>;
+	};
+
+	pinctrl_uart1: uart1grp {
+		fsl,pins = <
+			MX6UL_PAD_UART1_TX_DATA__UART1_DCE_TX	0x1b020	/* Debug_TXD */
+			MX6UL_PAD_UART1_RX_DATA__UART1_DCE_RX	0x1b020	/* Debug_RXD */
+		>;
+	};
+
+	pinctrl_uart2: uart2grp {
+		fsl,pins = <
+			MX6UL_PAD_UART2_TX_DATA__UART2_DCE_TX	0x1b020	/* Bluetooth_TXD */
+			MX6UL_PAD_UART2_RX_DATA__UART2_DCE_RX	0x1b020	/* Bluetooth_RXD */
+			MX6UL_PAD_UART2_CTS_B__UART2_DCE_CTS	0x1b020	/* !Bluetooth_CTS */
+			MX6UL_PAD_UART2_RTS_B__UART2_DCE_RTS	0x1b020	/* !Bluetooth_RTS */
+			MX6UL_PAD_GPIO1_IO04__GPIO1_IO04	0x1b020	/* !Bluetooth_Reset */
+		>;
+	};
+
+	pinctrl_uart3: uart3grp {
+		fsl,pins = <
+			MX6UL_PAD_UART3_TX_DATA__UART3_DCE_TX	0x1b020	/* LMC_TXD */
+			MX6UL_PAD_UART3_RX_DATA__UART3_DCE_RX	0x1b020	/* LMC_RXD */
+			MX6UL_PAD_UART3_CTS_B__GPIO1_IO26	0x1b020	/* LMC_TransmitEnable */
+		>;
+	};
+
+	pinctrl_uart4: uart4grp {
+		fsl,pins = <
+			MX6UL_PAD_UART4_TX_DATA__UART4_DCE_TX	0x1b020	/* GNSS_TXD */
+			MX6UL_PAD_UART4_RX_DATA__UART4_DCE_RX	0x1b020	/* GNSS_RXD */
+			MX6UL_PAD_GPIO1_IO03__GPIO1_IO03	0x000b0	/* GNSS_ENABLE */
+			MX6UL_PAD_ENET2_TX_DATA0__GPIO2_IO11	0x1b020	/* USB_MODEM_PWREN */
+			MX6UL_PAD_UART1_RTS_B__GPIO1_IO19	0x10020	/* !MODEM_RESET */
+			MX6UL_PAD_UART1_CTS_B__GPIO1_IO18	0x10020	/* !MODEM_IO */
+		>;
+	};
+
+	pinctrl_uart5: uart5grp {
+		fsl,pins = <
+			MX6UL_PAD_CSI_DATA00__UART5_DCE_TX	0x1b020	/* AUX_TXD */
+			MX6UL_PAD_CSI_DATA01__UART5_DCE_RX	0x1b020	/* AUX_RXD */
+			MX6UL_PAD_UART3_RTS_B__GPIO1_IO27	0x1b020	/* AUX_TransmitEnable */
+			MX6UL_PAD_ENET2_RX_DATA0__GPIO2_IO08	0x1b020	/* AUX_PWREN */
+			MX6UL_PAD_ENET2_RX_DATA1__GPIO2_IO09	0x1b020	/* AUX_PWR_OC */
+		>;
+	};
+
+	pinctrl_usbotg1: usbotg1grp {
+		fsl,pins = <
+			MX6UL_PAD_CSI_DATA02__GPIO4_IO23	0x10000	/* USB_5V_present */
+		>;
+	};
+
+	pinctrl_usbotg2: usbotg2grp {
+		fsl,pins = <
+			MX6UL_PAD_ENET2_TX_DATA1__GPIO2_IO12	0x1b020	/* USB_HOST_PWREN */
+			MX6UL_PAD_ENET2_TX_EN__USB_OTG2_OC	0x0	/* !USB_HOST_OC, has external 10k PU */
+			MX6UL_PAD_ENET2_TX_CLK__GPIO2_IO14	0x1b020	/* !USB_HUB_RESET */
+		>;
+	};
+};
+
+&kpp {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_kpp>;
+	/* MATRIX_KEY(row, col, linux-event-code)                           */
+	/* for the latter see include/dt-bindings/input/linux-event-codes.h */
+	linux,keymap = <
+			/*
+			  Column 0:
+			  Cancel button = Esc Key event
+			  Right arrow button = Right arrow Key event
+			  Down arrow button = Down arrow Key event
+			  Enter button = Enter key event
+
+			  Column 1:
+			  Heater button = H Key event
+			  Defrost button = D Key event
+			  T button = T Key event
+			  C/F button = C Key event
+
+			  Column 2:
+			  Service button = S Key event
+			  Alarm button = A Key event
+			  Operation button = O Key event
+			  Info button = I Key event
+
+			  Column 3:
+			  Left arrow button = Left arrow Key event
+			  Up arrow button = Up arrow Key event
+			  PTI button = P Key Event
+			  On/Off button = Home Key event [not handled by keypad driver]
+			*/
+			MATRIX_KEY(0x0, 0x0, KEY_ESC)   /* Cancel */
+			MATRIX_KEY(0x1, 0x0, KEY_RIGHT) /* Right */
+			MATRIX_KEY(0x2, 0x0, KEY_DOWN)  /* Down */
+			MATRIX_KEY(0x3, 0x0, KEY_ENTER) /* Enter */
+
+			MATRIX_KEY(0x0, 0x1, KEY_H)     /* Heater */
+			MATRIX_KEY(0x1, 0x1, KEY_D)     /* Defrost */
+			MATRIX_KEY(0x2, 0x1, KEY_T)     /* T */
+			MATRIX_KEY(0x3, 0x1, KEY_C)     /* C/F */
+
+			MATRIX_KEY(0x0, 0x2, KEY_S)     /* Service, wrench */
+			MATRIX_KEY(0x1, 0x2, KEY_A)     /* Alarm ((o)) */
+			MATRIX_KEY(0x2, 0x2, KEY_O)     /* Operation, pointing finger */
+			MATRIX_KEY(0x3, 0x2, KEY_I)     /* Info, i */
+
+			MATRIX_KEY(0x0, 0x3, KEY_LEFT)  /* Left */
+			MATRIX_KEY(0x1, 0x3, KEY_UP)    /* Up */
+			MATRIX_KEY(0x2, 0x3, KEY_P)     /* PTI */
+			/*MATRIX_KEY(0x3, 0x3, KEY_???)*/
+	>;
+	keypad,num-rows = <4>;
+	keypad,num-columns = <4>;
+	status = "okay";
+};
+
+&lcdif {
+	assigned-clocks = <&clks IMX6UL_CLK_LCDIF_PRE_SEL>;
+	assigned-clock-parents = <&clks IMX6UL_CLK_PLL5_VIDEO_DIV>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_lcdif_dat
+		     &pinctrl_lcdif_ctrl>;
+	mpu-mode = "8080";
+	bus-width = <8>;
+	bus-frequency = <2857000>; /* 350 ns per cycle */
+	cmd-hold-cycles = <1>;
+	cmd-setup-cycles = <1>;
+	data-hold-cycles = <3>;
+	data-setup-cycles = <1>;
+	status = "okay";
+
+	port {
+		lcdif_out: endpoint {
+			remote-endpoint = <&st75320_in>;
+		};
+	};
+};
+
+&pwm4 {
+	status = "okay";
+};
+
+&snvs_poweroff {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_diverse_power_related>;
+	status = "okay";
+};
+
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart1>;
+	status = "okay";
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart2>;
+	status = "okay";
+	uart-has-rtscts;
+};
+
+&uart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart3>;
+	linux,rs485-enabled-at-boot-time;
+	rts-gpios = <&gpio1 26 GPIO_ACTIVE_HIGH>;
+	fsl,uart-has-rtscts;
+	status = "okay";
+};
+
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4>;
+	status = "okay";
+};
+
+&uart5 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart5>;
+	status = "okay";
+};
+
+&usbotg1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usbotg1>;
+	dr_mode = "peripheral";
+	status = "okay";
+};
+
+&usbotg2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usbotg2>;
+	vbus-supply =<&reg_usbh1_vbus>;
+	dr_mode = "host";
+	status = "okay";
+};
