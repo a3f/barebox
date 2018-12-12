@@ -342,6 +342,12 @@ config MACH_GK802
 	bool "Zealz GK802 Mini PC"
 	select ARCH_IMX6
 
+config MACH_LODAM_BSMART
+	bool "Lodam i.MX6ul BSmart"
+	select ARCH_IMX6
+	select ARCH_IMX6UL
+	select ARM_USE_COMPRESSED_DTB
+
 config MACH_ELTEC_HIPERCAM
 	bool "ELTEC HiPerCam"
 	select ARCH_IMX6

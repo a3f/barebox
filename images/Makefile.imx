@@ -158,6 +158,11 @@ CFG_start_imx6_gk802.pblb.imximg = $(board)/gk802/flash-header.imxcfg
 FILE_barebox-gk802.img = start_imx6_gk802.pblb.imximg
 image-$(CONFIG_MACH_GK802) += barebox-gk802.img
 
+pblb-$(CONFIG_MACH_LODAM_BSMART) += start_imx6ul_lodam_bsmart
+CFG_start_imx6ul_lodam_bsmart.pblb.imximg = $(board)/lodam-bsmart/flash-header-imx6ul-lodam-bsmart.imxcfg
+FILE_barebox-lodam-bsmart.img = start_imx6ul_lodam_bsmart.pblb.imximg
+image-$(CONFIG_MACH_LODAM_BSMART) += barebox-lodam-bsmart.img
+
 pblb-$(CONFIG_MACH_TQMA6X) += start_imx6dl_mba6x
 CFG_start_imx6dl_mba6x.pblb.imximg = $(board)/tqma6x/flash-header-tqma6dl.imxcfg
 FILE_barebox-tq-tqma6s-mba6x.img = start_imx6dl_mba6x.pblb.imximg
