@@ -30,9 +30,6 @@ config MACH_AT91SAM9263EK_DT
 config HAVE_AT91_SMD
 	bool
 
-config HAVE_AT91_H32MX
-	bool
-
 config HAVE_AT91_GENERATED_CLK
 	bool
 
