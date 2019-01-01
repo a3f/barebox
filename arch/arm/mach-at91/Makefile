@@ -1,4 +1,5 @@
 obj-y += setup.o
+pbl-y += lowlevel_clock.o
 
 ifeq ($(CONFIG_COMMON_CLK_OF_PROVIDER),)
 obj-y += clock.o
