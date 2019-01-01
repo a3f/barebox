@@ -35,4 +35,20 @@
 #define		AT91_WDT_WDUNF		(1 << 0)		/* Watchdog Underflow */
 #define		AT91_WDT_WDERR		(1 << 1)		/* Watchdog Error */
 
+#ifndef __ASSEMBLY__
+// SPDX-License-Identifier: BSD-1-Clause
+/*
+ * Copyright (c) 2006, Atmel Corporation
+ */
+
+#include <asm-generic/io.h>
+
+static inline void at91_wdt_disable(void __iomem *wdt_base)
+{
+	u32 reg = __raw_readl(wdt_base + AT91_WDT_MR);
+	reg |= AT91_WDT_WDDIS;
+	__raw_writel(reg, wdt_base + AT91_WDT_MR);
+}
+
+#endif /* __ASSEMBLY__ */
 #endif
