@@ -222,13 +222,11 @@ static inline u32 at91sam9n12_get_ddram_size(void)
 #endif
 
 #ifdef CONFIG_SOC_SAMA5
-#include <mach/sama5d3.h>
-static inline u32 at91sama5_get_ddram_size(void)
+static inline u32 at91sama5_get_ddram_size(void __iomem *base)
 {
 	u32 cr;
 	u32 mdr;
 	u32 size;
-	void * __iomem base = IOMEM(SAMA5D3_BASE_MPDDRC);
 
 	cr = readl(base + AT91_DDRSDRC_CR);
 	mdr = readl(base + AT91_DDRSDRC_MDR);
@@ -253,7 +251,7 @@ static inline u32 at91sama5_get_ddram_size(void)
 	return size;
 }
 #else
-static inline u32 at91sama5_get_ddram_size(void)
+static inline u32 at91sama5_get_ddram_size(void __iomem *base)
 {
 	return 0;
 }
