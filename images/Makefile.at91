@@ -4,12 +4,18 @@
 
 pblb-$(CONFIG_MACH_AT91SAM9X5EK) += start_at91sam9x5ek
 FILE_barebox-at91sam9x5ek.img = start_at91sam9x5ek.pblb
-image-$(CONFIG_MACH_AT91SAM9X5EK) += barebox-at91sam9x5ek.img
+at91-barebox-$(CONFIG_MACH_AT91SAM9X5EK) += barebox-at91sam9x5ek.img
 
 pblb-$(CONFIG_MACH_AT91SAM9263EK) += start_at91sam9263ek
 FILE_barebox-at91sam9263ek.img = start_at91sam9263ek.pblb
-image-$(CONFIG_MACH_AT91SAM9263EK) += barebox-at91sam9263ek.img
+at91-barebox-$(CONFIG_MACH_AT91SAM9263EK) += barebox-at91sam9263ek.img
 
 pblb-$(CONFIG_MACH_MICROCHIP_KSZ9477_EVB) += start_sama5d3_xplained_ung8071
 FILE_barebox-microchip-ksz9477-evb.img = start_sama5d3_xplained_ung8071.pblb
-image-$(CONFIG_MACH_MICROCHIP_KSZ9477_EVB) += barebox-microchip-ksz9477-evb.img
+at91-barebox-$(CONFIG_MACH_MICROCHIP_KSZ9477_EVB) += barebox-microchip-ksz9477-evb.img
+
+ifdef CONFIG_AT91_LOAD_BAREBOX_SRAM
+image-y += $(at91-boot-bin-y)
+else
+image-y += $(at91-barebox-y)
+endif
