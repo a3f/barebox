@@ -1,0 +1,13 @@
+/*
+ * at91-microchip-ksz9477-evb-boot-bin.dts - First Stage Device Tree for EVB-KSZ9477
+ *
+ * Copyright (C) 2019 Ahmad Fatoum <a.fatoum@pengutronix.de>
+ *
+ * SPDX-License-Identifier: (GPL-2.0-only OR X11)
+ */
+#include "at91-microchip-ksz9477-evb.dts"
+
+/delete-node/ &spi1;
+/delete-node/ &macb0;
+/delete-node/ &macb1;
+/delete-node/ &pinctrl_spi_ksz;
