@@ -140,7 +140,7 @@ extern char __dtb_z_at91_microchip_ksz9477_evb_start[];
 
 static noinline void board_init(void)
 {
-	void *fdt;
+	void *fdt = NULL;
 
 	at91_wdt_disable(IOMEM(SAMA5D3_BASE_WDT));
 	at91_pmc_init(PMC_BASE, AT91_PMC_LL_SAMA5D3);
@@ -174,7 +174,8 @@ static noinline void board_init(void)
 
 	sama5d3_ddramc_init();
 
-	fdt = __dtb_z_at91_microchip_ksz9477_evb_boot_bin_start;
+	if (IS_ENABLED(CONFIG_MACH_MICROCHIP_KSZ9477_EVB_DT))
+		fdt = __dtb_z_at91_microchip_ksz9477_evb_boot_bin_start;
 
 	barebox_arm_entry(SAMA5_DDRCS, SZ_256M, fdt);
 }

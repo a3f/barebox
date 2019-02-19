@@ -18,6 +18,15 @@ config MACH_AT91SAM9263EK_DT
 	  Enabled for at91sam9263ek - evaluation kit.
 	  But only if we need the device tree (bootstrap do not use DT)
 
+config MACH_MICROCHIP_KSZ9477_EVB_DT
+	def_bool y
+	depends on MACH_MICROCHIP_KSZ9477_EVB && OFDEVICE
+	select ARM_USE_COMPRESSED_DTB
+	help
+	  Enabled for Microchip KSZ9477 - evaluation kit.
+	  But only if we need the device tree (bootstrap doesn't yet work with
+	  DT)
+
 config HAVE_AT91_SMD
 	bool
 
@@ -546,9 +555,8 @@ config MACH_AT91SAM9X5EK
 config MACH_MICROCHIP_KSZ9477_EVB
 	bool "Microchip EVB-KSZ9477 Evaluation Kit"
 	depends on ARCH_SAMA5D3
-	select OFDEVICE
-	select COMMON_CLK_OF_PROVIDER
-	select ARM_USE_COMPRESSED_DTB
+	select OFDEVICE if !AT91_LOAD_BAREBOX_SRAM
+	select COMMON_CLK_OF_PROVIDER if OFDEVICE
 	select HAVE_AT91_BOOTSTRAP
 	help
 	  Select this if you are using Microchip's EVB-KSZ9477 Evaluation Kit.
