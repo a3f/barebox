@@ -5,6 +5,8 @@
 #ifndef __DDRAMC_H__
 #define __DDRAMC_H__
 
+#include <linux/compiler.h>
+
 /* Note: reserved bits must always be zeroed */
 struct at91_ddramc_register {
 	unsigned long mdr;

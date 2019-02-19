@@ -40,7 +40,7 @@ extern char __dtb_z_at91_microchip_ksz9477_evb_start[];
 
 ENTRY_FUNCTION(start_sama5d3_xplained_ung8071, r0, r1, r2)
 {
-	void *fdt;
+	void *fdt = NULL;
 
 	arm_cpu_lowlevel_init();
 
@@ -49,7 +49,8 @@ ENTRY_FUNCTION(start_sama5d3_xplained_ung8071, r0, r1, r2)
 	if (IS_ENABLED(CONFIG_DEBUG_LL))
 		dbgu_init();
 
-	fdt = __dtb_z_at91_microchip_ksz9477_evb_start + get_runtime_offset();
+	if (IS_ENABLED(CONFIG_MACH_MICROCHIP_KSZ9477_EVB_DT))
+		fdt = __dtb_z_at91_microchip_ksz9477_evb_start + get_runtime_offset();
 
 	barebox_arm_entry(SAMA5_DDRCS, SZ_256M, fdt);
 }
