@@ -19,6 +19,16 @@ MAX_PBL_IMAGE_SIZE_start_sama5d3_xplained_ung8071_boot_bin = 0x10000
 FILE_barebox-microchip-ksz9477-evb-boot.bin.img = start_sama5d3_xplained_ung8071_boot_bin.pblb
 at91-boot-bin-$(CONFIG_MACH_MICROCHIP_KSZ9477_EVB) += barebox-microchip-ksz9477-evb-boot.bin.img
 
+pblb-$(CONFIG_MACH_SAMA5D27_SOM1) += start_sama5d27_som1_ek
+FILE_barebox-sama5d27-som1-ek.img = start_sama5d27_som1_ek.pblb
+at91-barebox-$(CONFIG_MACH_SAMA5D27_SOM1) += barebox-sama5d27-som1-ek.img
+
+pblb-$(CONFIG_MACH_SAMA5D27_SOM1) += start_sama5d27_som1_ek_boot_bin
+MAX_PBL_IMAGE_SIZE_start_sama5d27_som1_ek_boot_bin = 0x10000
+FILE_barebox-sama5d27-som1-ek-boot.bin.img = start_sama5d27_som1_ek_boot_bin.pblb
+at91-boot-bin-$(CONFIG_MACH_SAMA5D27_SOM1) += barebox-sama5d27-som1-ek-boot.bin.img
+
+
 ifdef CONFIG_AT91_LOAD_BAREBOX_SRAM
 image-y += $(at91-boot-bin-y)
 else

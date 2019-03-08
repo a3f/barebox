@@ -130,6 +130,7 @@ pbl-dtb-$(CONFIG_MACH_AT91SAM9263EK_DT) += at91sam9263ek.dtb.o
 pbl-dtb-$(CONFIG_MACH_MICROCHIP_KSZ9477_EVB) += \
 	at91-microchip-ksz9477-evb.dtb.o 	\
 	at91-microchip-ksz9477-evb-boot-bin.dtb.o
+pbl-dtb-$(CONFIG_MACH_SAMA5D27_SOM1_DT) += at91-sama5d27_som1_ek.dtb.o
 pbl-dtb-$(CONFIG_MACH_AT91SAM9X5EK) += at91sam9x5ek.dtb.o
 pbl-dtb-$(CONFIG_MACH_XILINX_ZCU104) += zynqmp-zcu104-revA.dtb.o
 
