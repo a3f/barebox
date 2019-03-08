@@ -218,10 +218,13 @@ static void noinline lowlevel_board_init(void)
 
 ENTRY_FUNCTION(start_sama5d27_som1_ek_boot_bin, r0, r1, r2)
 {
+	arm_cpu_lowlevel_init();
+
 	arm_setup_stack(SAMA5D2_SRAM_BASE + SAMA5D2_SRAM_SIZE - 16);
 
-	if (IS_ENABLED(CONFIG_DEBUG_LL))
-		dbgu_init();
+	relocate_to_current_adr();
+	setup_c();
+	barrier();
 
 	lowlevel_board_init();
 }
