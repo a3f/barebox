@@ -30,6 +30,7 @@ config MACH_MICROCHIP_KSZ9477_EVB_DT
 config MACH_SAMA5D27_SOM1_DT
 	def_bool y
 	depends on MACH_SAMA5D27_SOM1 && OFDEVICE
+	select ARM_USE_COMPRESSED_DTB
 	help
 	  Enabled for Microchip sama5d27 SoM1 - evaluation kit.
 	  But only if we need the device tree (bootstrap do not use DT)

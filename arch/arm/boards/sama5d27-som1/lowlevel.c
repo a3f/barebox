@@ -83,7 +83,6 @@ static void configure_piod_pin(unsigned pin)
 	unsigned mask = pin_to_mask(pin);
 
 	pio4_set_periph(pio, mask, AT91C_PIO_CFGR_FUNC_PERIPH_A);
-
 }
 
 static void dbgu_init(void)
