@@ -28,6 +28,12 @@
 #define HALF_DUPLEX		1
 #define FULL_DUPLEX		2
 
+#define MII_GMAC4_GOC_SHIFT	2
+#define MII_GMAC4_WRITE		(1 << MII_GMAC4_GOC_SHIFT)
+#define MII_GMAC4_READ		(3 << MII_GMAC4_GOC_SHIFT)
+
+#define GMAC_MDIO_ADDR 0x00000200
+#define GMAC_MDIO_DATA 0x00000204
 
 static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 {
@@ -36,19 +42,22 @@ static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 	u64 start;
 	u32 miiaddr;
 
-	miiaddr = ((addr << MIIADDRSHIFT) & MII_ADDRMSK) |
-		  ((reg << MIIREGSHIFT) & MII_REGMSK);
+	miiaddr = (addr << 21) | (reg << 16);
 
-	writel(miiaddr | MII_CLKRANGE_150_250M | MII_BUSY, &mac_p->miiaddr);
+//	if (priv->plat->has_gmac4)
+	if (1)
+		miiaddr |= MII_GMAC4_READ;
+
+	writel(miiaddr | (MII_CLKRANGE_150_250M << 8) | MII_BUSY, ((void *)mac_p) + GMAC_MDIO_ADDR);
 
 	start = get_time_ns();
-	while (readl(&mac_p->miiaddr) & MII_BUSY) {
+	while (readl(((void *)mac_p) + GMAC_MDIO_ADDR) & MII_BUSY) {
 		if (is_timeout(start, 10 * MSECOND)) {
 			dev_err(&priv->netdev.dev, "MDIO timeout\n");
 			return -EIO;
 		}
 	}
-	return readl(&mac_p->miidata) & 0xffff;
+	return readl(((void *)mac_p) + GMAC_MDIO_DATA) & 0xffff;
 }
 
 static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
@@ -58,14 +67,19 @@ static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 	u64 start;
 	u32 miiaddr;
 
-	writel(val, &mac_p->miidata);
-	miiaddr = ((addr << MIIADDRSHIFT) & MII_ADDRMSK) |
-		  ((reg << MIIREGSHIFT) & MII_REGMSK) | MII_WRITE;
+	writel(val, ((void *)mac_p) + GMAC_MDIO_DATA);
+	miiaddr = (addr << 21) | (reg << 16);
 
-	writel(miiaddr | MII_CLKRANGE_150_250M | MII_BUSY, &mac_p->miiaddr);
+//	if (priv->plat->has_gmac4)
+	if (1)
+		miiaddr |= MII_GMAC4_WRITE;
+	else
+		miiaddr |= MII_WRITE;
+
+	writel(miiaddr | (MII_CLKRANGE_150_250M << 8) | MII_BUSY, ((void *)mac_p) + GMAC_MDIO_ADDR);
 
 	start = get_time_ns();
-	while (readl(&mac_p->miiaddr) & MII_BUSY) {
+	while (readl(((void *)mac_p) + GMAC_MDIO_ADDR) & MII_BUSY) {
 		if (is_timeout(start, 10 * MSECOND)) {
 			dev_err(&priv->netdev.dev, "MDIO timeout\n");
 			return -EIO;
@@ -419,15 +433,45 @@ static void dwc_version(struct device_d *dev, u32 hwid)
 		uid, synid);
 }
 
+#include <linux/clk.h>
+
+static const struct clk_bulk_data dw_clks[] = {
+	{
+		.id = "stmmaceth",
+	}, {
+		.id = "mac-clk-tx",
+	}, {
+		.id = "mac-clk-rx",
+	}, {
+		.id = "ethstp",
+	}, {
+		.id = "syscfg-clk",
+	},
+};
+
 static int dwc_probe_dt(struct device_d *dev, struct dw_eth_dev *priv)
 {
 	struct device_node *child;
+	int ret;
 
 	if (!IS_ENABLED(CONFIG_OFTREE))
 		return -ENODEV;
 
 	priv->phy_addr = -1;
 	priv->interface = of_get_phy_mode(dev->device_node);
+
+	priv->clks = xmemdup(dw_clks, sizeof(dw_clks));
+	ret = clk_bulk_get(dev, ARRAY_SIZE(dw_clks), priv->clks);
+	if (ret) {
+		dev_err(dev, "Failed to get clks: %s\n", strerror(-ret));
+		return ret;
+	}
+
+	ret = clk_bulk_enable(ARRAY_SIZE(dw_clks), priv->clks);
+	if (ret) {
+		dev_err(dev, "Failed to enable clks: %s\n", strerror(-ret));
+		return ret;
+	}
 
 	/* Set MDIO bus device node, if present. */
 	for_each_child_of_node(dev->device_node, child) {
