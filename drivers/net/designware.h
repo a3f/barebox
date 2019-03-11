@@ -31,6 +31,8 @@ struct dw_eth_dev {
 	int enh_desc;
 
 	struct reset_control	*rst;
+
+	struct clk_bulk_data *clks;
 };
 
 struct dw_eth_drvdata {
