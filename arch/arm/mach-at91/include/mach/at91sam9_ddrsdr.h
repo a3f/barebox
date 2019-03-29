@@ -189,19 +189,6 @@ static inline u32 at91sam9x5_get_ddram_size(void)
 }
 #endif
 
-#ifdef CONFIG_SOC_AT91SAM9N12
-#include <mach/at91sam9n12.h>
-static inline u32 at91sam9n12_get_ddram_size(void)
-{
-	return at91_get_ddram_size(IOMEM(AT91SAM9N12_BASE_DDRSDRC0), true);
-}
-#else
-static inline u32 at91sam9n12_get_ddram_size(void)
-{
-	return 0;
-}
-#endif
-
 #ifdef CONFIG_SOC_SAMA5
 static inline u32 at91sama5_get_ddram_size(void __iomem *base)
 {
