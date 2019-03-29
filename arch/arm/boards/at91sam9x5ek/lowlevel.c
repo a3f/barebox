@@ -17,5 +17,7 @@ ENTRY_FUNCTION(start_at91sam9x5ek, r0, r1, r2)
 
 	fdt = __dtb_at91sam9x5ek_start + get_runtime_offset();
 
-	barebox_arm_entry(AT91_CHIPSELECT_1, at91sam9x5_get_ddram_size(), fdt);
+	barebox_arm_entry(AT91_CHIPSELECT_1,
+			at91_get_ddram_size(IOMEM(AT91SAM9X5_BASE_DDRSDRC0), true),
+			fdt);
 }
