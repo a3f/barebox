@@ -19,6 +19,7 @@ void __naked __bare_init barebox_arm_reset_vector(uint32_t r0, uint32_t r1, uint
 
 	arm_setup_stack(AT91SAM9G45_SRAM_BASE + AT91SAM9G45_SRAM_SIZE - 16);
 
-	barebox_arm_entry(AT91_CHIPSELECT_6, at91sam9g45_get_ddram_size(1),
-	                  NULL);
+	barebox_arm_entry(AT91_CHIPSELECT_6, 
+			at91_get_ddram_size(IOMEM(AT91SAM9G45_BASE_DDRSDRC1), false),
+			NULL);
 }
