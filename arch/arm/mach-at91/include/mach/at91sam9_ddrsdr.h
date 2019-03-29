@@ -176,18 +176,6 @@ static inline u32 at91_get_ddram_size(void * __iomem base, bool is_nb)
 	return size;
 }
 
-#ifdef CONFIG_SOC_SAMA5
-static inline u32 at91sama5_get_ddram_size(void __iomem *base)
-{
-	return at91_get_ddram_size(base, true);
-}
-#else
-static inline u32 at91sama5_get_ddram_size(void __iomem *base)
-{
-	return 0;
-}
-#endif
-
 #endif
 
 #endif
