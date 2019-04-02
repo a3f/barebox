@@ -59,7 +59,7 @@ static char *crbits[] = {"M", "A", "C", "W", "P", "D", "L", "B", "S", "R",
 
 static int do_cpuinfo(int argc, char *argv[])
 {
-	unsigned long mainid, cache;
+	unsigned long mainid, cache, actlr;
 	unsigned int cr;
 	char *architecture, *implementer;
 	int i;
@@ -91,6 +91,7 @@ static int do_cpuinfo(int argc, char *argv[])
 		: "memory");
 #endif
 	cr = get_cr();
+	actlr = get_actlr();
 
 	switch (mainid >> 24) {
 	case 0x41:
@@ -253,6 +254,8 @@ static int do_cpuinfo(int argc, char *argv[])
 		if (cr & (1 << i))
 			printf("%s ", crbits[i]);
 	printf("(0x%08x)\n", cr);
+
+	printf("Auxiliary control register: 0x%08lx\n", actlr);
 
 	return 0;
 }
