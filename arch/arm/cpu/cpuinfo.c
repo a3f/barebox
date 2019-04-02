@@ -59,7 +59,8 @@ static char *crbits[] = {"M", "A", "C", "W", "P", "D", "L", "B", "S", "R",
 
 static int do_cpuinfo(int argc, char *argv[])
 {
-	unsigned long mainid, cache, cr;
+	unsigned long mainid, cache;
+	unsigned int cr;
 	char *architecture, *implementer;
 	int i;
 	int cpu_arch;
@@ -251,7 +252,7 @@ static int do_cpuinfo(int argc, char *argv[])
 	for (i = 0; i < ARRAY_SIZE(crbits); i++)
 		if (cr & (1 << i))
 			printf("%s ", crbits[i]);
-	printf("\n");
+	printf("(0x%08x)\n", cr);
 
 	return 0;
 }
