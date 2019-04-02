@@ -210,6 +210,44 @@ static inline void set_cr(unsigned int val)
 	isb();
 }
 
+static inline unsigned long get_actlr(void)
+{
+	unsigned long val;
+
+#ifdef CONFIG_CPU_64v8
+	unsigned int el = current_el();
+	if (el == 1)
+		asm volatile("mrs %0, actlr_el1" : "=r" (val) : : "cc");
+	else if (el == 2)
+		asm volatile("mrs %0, actlr_el2" : "=r" (val) : : "cc");
+	else
+		asm volatile("mrs %0, actlr_el3" : "=r" (val) : : "cc");
+#else
+	asm volatile ("mrc p15, 0, %0, c1, c0, 1 @ get ACTLR" : "=r" (val) : : "cc");
+#endif
+
+	return val;
+}
+
+static inline void set_actlr(unsigned long val)
+{
+#ifdef CONFIG_CPU_64v8
+	unsigned int el;
+
+	el = current_el();
+	if (el == 1)
+		asm volatile("msr actlr_el1, %0" : : "r" (val) : "cc");
+	else if (el == 2)
+		asm volatile("msr actlr_el2, %0" : : "r" (val) : "cc");
+	else
+		asm volatile("msr actlr_el3, %0" : : "r" (val) : "cc");
+#else
+	asm volatile("mcr p15, 0, %0, c1, c0, 1 @ set ACTLR"
+	  : : "r" (val) : "cc");
+#endif
+	isb();
+}
+
 #ifdef CONFIG_CPU_32v7
 static inline unsigned int get_vbar(void)
 {
