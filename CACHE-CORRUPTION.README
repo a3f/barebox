@@ -1,0 +1,9 @@
+Prep:
+  - use the .config in the same directory
+  - compile with /opt/OSELAS.Toolchain-2018.12.0/arm-v7a-linux-gnueabihf/gcc-8.2.1
+Boot:
+  - either over boot bnet from a working barebox (e.g. one with
+    CONFIG_DRIVER_VIDEO_BACKLIGHT=y and CONFIG_DRIVER_VIDEO_BACKLIGHT_PWM=y)
+  - or by barebox_update -t spiflash /mnt/tftp/${global.user}-barebox-${global.hostname}
+Observation:
+  - barebox hangs directly after DEBUG_LL printing only a >
