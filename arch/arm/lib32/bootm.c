@@ -185,14 +185,13 @@ static int bootm_load_tee_from_file(struct image_data *data)
 	if (read_full(fd, (void *)data->tee_res->start, hdr.init_size) < 0) {
 		pr_err("%s", strerror(errno));
 		ret = -errno;
-		goto out_res;
+		release_region(data->tee_res);
+		goto out;
 	}
 
 	printf("Read optee file to %pa, size 0x%08x\n", (void *)data->tee_res->start, hdr.init_size);
 
 	ret = 0;
-out_res:
-	release_region(data->tee_res);
 out:
 	close(fd);
 
