@@ -81,4 +81,12 @@ config RAVE_SP_WATCHDOG
 	depends on RAVE_SP_CORE
 	help
 	  Support for the watchdog on RAVE SP device.
+
+config STM32_IWDG_WATCHDOG
+        bool "Enable IWDG watchdog driver for STM32 processors"
+	depends on ARCH_STM32MP
+	select MFD_SYSCON
+        help
+                Enable the STM32 watchdog (IWDG) driver. Enable support to
+                configure STM32's on-SoC watchdog.
 endif
