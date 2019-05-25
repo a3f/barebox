@@ -16,13 +16,16 @@
 
 #define USART_ISR_TXE	BIT(7)
 
-static inline void PUTC_LL(int c)
+static inline void stm32_uart_putc(void __iomem *base, int c)
 {
-	void __iomem *base = IOMEM(DEBUG_LL_UART_ADDR);
-
 	writel(c, base + TDR_OFFSET);
 
 	while ((readl(base + ISR_OFFSET) & USART_ISR_TXE) == 0);
+}
+
+static inline void PUTC_LL(int c)
+{
+	stm32_uart_putc(IOMEM(DEBUG_LL_UART_ADDR), c);
 }
 
 #endif /* __MACH_STM32MP1_DEBUG_LL_H */
