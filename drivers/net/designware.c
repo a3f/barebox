@@ -116,9 +116,9 @@ static void tx_descs_init(struct eth_device *dev)
 
 		if (priv->enh_desc) {
 			desc_p->txrx_status &= ~(DESC_ENH_TXSTS_TXINT | DESC_ENH_TXSTS_TXLAST |
-					DESC_ENH_TXSTS_TXFIRST |
+					DESC_ENH_TXSTS_TXFIRST | DESC_ENH_TXSTS_TXCRCDIS |
 					DESC_ENH_TXSTS_TXCHECKINSCTRL |
-					DESC_ENH_TXSTS_TXRINGEND);
+					DESC_ENH_TXSTS_TXRINGEND | DESC_ENH_TXSTS_TXPADDIS);
 
 			desc_p->txrx_status |= DESC_ENH_TXSTS_TXCHAIN;
 			desc_p->dmamac_cntl = 0;
