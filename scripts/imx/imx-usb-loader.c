@@ -350,8 +350,8 @@ static libusb_device *find_imx_dev(libusb_device **devs, const struct mach_id **
 
 		err = libusb_open(dev, &usb_dev_handle);
 		if (err) {
-			fprintf(stderr, "Could not open device vid=0x%x pid=0x%x err=%d\n",
-				desc.idVendor, desc.idProduct, err);
+			fprintf(stderr, "Could not open device vid=0x%x pid=0x%x err=%s\n",
+				desc.idVendor, desc.idProduct, libusb_strerror(err));
 			continue;
 		}
 
@@ -534,8 +534,8 @@ static int transfer(int report, unsigned char *p, unsigned cnt, int *last_trans)
 						memcpy(p, &tmp[1], *last_trans);
 					}
 				} else {
-					printf("Unexpected report %i err=%i, cnt=%u, last_trans=%i, %02x %02x %02x %02x\n",
-						tmp[0], err, cnt, *last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
+					printf("Unexpected report %i err=%s, cnt=%u, last_trans=%i, %02x %02x %02x %02x\n",
+						tmp[0], libusb_strerror(err), cnt, *last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
 					err = 0;
 				}
 			}
@@ -568,14 +568,14 @@ int do_status(void)
 			       &last_trans);
 
 		if (verbose > 2)
-			printf("report 1, wrote %i bytes, err=%i\n", last_trans, err);
+			printf("report 1, wrote %i bytes, err=%s\n", last_trans, libusb_strerror(err));
 
 		memset(tmp, 0, sizeof(tmp));
 
 		err = transfer(3, tmp, 64, &last_trans);
 
 		if (verbose > 2) {
-			printf("report 3, read %i bytes, err=%i\n", last_trans, err);
+			printf("report 3, read %i bytes, err=%s\n", last_trans, libusb_strerror(err));
 			printf("read=%02x %02x %02x %02x\n", tmp[0], tmp[1], tmp[2], tmp[3]);
 		}
 
@@ -591,8 +591,8 @@ int do_status(void)
 	if (usb_id->mach_id->mode == MODE_HID) {
 		err = transfer(4, tmp, sizeof(tmp), &last_trans);
 		if (err)
-			printf("4 in err=%i, last_trans=%i  %02x %02x %02x %02x\n",
-					err, last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
+			printf("4 in err=%s, last_trans=%i  %02x %02x %02x %02x\n",
+					libusb_strerror(err), last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
 	}
 
 	return err;
@@ -622,7 +622,7 @@ static int read_memory(unsigned addr, void *dest, unsigned cnt)
 			       &last_trans);
 		if (!err)
 			break;
-		printf("read_reg_command err=%i, last_trans=%i\n", err, last_trans);
+		printf("read_reg_command err=%s, last_trans=%i\n", libusb_strerror(err), last_trans);
 		if (retry > 5) {
 			return -4;
 		}
@@ -631,8 +631,8 @@ static int read_memory(unsigned addr, void *dest, unsigned cnt)
 
 	err = transfer(3, tmp, 4, &last_trans);
 	if (err) {
-		printf("r3 in err=%i, last_trans=%i  %02x %02x %02x %02x\n",
-				err, last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
+		printf("r3 in err=%s, last_trans=%i  %02x %02x %02x %02x\n",
+				libusb_strerror(err), last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
 		return err;
 	}
 
@@ -642,8 +642,8 @@ static int read_memory(unsigned addr, void *dest, unsigned cnt)
 		tmp[0] = tmp[1] = tmp[2] = tmp[3] = 0;
 		err = transfer(4, tmp, 64, &last_trans);
 		if (err) {
-			printf("r4 in err=%i, last_trans=%i  %02x %02x %02x %02x cnt=%u rem=%d\n",
-					err, last_trans, tmp[0], tmp[1], tmp[2], tmp[3], cnt, rem);
+			printf("r4 in err=%s, last_trans=%i  %02x %02x %02x %02x cnt=%u rem=%d\n",
+					libusb_strerror(err), last_trans, tmp[0], tmp[1], tmp[2], tmp[3], cnt, rem);
 			break;
 		}
 		if ((last_trans > rem) || (last_trans > 64)) {
@@ -706,7 +706,7 @@ static int write_memory(unsigned addr, unsigned val, int width)
 			       &last_trans);
 		if (!err)
 			break;
-		printf("write_reg_command err=%i, last_trans=%i\n", err, last_trans);
+		printf("write_reg_command err=%s, last_trans=%i\n", libusb_strerror(err), last_trans);
 		if (retry > 5) {
 			return -4;
 		}
@@ -717,8 +717,8 @@ static int write_memory(unsigned addr, unsigned val, int width)
 
 	err = transfer(3, tmp, sizeof(tmp), &last_trans);
 	if (err) {
-		printf("w3 in err=%i, last_trans=%i  %02x %02x %02x %02x\n",
-				err, last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
+		printf("w3 in err=%s, last_trans=%i  %02x %02x %02x %02x\n",
+				libusb_strerror(err), last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
 		printf("addr=0x%08x, val=0x%08x\n", addr, val);
 	}
 
@@ -726,8 +726,8 @@ static int write_memory(unsigned addr, unsigned val, int width)
 
 	err = transfer(4, tmp, sizeof(tmp), &last_trans);
 	if (err)
-		printf("w4 in err=%i, last_trans=%i  %02x %02x %02x %02x\n",
-				err, last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
+		printf("w4 in err=%s, last_trans=%i  %02x %02x %02x %02x\n",
+				libusb_strerror(err), last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
 	return err;
 }
 
@@ -786,7 +786,7 @@ static int load_file(void *buf, unsigned len, unsigned dladdr, unsigned char typ
 		if (!err)
 			break;
 
-		printf("dl_command err=%i, last_trans=%i\n", err, last_trans);
+		printf("dl_command err=%s, last_trans=%i\n", libusb_strerror(err), last_trans);
 
 		if (retry > 5)
 			return -4;
@@ -798,8 +798,8 @@ static int load_file(void *buf, unsigned len, unsigned dladdr, unsigned char typ
 	if (usb_id->mach_id->mode == MODE_BULK) {
 		err = transfer(3, tmp, sizeof(tmp), &last_trans);
 		if (err)
-			printf("in err=%i, last_trans=%i  %02x %02x %02x %02x\n",
-					err, last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
+			printf("in err=%s, last_trans=%i  %02x %02x %02x %02x\n",
+					libusb_strerror(err), last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
 	}
 
 	p = buf;
@@ -813,7 +813,7 @@ static int load_file(void *buf, unsigned len, unsigned dladdr, unsigned char typ
 
 		err = transfer(2, p, now, &now);
 		if (err) {
-			printf("dl_command err=%i, last_trans=%i\n", err, last_trans);
+			printf("dl_command err=%s, last_trans=%i\n", libusb_strerror(err), last_trans);
 			return err;
 		}
 
@@ -824,12 +824,12 @@ static int load_file(void *buf, unsigned len, unsigned dladdr, unsigned char typ
 	if (usb_id->mach_id->mode == MODE_HID) {
 		err = transfer(3, tmp, sizeof(tmp), &last_trans);
 		if (err)
-			printf("3 in err=%i, last_trans=%i  %02x %02x %02x %02x\n",
-					err, last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
+			printf("3 in err=%s, last_trans=%i  %02x %02x %02x %02x\n",
+					libusb_strerror(err), last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
 		err = transfer(4, tmp, sizeof(tmp), &last_trans);
 		if (err)
-			printf("4 in err=%i, last_trans=%i  %02x %02x %02x %02x\n",
-					err, last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
+			printf("4 in err=%s, last_trans=%i  %02x %02x %02x %02x\n",
+					libusb_strerror(err), last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
 	} else {
 		do_status();
 	}
@@ -859,7 +859,7 @@ static int sdp_jump_address(unsigned addr)
 		if (!err)
 			break;
 
-		printf("jump_command err=%i, last_trans=%i\n", err, last_trans);
+		printf("jump_command err=%s, last_trans=%i\n", libusb_strerror(err), last_trans);
 
 		if (retry > 5)
 			return -4;
@@ -871,8 +871,8 @@ static int sdp_jump_address(unsigned addr)
 	err = transfer(3, tmp, sizeof(tmp), &last_trans);
 
 	if (err)
-		printf("j3 in err=%i, last_trans=%i  %02x %02x %02x %02x\n",
-			err, last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
+		printf("j3 in err=%s, last_trans=%i  %02x %02x %02x %02x\n",
+			libusb_strerror(err), last_trans, tmp[0], tmp[1], tmp[2], tmp[3]);
 	return 0;
 }
 
@@ -1162,7 +1162,7 @@ static int write_dcd_table_old(const struct imx_flash_header *hdr,
 	}
 
 	if (err)
-		fprintf(stderr, "writing DCD table failed with %d\n", err);
+		fprintf(stderr, "writing DCD table failed with %s\n", libusb_strerror(err));
 	else
 		printf("DCD table successfully written\n");
 
@@ -1500,8 +1500,8 @@ static int mxs_load_file(libusb_device_handle *dev, uint8_t *data, int size)
 
 	err = transfer(1, (unsigned char *) &dl_command, 20, &last_trans);
 	if (err) {
-		printf("transfer error at init step: err=%i, last_trans=%i\n",
-		       err, last_trans);
+		printf("transfer error at init step: err=%s, last_trans=%i\n",
+		       libusb_strerror(err), last_trans);
 		return err;
 	}
 
@@ -1516,7 +1516,7 @@ static int mxs_load_file(libusb_device_handle *dev, uint8_t *data, int size)
 
 		err = transfer(2, p, now, &now);
 		if (err) {
-			printf("dl_command err=%i, last_trans=%i\n", err, now);
+			printf("dl_command err=%s, last_trans=%i\n", libusb_strerror(err), now);
 			return err;
 		}
 
