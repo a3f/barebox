@@ -1655,7 +1655,7 @@ int main(int argc, char *argv[])
 
 	err = libusb_claim_interface(usb_dev_handle, 0);
 	if (err) {
-		printf("Claim failed\n");
+		printf("Claim failed: %s\n", libusb_strerror(err));
 		goto out;
 	}
 
@@ -1674,7 +1674,7 @@ int main(int argc, char *argv[])
 
 	err = do_status();
 	if (err) {
-		printf("status failed\n");
+		printf("status failed: %s\n", libusb_strerror(err));
 		goto out;
 	}
 
