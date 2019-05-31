@@ -5,3 +5,16 @@ config ARCH_IMX_USBLOADER
 	  imx-usb-loader is a tool to upload and start imximages to an i.MX SoC
 	  in ROM boot mode. It requires libusb, so make sure you have the libusb
 	  devel package installed on your machine.
+
+if ARCH_IMX_USBLOADER
+	config CONFIG_ARCH_IMX_USBLOADER_HIDAPI_SUPPORT
+	bool "use HIDAPI backend"
+	help
+	  imx-usb-loader uses libusb as backend by default, which allows
+	  programming USB drivers in userspace. Newer i.MX SoCs register
+	  themselves as Human Interface Devices (HID) and are often claimed
+	  by a HID kernel driver. On some operating systems, notably macOS,
+	  unloading the kernel driver may not be feasible and communicating
+	  via the system HID kernel driver may the best choice. If this is
+	  the case for you, sat y here to use HIDAPI as backend.
+endif
