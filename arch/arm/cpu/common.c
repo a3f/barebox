@@ -91,7 +91,7 @@ void relocate_to_current_adr(void)
 			putc_ll(' ');
 			puthex_ll(rel->r_addend);
 			putc_ll('\n');
-			panic("");
+			panic("Unknown relocation type");
 		}
 
 		dstart += sizeof(*rel);
@@ -121,7 +121,7 @@ void relocate_to_current_adr(void)
 			putc_ll(' ');
 			puthex_ll(rel->r_offset);
 			putc_ll('\n');
-			panic("");
+			panic("Unknown relocation type");
 		}
 
 		dstart += sizeof(*rel);
