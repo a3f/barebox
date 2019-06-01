@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+//
+// Copyright 2019 Ahmad Fatoum
+
+/dts-v1/;
+
+#include "nintendo-gameboy-advance.dtsi"
+
+/ {
+	model = "Nintendo Gameboy Advance";
+	compatible = "nintendo,gameboy-advance";
+};

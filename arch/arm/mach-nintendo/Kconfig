@@ -1,0 +1,15 @@
+if ARCH_NINTENDO
+
+config ARCH_NINTENDO_GBA
+	select CPU_ARM7TDMI
+	select CPU_32v4T_NO_CACHES
+	select HAS_DEBUG_LL
+	bool
+
+config MACH_NINTENDO_GBA
+	select ARCH_NINTENDO_GBA
+	select OFDEVICE
+	bool "Nintendo Game boy Advance"
+
+endif
+

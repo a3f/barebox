@@ -19,6 +19,11 @@ config CPU_64
 # which CPUs we support in the kernel image, and the compiler instruction
 # optimiser behaviour.
 
+# ARM7
+config CPU_ARM7TDMI
+	bool
+	select CPU_32v4T
+
 # ARM1176
 config CPU_ARM1176
 	bool
