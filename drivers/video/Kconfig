@@ -98,6 +98,11 @@ config DRIVER_VIDEO_BCM283X
 
 source "drivers/video/imx-ipu-v3/Kconfig"
 
+config DRIVER_VIDEO_GBA
+	bool "Nintendo Gameboy Advance framebuffer driver"
+	depends on OFTREE
+	depends on ARCH_NINTENDO
+
 config DRIVER_VIDEO_SIMPLEFB
 	bool "Simple framebuffer support"
 	depends on OFTREE
