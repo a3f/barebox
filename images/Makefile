@@ -150,6 +150,7 @@ include $(srctree)/images/Makefile.bcm283x
 include $(srctree)/images/Makefile.bcm47xx
 include $(srctree)/images/Makefile.imx
 include $(srctree)/images/Makefile.loongson
+include $(srctree)/images/Makefile.nintendo
 include $(srctree)/images/Makefile.malta
 include $(srctree)/images/Makefile.mvebu
 include $(srctree)/images/Makefile.mxs

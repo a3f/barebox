@@ -1,0 +1,166 @@
+// SPDX-License-Identifier: GPL-2.0 OR X11
+//
+// Copyright 2019 Ahmad Fatoum
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	chosen {};
+
+	cpus {
+		cpu {
+			device_type = "cpu";
+			compatible = "arm,arm7tdmi-s";
+		};
+	};
+
+	memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		ewram: region@2000000 {
+			reg = <0x02000000 0x40000>; /* 256K */
+		};
+		iwram: region@3000000 {
+			reg = <0x03000000 0x8000>;  /*  32K */
+		};
+	};
+
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		bios_reserved: bios-data@3007fe0{
+			reg = <0x03007fe0 0x000020>;
+		};
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		interrupt-parent = <&intc>;
+		ranges;
+
+		bios: sysrom@0 {
+			compatible = "nintendo,gba-sysrom";
+			reg = <0x00000000 0x4000>;
+		};
+
+		lcdc: lcdc@0 {
+			compatible = "nintendo,gba-lcdc";
+			reg = <0x04000000 0x56>, <0x05000000 0x400>,
+			      <0x06000000 0x18000>, <0x07000000 0x400>;
+			reg-names = "mmio", "palram", "vram", "oam";
+			interrupt-names = "vblank", "hblank", "vcounter";
+			interrupts = <0>, <1>, <3>;
+		};
+
+		soundc: soundc@60 {
+			compatible = "nintendo,gba-soundc";
+			reg = <0x04000060 0x48>;
+			dmas = <&dmac 1>, <&dmac 2>;
+			dma-names = "a", "b";
+		};
+
+		dmac: dmac@b0 {
+			compatible = "nintendo,gba-dmac";
+			reg = <0x040000b0 0x30>;
+			#dma-cells = <1>;
+			dma-channels = <4>;
+			interrupts = <8>, <9>, <10>, <11>;
+			interrupt-names = "dma0", "dma1", "dma2", "dma3";
+		};
+
+		timer: timer@100 {
+			compatible = "nintendo,gba-timer";
+			reg = <0x04000100 0x10>;
+			interrupts = <3>, <4>, <5>, <6>;
+		};
+
+		serial: serial@120 {
+			compatible = "nintendo,gba-serial";
+			reg = <0x04000120 0xc>, <0x134 0x1d>;
+			interrupts = <7>;
+		};
+
+		keypadc: keypadc@130 {
+			compatible = "nintendo,gba-keypadc";
+			reg = <0x04000130 0x4>;
+			interrupts = <12>;
+		};
+
+		intc: intc@200 {
+			compatible = "nintendo,gba-intc";
+			reg = <0x04000200 0x4>;
+			interrupt-controller;
+			#interrupt-cells = <1>;
+		};
+
+		pakc: pakc@204 {
+			compatible = "nintendo,gba-pakc";
+			reg = <0x04000204 0x2>;
+			interrupt-controller;
+		};
+
+		powerc: powerc@300 {
+			compatible = "nintendo,gba-powerc";
+			reg = <0x04000300 0x2>;
+			interrupt-controller;
+		};
+
+		memc: memc@800 {
+			compatible = "nintendo,gba-memc";
+			reg = <0x04000800 0x4>;
+			interrupt-controller;
+		};
+
+		gamepak_memory: gamepak-memory@8000000 {
+			compatible = "nintendo,gba-bus", "simple-bus";
+			#address-cells = <1>;
+			#size-cells = <1>;
+			nintendo,read-widths  = <8 16 32>;
+			nintendo,write-widths = <0 16 32>;
+			nintendo,wait-states  = <5 5 8>;
+			interrupts = <13>;
+			reg = <0x08000000 0x08000000>;
+			ranges;
+
+			pakrom0: pakrom0@8000000 {
+				compatible = "simple-bus";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				reg = <0x08000000 0x0a000000>;
+				ranges;
+			};
+
+			pakrom1: pakrom0@a000000 {
+				compatible = "simple-bus";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				reg = <0x0a000000 0x2000000>;
+				ranges;
+			};
+
+			pakrom2: pakrom0@c000000 {
+				compatible = "simple-bus";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				reg = <0x0c000000 0x2000000>;
+				ranges;
+			};
+
+			pakram: pakram@e000000 {
+				compatible = "simple-bus";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				reg = <0x0e000000 0x10000>;
+				ranges;
+				nintendo,read-widths  = <8>;
+				nintendo,write-widths = <8>;
+			};
+		};
+	};
+};

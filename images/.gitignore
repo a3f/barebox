@@ -19,7 +19,7 @@
 *.mlospi
 *.mxsbs
 *.mxssd
-*.csfbin
+*.gba
 pbl.lds
 barebox.x
 barebox.z

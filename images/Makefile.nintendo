@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# barebox image generation Makefile for Nintendo Consoles
+#
+
+# %.gba - generate gbafix'd image
+# ----------------------------------------------------------------
+
+quiet_cmd_gba_image = GBAFIX     $@
+      cmd_gba_image = cp $< $@ ; gbafix $@ >/dev/null || \
+	echo "WARNING: Couldn't fix up gba image due to previous errors."
+
+$(obj)/%.gba: $(obj)/%.img FORCE
+	$(call if_changed,gba_image)
+
+pblb-$(CONFIG_MACH_NINTENDO_GBA) += start_nintendo_gba.pblb
+FILE_barebox-nintendo-gba.img = start_nintendo_gba.pblb
+FILE_barebox-nintendo-gba.gba = FILE_barebox-nintendo-gba.img
+image-$(CONFIG_MACH_NINTENDO_GBA) += barebox-nintendo-gba.img
+image-$(CONFIG_MACH_NINTENDO_GBA) += barebox-nintendo-gba.gba

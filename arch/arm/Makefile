@@ -92,6 +92,7 @@ machine-$(CONFIG_ARCH_LAYERSCAPE)	:= layerscape
 machine-$(CONFIG_ARCH_MXS)		:= mxs
 machine-$(CONFIG_ARCH_MVEBU)		:= mvebu
 machine-$(CONFIG_ARCH_NOMADIK)		:= nomadik
+machine-$(CONFIG_ARCH_NINTENDO)		:= nintendo
 machine-$(CONFIG_ARCH_OMAP)		:= omap
 machine-$(CONFIG_ARCH_PXA)		:= pxa
 machine-$(CONFIG_ARCH_ROCKCHIP)		:= rockchip
