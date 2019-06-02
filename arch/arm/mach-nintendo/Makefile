@@ -1,1 +1,1 @@
-obj- := __dummy__.o
+obj-$(CONFIG_NINTENDO_INIT) := init.o
