@@ -19,7 +19,6 @@
 struct gba_lcdfb_priv {
 	struct fb_info info;
 	void __iomem *mmio;
-	void *vram;
 };
 
 static int gba_lcdfb_activate_var(struct fb_info *info)
@@ -35,13 +34,6 @@ static int gba_lcdfb_activate_var(struct fb_info *info)
 	/* Use BG2 in bitmap mode (240x160, 32768 colors) */
 	writel(DISPCNT_DISPENABLE(2) | DISPCNT_BGMODE(3), priv->mmio + DISPCNT);
 
-	info->blue.length = info->green.length = info->red.length = 5;
-	info->red.length = 0;
-	info->green.offset = 10;
-	info->blue.offset = 15;
-
-	info->screen_base = priv->vram;
-
 	return 0;
 }
 
@@ -53,6 +45,7 @@ static int gba_lcdfb_probe(struct device_d *dev)
 {
 	struct gba_lcdfb_priv *priv;
 	struct fb_info *info;
+	void *vram;
 	int ret = 0;
 
 	priv = xzalloc(sizeof(*priv));
@@ -61,17 +54,30 @@ static int gba_lcdfb_probe(struct device_d *dev)
 	if (IS_ERR(priv->mmio))
 		return PTR_ERR(priv->mmio);
 
-	priv->vram = (void __force *)dev_request_mem_region_by_name(dev, "vram");
-	if (IS_ERR(priv->vram))
-		return PTR_ERR(priv->vram);
+	vram = (void __force *)dev_request_mem_region_by_name(dev, "vram");
+	if (IS_ERR(vram))
+		return PTR_ERR(vram);
 
 	info = &priv->info;
 	info->priv = priv;
 	info->fbops = &gba_lcdfb_ops;
 
+	info->screen_base = vram;
+	info->xres = 240;
+	info->yres = 160;
+	info->bits_per_pixel = 16;
+
+	info->blue.length = info->green.length = info->red.length = 5;
+	info->blue.offset = 0;
+	info->green.offset = 5;
+	info->red.offset = 10;
+	gba_lcdfb_activate_var(info);
+
 	ret = register_framebuffer(info);
-	if (ret != 0)
+	if (ret)
 		dev_err(dev, "Failed to register framebuffer\n");
+	else
+		dev_info(dev, "frame buffer registered.\n");
 
 	return ret;
 }
