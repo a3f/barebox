@@ -147,4 +147,9 @@ config DRIVER_SERIAL_LPUART
 	default y
 	bool "LPUART serial driver"
 
+config DRIVER_SERIAL_GBA
+	depends on ARCH_NINTENDO
+	default y
+	bool "GBA SIO serial driver"
+
 endmenu
