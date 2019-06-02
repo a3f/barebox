@@ -93,4 +93,9 @@ config CLOCKSOURCE_TI_DM
 config CLOCKSOURCE_TI_32K
 	bool
 
+config CLOCKSOURCE_NINTENDO_GBA
+	bool "Nintendo GBA timer driver"
+	help
+	  Enables the support for the timer on the gameboy advance
+
 endmenu
