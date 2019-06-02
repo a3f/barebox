@@ -123,7 +123,9 @@ void arm_early_mmu_cache_flush(void)
 	switch (arm_early_get_cpu_architecture()) {
 #ifdef CONFIG_CPU_32v4T
 	case CPU_ARCH_ARMv4T:
+#ifndef CONFIG_CPU_32v4T_NO_CACHES
 		v4_mmu_cache_flush();
+#endif
 		return;
 #endif
 #ifdef CONFIG_CPU_32v5
@@ -154,6 +156,9 @@ void arm_early_mmu_cache_invalidate(void)
 	switch (arm_early_get_cpu_architecture()) {
 #if __LINUX_ARM_ARCH__ <= 7
 	case CPU_ARCH_ARMv4T:
+#ifdef CONFIG_CPU_32v4T_NO_CACHES
+		return;
+#endif
 	case CPU_ARCH_ARMv5:
 	case CPU_ARCH_ARMv5T:
 	case CPU_ARCH_ARMv5TE:
