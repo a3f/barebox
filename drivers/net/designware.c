@@ -34,11 +34,13 @@
 
 #define GMAC_MDIO_ADDR 0x00000200
 #define GMAC_MDIO_DATA 0x00000204
+#define GMAC_1US_TIC_COUNTER		0x000000dc
+
 
 static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 {
 	struct dw_eth_dev *priv = dev->priv;
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
+	void *mac_p = priv->mac_regs_p;
 	u64 start;
 	u32 miiaddr;
 
@@ -48,26 +50,26 @@ static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 	if (1)
 		miiaddr |= MII_GMAC4_READ;
 
-	writel(miiaddr | (MII_CLKRANGE_150_250M << 8) | MII_BUSY, ((void *)mac_p) + GMAC_MDIO_ADDR);
+	writel(miiaddr | (MII_CLKRANGE_150_250M << 8) | MII_BUSY, mac_p + GMAC_MDIO_ADDR);
 
 	start = get_time_ns();
-	while (readl(((void *)mac_p) + GMAC_MDIO_ADDR) & MII_BUSY) {
+	while (readl(mac_p + GMAC_MDIO_ADDR) & MII_BUSY) {
 		if (is_timeout(start, 10 * MSECOND)) {
 			dev_err(&priv->netdev.dev, "MDIO timeout\n");
 			return -EIO;
 		}
 	}
-	return readl(((void *)mac_p) + GMAC_MDIO_DATA) & 0xffff;
+	return readl(mac_p + GMAC_MDIO_DATA) & 0xffff;
 }
 
 static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 {
 	struct dw_eth_dev *priv = dev->priv;
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
+	void __iomem *mac_p = priv->mac_regs_p;
 	u64 start;
 	u32 miiaddr;
 
-	writel(val, ((void *)mac_p) + GMAC_MDIO_DATA);
+	writel(val, mac_p + GMAC_MDIO_DATA);
 	miiaddr = (addr << 21) | (reg << 16);
 
 //	if (priv->plat->has_gmac4)
@@ -95,14 +97,14 @@ static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 static int mac_reset(struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
+	void __iomem *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 	u64 start;
 
 	writel(readl(&dma_p->busmode) | DMAMAC_SRST, &dma_p->busmode);
 
 	if (priv->interface != PHY_INTERFACE_MODE_RGMII)
-		writel(MII_PORTSELECT, &mac_p->conf);
+		writel(MII_PORTSELECT, mac_p + GMAC_CONFIG);
 
 	start = get_time_ns();
 	while (readl(&dma_p->busmode) & DMAMAC_SRST) {
@@ -208,7 +210,7 @@ static int phy_resume(struct phy_device *phydev)
 static int dwc_ether_init(struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
+	void __iomem *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 
 	/* Before we reset the mac, we must insure the PHY is not powered down
@@ -225,20 +227,20 @@ static int dwc_ether_init(struct eth_device *dev)
 	writel(FIXEDBURST | PRIORXTX_41 | BURST_16, &dma_p->busmode);
 	writel(readl(&dma_p->opmode) | FLUSHTXFIFO | STOREFORWARD |
 	       TXSECONDFRAME, &dma_p->opmode);
-	writel(FRAMEBURSTENABLE | DISABLERXOWN, &mac_p->conf);
+	writel(FRAMEBURSTENABLE | DISABLERXOWN, mac_p + GMAC_CONFIG);
 	return 0;
 }
 
 static void dwc_update_linkspeed(struct eth_device *edev)
 {
 	struct dw_eth_dev *priv = edev->priv;
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
+	void __iomem *mac_p = priv->mac_regs_p;
 	u32 conf;
 
 	if (priv->fix_mac_speed)
 		priv->fix_mac_speed(edev->phydev->speed);
 
-	conf = readl(&mac_p->conf);
+	conf = readl(mac_p + GMAC_CONFIG);
 	if (edev->phydev->duplex)
 		conf |= FULLDPLXMODE;
 	else
@@ -257,15 +259,22 @@ static void dwc_update_linkspeed(struct eth_device *edev)
 			conf &= ~FES_100;
 	}
 
-	writel(conf, &mac_p->conf);
+	writel(conf, mac_p + GMAC_CONFIG);
 }
+
+extern unsigned long eqos_get_tick_clk_rate_stm32(void); // FIXME
 
 static int dwc_ether_open(struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
+	void __iomem *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 	int ret;
+
+	unsigned long rate = eqos_get_tick_clk_rate_stm32();
+
+	unsigned long val = (rate / 1000000) - 1;
+	writel(val, ((void*)mac_p) + GMAC_1US_TIC_COUNTER);
 
 	ret = phy_device_connect(dev, &priv->miibus, priv->phy_addr,
 				 dwc_update_linkspeed, 0, priv->interface);
@@ -281,7 +290,7 @@ static int dwc_ether_open(struct eth_device *dev)
 	 */
 	writel(readl(&dma_p->opmode) | RXSTART, &dma_p->opmode);
 	writel(readl(&dma_p->opmode) | TXSTART, &dma_p->opmode);
-	writel(readl(&mac_p->conf) | RXENABLE | TXENABLE, &mac_p->conf);
+	writel(readl(mac_p + GMAC_CONFIG) | RXENABLE | TXENABLE, mac_p + GMAC_CONFIG);
 	return 0;
 }
 
@@ -409,69 +418,62 @@ static int dwc_ether_get_ethaddr(struct eth_device *dev, u8 adr[6])
 	return -1;
 }
 
+#define STMMAC_CHAN0	0	/* Always supported and default for all chips */
+
+
+static void stmmac_dwmac4_set_mac_addr(void __iomem *ioaddr, const u8 addr[6],
+				unsigned int high, unsigned int low)
+{
+	unsigned long data;
+
+	data = (addr[5] << 8) | addr[4];
+	/* For MAC Addr registers se have to set the Address Enable (AE)
+	 * bit that has no effect on the High Reg 0 where the bit 31 (MO)
+	 * is RO.
+	 */
+	data |= (STMMAC_CHAN0 << GMAC_HI_DCS_SHIFT);
+	writel(data | GMAC_HI_REG_AE, ioaddr + high);
+	data = (addr[3] << 24) | (addr[2] << 16) | (addr[1] << 8) | addr[0];
+	writel(data, ioaddr + low);
+}
+
 static int dwc_ether_set_ethaddr(struct eth_device *dev, const unsigned char *adr)
 {
 	struct dw_eth_dev *priv = dev->priv;
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
-	u32 macid_lo, macid_hi;
+	void __iomem *mac_p = priv->mac_regs_p;
+	unsigned reg_n = 1;
 
-	macid_lo = adr[0] + (adr[1] << 8) +
-		   (adr[2] << 16) + (adr[3] << 24);
-	macid_hi = adr[4] + (adr[5] << 8);
-	writel(macid_hi, &mac_p->macaddr0hi);
-	writel(macid_lo, &mac_p->macaddr0lo);
+	stmmac_dwmac4_set_mac_addr(mac_p, adr, GMAC_ADDR_HIGH(reg_n),
+		   GMAC_ADDR_LOW(reg_n));
+
 	memcpy(priv->macaddr, adr, 6);
 	return 0;
 }
 
-static void dwc_version(struct device_d *dev, u32 hwid)
+static u32 stmmac_get_id(void __iomem *ioaddr, u32 id_reg)
 {
-	u32 uid = ((hwid & 0x0000ff00) >> 8);
-	u32 synid = (hwid & 0x000000ff);
+        u32 reg = readl(ioaddr + id_reg);
 
-	dev_info(dev, "user ID: 0x%x, Synopsys ID: 0x%x\n",
-		uid, synid);
+        if (!reg) {
+                pr_info("Version ID not available\n");
+                return 0x0;
+        }
+
+        pr_info("User ID: 0x%x, Synopsys ID: 0x%x\n",
+                        (unsigned int)(reg & GENMASK(15, 8)) >> 8,
+                        (unsigned int)(reg & GENMASK(7, 0)));
+        return reg & GENMASK(7, 0);
 }
-
-#include <linux/clk.h>
-
-static const struct clk_bulk_data dw_clks[] = {
-	{
-		.id = "stmmaceth",
-	}, {
-		.id = "mac-clk-tx",
-	}, {
-		.id = "mac-clk-rx",
-	}, {
-		.id = "ethstp",
-	}, {
-		.id = "syscfg-clk",
-	},
-};
 
 static int dwc_probe_dt(struct device_d *dev, struct dw_eth_dev *priv)
 {
 	struct device_node *child;
-	int ret;
 
 	if (!IS_ENABLED(CONFIG_OFTREE))
 		return -ENODEV;
 
 	priv->phy_addr = -1;
 	priv->interface = of_get_phy_mode(dev->device_node);
-
-	priv->clks = xmemdup(dw_clks, sizeof(dw_clks));
-	ret = clk_bulk_get(dev, ARRAY_SIZE(dw_clks), priv->clks);
-	if (ret) {
-		dev_err(dev, "Failed to get clks: %s\n", strerror(-ret));
-		return ret;
-	}
-
-	ret = clk_bulk_enable(ARRAY_SIZE(dw_clks), priv->clks);
-	if (ret) {
-		dev_err(dev, "Failed to enable clks: %s\n", strerror(-ret));
-		return ret;
-	}
 
 	/* Set MDIO bus device node, if present. */
 	for_each_child_of_node(dev->device_node, child) {
@@ -484,7 +486,9 @@ static int dwc_probe_dt(struct device_d *dev, struct dw_eth_dev *priv)
 	return 0;
 }
 
-struct dw_eth_dev *dwc_drv_probe(struct device_d *dev)
+#define GMAC4_VERSION		0x00000110	/* GMAC4+ CORE Version */
+
+struct dw_eth_dev *dwc_drv_probe(struct device_d *dev, bool enh_desc)
 {
 	struct resource *iores;
 	struct dw_eth_dev *priv;
@@ -493,19 +497,9 @@ struct dw_eth_dev *dwc_drv_probe(struct device_d *dev)
 	void __iomem *base;
 	struct dwc_ether_platform_data *pdata = dev->platform_data;
 	int ret;
-	struct dw_eth_drvdata *drvdata;
 
 	priv = xzalloc(sizeof(struct dw_eth_dev));
-
-	ret = dev_get_drvdata(dev, (const void **)&drvdata);
-	if (ret)
-		return ERR_PTR(ret);
-
-	if (drvdata && drvdata->enh_desc)
-		priv->enh_desc = drvdata->enh_desc;
-	else
-		dev_warn(dev, "No drvdata specified\n");
-
+	priv->enh_desc = enh_desc;
 
 	if (pdata) {
 		priv->phy_addr = pdata->phy_addr;
@@ -523,7 +517,7 @@ struct dw_eth_dev *dwc_drv_probe(struct device_d *dev)
 	base = IOMEM(iores->start);
 
 	priv->mac_regs_p = base;
-	dwc_version(dev, readl(&priv->mac_regs_p->version));
+	stmmac_get_id(base, GMAC4_VERSION);
 	priv->dma_regs_p = base + DW_DMA_BASE_OFFSET;
 	priv->tx_mac_descrtable = dma_alloc_coherent(
 		CONFIG_TX_DESCR_NUM * sizeof(struct dmamacdescr),
