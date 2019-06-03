@@ -16,11 +16,10 @@ static inline void setup_uart(void)
 
 	/* GPIOG clock enable */
 	writel(BIT(6), RCC_MP_AHB4ENSETR);
-	/* GPIO configuration for EVAL board => Uart4 TX = G11 */
+	/* GPIO configuration for EVAL board => UART4 TX = G11 */
 	writel(0xffbfffff, GPIOG_BASE + 0x00);
 	writel(0x00006000, GPIOG_BASE + 0x24);
 
-	pbl_set_putc(stm32_uart_putc, IOMEM(DEBUG_LL_UART_ADDR));
 	putc_ll('>');
 }
 
