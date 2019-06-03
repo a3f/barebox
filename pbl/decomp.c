@@ -45,6 +45,7 @@ static void noinline errorfn(char *error)
 
 void pbl_barebox_uncompress(void *dest, void *compressed_start, unsigned int len)
 {
+	printk("debug\n");
 	decompress((void *)compressed_start,
 			len,
 			NULL, NULL,
