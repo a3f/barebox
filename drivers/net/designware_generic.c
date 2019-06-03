@@ -12,15 +12,25 @@
 #include <init.h>
 #include "designware.h"
 
+struct dw_eth_drvdata {
+	bool enh_desc;
+};
+
 static struct dw_eth_drvdata dwmac_370a_drvdata = {
 	.enh_desc = 1,
 };
 
 static int dwc_ether_probe(struct device_d *dev)
 {
+	struct dw_eth_drvdata *drvdata;
 	struct dw_eth_dev *dwc;
+	int ret;
 
-	dwc = dwc_drv_probe(dev);
+	ret = dev_get_drvdata(dev, (const void **)&drvdata);
+	if (ret)
+		return ret;
+
+	dwc = dwc_drv_probe(dev, drvdata->enh_desc);
 	if (IS_ERR(dwc))
 		return PTR_ERR(dwc);
 
@@ -33,9 +43,6 @@ static __maybe_unused struct of_device_id dwc_ether_compatible[] = {
 		.data = &dwmac_370a_drvdata,
 	}, {
 		.compatible = "snps,dwmac-3.72a",
-		.data = &dwmac_370a_drvdata,
-	}, {
-		.compatible = "snps,dwmac-4.20a",
 		.data = &dwmac_370a_drvdata,
 	}, {
 		/* sentinel */

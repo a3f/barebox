@@ -309,6 +309,7 @@ void __noreturn start_barebox(void)
 {
 	initcall_t *initcall;
 	int result;
+	pr_info("rEEEEEE\n");
 
 	if (!IS_ENABLED(CONFIG_SHELL_NONE) && IS_ENABLED(CONFIG_COMMAND_SUPPORT))
 		barebox_main = run_init;

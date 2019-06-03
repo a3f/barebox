@@ -1,3 +1,4 @@
+#define DEBUG 1
 /*
  * uncompress.c - uncompressor code for self extracing pbl image
  *
@@ -69,6 +70,11 @@ void __noreturn barebox_multi_pbl_start(unsigned long membase,
 
 	pg_len = pg_end - pg_start;
 	uncompressed_len = get_unaligned((const u32 *)(pg_start + pg_len - 4));
+	pr_info("start=%08lx, len=%08x\n", (unsigned long)pg_start, pg_len);
+	if (uncompressed_len == (u32)-1) {
+		pr_err("UNCOMPRESSED LENGTH SHOULDNT BE -1\n");
+		hang();
+	}
 
 	if (IS_ENABLED(CONFIG_RELOCATABLE))
 		barebox_base = arm_mem_barebox_image(membase, endmem,
@@ -94,17 +100,21 @@ void __noreturn barebox_multi_pbl_start(unsigned long membase,
 
 	pbl_barebox_uncompress((void*)barebox_base, pg_start, pg_len);
 
+	pr_debug("uncompressed image\n");
+
+	barrier();
 	sync_caches_for_execution();
+	barrier();
 
 	if (IS_ENABLED(CONFIG_THUMB2_BAREBOX))
 		barebox = (void *)(barebox_base + 1);
 	else
 		barebox = (void *)barebox_base;
 
-	pr_debug("jumping to uncompressed image at 0x%p\n", barebox);
-
 	if (IS_ENABLED(CONFIG_CPU_V7) && __boot_cpu_mode == HYP_MODE)
 		armv7_switch_to_hyp();
+
+	pr_debug("jumping to uncompressed image at 0x%p\n", barebox);
 
 	barebox(membase, memsize, boarddata);
 }

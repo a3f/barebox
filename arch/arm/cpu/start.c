@@ -14,6 +14,7 @@
  * GNU General Public License for more details.
  *
  */
+#define DEBUG 1
 #define pr_fmt(fmt) "start.c: " fmt
 
 #include <common.h>
