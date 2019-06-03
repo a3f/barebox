@@ -36,7 +36,9 @@ struct mmci_platform_data {
 	unsigned long capabilities;
 
 	uint32_t sigdir;
+	uint32_t clk_reg_add;
 	uint32_t clkdiv_init;
+	uint32_t opendrain;
 };
 
 #endif
