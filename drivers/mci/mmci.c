@@ -103,6 +103,12 @@ static struct variant_data variant_ux500v2 = {
 	.signal_direction	= true,
 };
 
+static struct variant_data variant_stm32_sdmmc = {
+	.fifosize		= 16 * 4,
+	.fifohalfsize		= 8 * 4,
+	.datalength_bits	= 25,
+};
+
 struct mmci_host {
 	struct mci_host		mci;
 	void __iomem		*base;
@@ -697,6 +703,11 @@ static struct amba_id mmci_ids[] = {
 		.id	= 0x10480180,
 		.mask	= 0xf0ffffff,
 		.data	= &variant_ux500v2,
+	},
+	{
+		.id     = 0x10153180,
+		.mask	= 0xf0ffffff,
+		.data	= &variant_stm32_sdmmc,
 	},
 	{ 0, 0 },
 };
