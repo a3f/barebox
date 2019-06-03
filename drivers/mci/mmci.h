@@ -19,6 +19,15 @@
 #define MCI_OD			(1 << 6)
 #define MCI_ROD			(1 << 7)
 
+/*
+ * The STM32 sdmmc does not have PWR_UP/OD/ROD
+ * and uses the power register for
+ */
+#define MCI_STM32_PWR_CYC       0x02
+#define MCI_STM32_VSWITCH       BIT(2)
+#define MCI_STM32_VSWITCHEN     BIT(3)
+#define MCI_STM32_DIRPOL        BIT(4)
+
 #define MMCICLOCK		0x004
 #define MCI_CLK_CLKDIV_MASK	0x000000FF
 #define MCI_CLK_ENABLE		(1 << 8)
@@ -37,6 +46,19 @@
 #define MCI_ST_UX500_HWFCEN	(1 << 14)
 #define MCI_ST_UX500_CLK_INV	(1 << 15)
 
+/* Modified on STM32 sdmmc */
+#define MCI_STM32_CLK_CLKDIV_MSK        GENMASK(9, 0)
+#define MCI_STM32_CLK_WIDEBUS_4         BIT(14)
+#define MCI_STM32_CLK_WIDEBUS_8         BIT(15)
+#define MCI_STM32_CLK_NEGEDGE           BIT(16)
+#define MCI_STM32_CLK_HWFCEN            BIT(17)
+#define MCI_STM32_CLK_DDR               BIT(18)
+#define MCI_STM32_CLK_BUSSPEED          BIT(19)
+#define MCI_STM32_CLK_SEL_MSK           GENMASK(21, 20)
+#define MCI_STM32_CLK_SELCK             (0 << 20)
+#define MCI_STM32_CLK_SELCKIN           (1 << 20)
+#define MCI_STM32_CLK_SELFBCK           (2 << 20)
+
 #define MMCIARGUMENT		0x008
 #define MMCICOMMAND		0x00c
 #define MCI_CPSM_RESPONSE	(1 << 6)
@@ -48,6 +70,16 @@
 #define MCI_ENCMD_COMPL		(1 << 12)
 #define MCI_NIEN		(1 << 13)
 #define MCI_CE_ATACMD		(1 << 14)
+
+/* Command register in STM32 sdmmc versions */
+#define MCI_CPSM_STM32_CMDTRANS         BIT(6)
+#define MCI_CPSM_STM32_CMDSTOP          BIT(7)
+#define MCI_CPSM_STM32_WAITRESP_MASK    GENMASK(9, 8)
+#define MCI_CPSM_STM32_NORSP            (0 << 8)
+#define MCI_CPSM_STM32_SRSP_CRC         (1 << 8)
+#define MCI_CPSM_STM32_SRSP             (2 << 8)
+#define MCI_CPSM_STM32_LRSP_CRC         (3 << 8)
+#define MCI_CPSM_STM32_ENABLE           BIT(12)
 
 #define MMCIRESPCMD		0x010
 #define MMCIRESPONSE0		0x014
@@ -74,6 +106,12 @@
 #define MCI_ST_DPSM_DDRMODE	(1 << 15)
 
 #define MCI_DTIMER_DEFAULT	0xFFFF0000
+
+/* Control register extensions in STM32 versions */
+#define MCI_DPSM_STM32_MODE_BLOCK       (0 << 2)
+#define MCI_DPSM_STM32_MODE_SDIO        (1 << 2)
+#define MCI_DPSM_STM32_MODE_STREAM      (2 << 2)
+#define MCI_DPSM_STM32_MODE_BLOCK_STOP  (3 << 2)
 
 #define MMCIDATACNT		0x030
 #define MMCISTATUS		0x034
@@ -165,3 +203,38 @@
 	 MCI_TXFIFOHALFEMPTYMASK)
 
 #define NR_SG		128
+
+struct mmci_host {
+	struct mci_host		mci;
+	void __iomem		*base;
+	struct device_d		*hw_dev;
+	struct mmci_platform_data *plat;
+	struct clk		*clk;
+	unsigned long		mclk;
+
+	int			hw_revision;
+	int			hw_designer;
+	struct variant_data	*variant;
+	struct mmci_host_ops	*ops;
+	u32			clk_reg;
+	u32			pwr_reg;
+};
+
+struct mci_ios;
+
+/* mmci variant callbacks */
+struct mmci_host_ops {
+        u32 (*get_datactrl_cfg)(struct mmci_host *host, unsigned int blocksize);
+        void (*set_clkreg)(struct mmci_host *host, struct mci_ios *ios);
+        void (*set_pwrreg)(struct mmci_host *host, unsigned int pwr);
+};
+
+void mmci_write_clkreg(struct mmci_host *host, u32 clk);
+void mmci_write_pwrreg(struct mmci_host *host, u32 pwr);
+
+static inline u32 mmci_dctrl_blksz(struct mmci_host *host, unsigned int blocksize)
+{
+        return (ffs(blocksize) - 1) << 4;
+}
+
+void sdmmc_variant_init(struct mmci_host *host);

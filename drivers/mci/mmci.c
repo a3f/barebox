@@ -29,10 +29,13 @@
 #include <malloc.h>
 #include <linux/amba/bus.h>
 #include <linux/amba/mmci.h>
+#include <pinctrl.h>
 
 #include "mmci.h"
 
 #define DRIVER_NAME "mmci-pl18x"
+
+static void ux500v2_variant_init(struct mmci_host *host);
 
 static unsigned long fmax = 515633;
 
@@ -47,10 +50,19 @@ static unsigned long fmax = 515633;
  *		  is asserted (likewise for RX)
  * @sdio: variant supports SDIO
  * @st_clkdiv: true if using a ST-specific clock divider algorithm
- * @blksz_datactrl16: true if Block size is at b16..b30 position in datactrl register
+ * @stm32_clkdiv: true if using a STM32-specific clock divider algorithm
  * @signal_direction: input/out direction of bus signals can be indicated
+ * @datactrl_first: true if data must be setup before send command
  * @pwrreg_powerup: power up value for MMCIPOWER register
+ * @f_max: maximum clk frequency supported by the controller.
+ * @cmdreg_cpsm_enable: enable value for CPSM
+ * @cmdreg_lrsp_crc: enable value for long response with crc
+ * @cmdreg_srsp_crc: enable value for short response with crc
+ * @cmdreg_srsp: enable value for short response without crc
+ * @cmdreg_stop: enable value for stop and abort transmission
+ * @data_cmd_enable: enable value for data commands.
  * @opendrain: bitmask identifying the OPENDRAIN bit inside MMCIPOWER register
+ * @init: optional callback for device specific initialization
  */
 struct variant_data {
 	unsigned int		clkreg;
@@ -60,10 +72,19 @@ struct variant_data {
 	unsigned int		fifohalfsize;
 	bool			sdio;
 	bool			st_clkdiv;
-	bool			blksz_datactrl16;
+	bool			stm32_clkdiv;
 	bool			signal_direction;
+	bool			datactrl_first;
 	u32			pwrreg_powerup;
+	u32			f_max;
+	u32			cmdreg_cpsm_enable;
+	u32			cmdreg_lrsp_crc;
+	u32			cmdreg_srsp_crc;
+	u32			cmdreg_srsp;
+	u32			cmdreg_stop;
+	u32			data_cmd_enable;
 	u32			opendrain;
+	void			(*init)(struct mmci_host *);
 };
 
 static struct variant_data variant_arm = {
@@ -72,6 +93,11 @@ static struct variant_data variant_arm = {
 	.datalength_bits	= 16,
 	.pwrreg_powerup		= MCI_PWR_UP,
 	.opendrain		= MCI_ROD,
+	.f_max			= 100000000,
+	.cmdreg_cpsm_enable	= MCI_CPSM_ENABLE,
+	.cmdreg_lrsp_crc	= MCI_CPSM_RESPONSE | MCI_CPSM_LONGRSP,
+	.cmdreg_srsp_crc	= MCI_CPSM_RESPONSE,
+	.cmdreg_srsp		= MCI_CPSM_RESPONSE,
 };
 
 static struct variant_data variant_arm_extended_fifo = {
@@ -80,12 +106,18 @@ static struct variant_data variant_arm_extended_fifo = {
 	.datalength_bits	= 16,
 	.pwrreg_powerup		= MCI_PWR_UP,
 	.opendrain		= MCI_ROD,
+	.f_max			= 100000000,
+	.cmdreg_cpsm_enable	= MCI_CPSM_ENABLE,
+	.cmdreg_lrsp_crc	= MCI_CPSM_RESPONSE | MCI_CPSM_LONGRSP,
+	.cmdreg_srsp_crc	= MCI_CPSM_RESPONSE,
+	.cmdreg_srsp		= MCI_CPSM_RESPONSE,
 };
 
 static struct variant_data variant_ux500 = {
 	.fifosize		= 30 * 4,
 	.fifohalfsize		= 8 * 4,
 	.clkreg			= MCI_CLK_ENABLE,
+	.cmdreg_cpsm_enable	= MCI_CPSM_ENABLE,
 	.clkreg_enable		= MCI_ST_UX500_HWFCEN,
 	.datalength_bits	= 24,
 	.sdio			= true,
@@ -93,6 +125,11 @@ static struct variant_data variant_ux500 = {
 	.pwrreg_powerup		= MCI_PWR_ON,
 	.signal_direction	= true,
 	.opendrain		= MCI_OD,
+	.f_max			= 100000000,
+	.cmdreg_cpsm_enable	= MCI_CPSM_ENABLE,
+	.cmdreg_lrsp_crc	= MCI_CPSM_RESPONSE | MCI_CPSM_LONGRSP,
+	.cmdreg_srsp_crc	= MCI_CPSM_RESPONSE,
+	.cmdreg_srsp		= MCI_CPSM_RESPONSE,
 };
 
 static struct variant_data variant_ux500v2 = {
@@ -103,23 +140,32 @@ static struct variant_data variant_ux500v2 = {
 	.datalength_bits	= 24,
 	.sdio			= true,
 	.st_clkdiv		= true,
-	.blksz_datactrl16	= true,
 	.pwrreg_powerup		= MCI_PWR_ON,
 	.signal_direction	= true,
 	.opendrain		= MCI_OD,
+	.f_max			= 100000000,
+	.cmdreg_cpsm_enable	= MCI_CPSM_ENABLE,
+	.cmdreg_lrsp_crc	= MCI_CPSM_RESPONSE | MCI_CPSM_LONGRSP,
+	.cmdreg_srsp_crc	= MCI_CPSM_RESPONSE,
+	.cmdreg_srsp		= MCI_CPSM_RESPONSE,
+	.init			= ux500v2_variant_init,
 };
 
-struct mmci_host {
-	struct mci_host		mci;
-	void __iomem		*base;
-	struct device_d		*hw_dev;
-	struct mmci_platform_data *plat;
-	struct clk		*clk;
-	unsigned long		mclk;
-
-	int			hw_revision;
-	int			hw_designer;
-	struct variant_data	*variant;
+static struct variant_data variant_stm32_sdmmc = {
+	.fifosize		= 16 * 4,
+	.fifohalfsize		= 8 * 4,
+	.f_max			= 208000000,
+	.stm32_clkdiv		= true,
+	.cmdreg_cpsm_enable     = MCI_CPSM_STM32_ENABLE,
+	.cmdreg_lrsp_crc	= MCI_CPSM_STM32_LRSP_CRC,
+	.cmdreg_srsp_crc	= MCI_CPSM_STM32_SRSP_CRC,
+	.cmdreg_srsp		= MCI_CPSM_STM32_SRSP,
+	.cmdreg_stop		= MCI_CPSM_STM32_CMDSTOP,
+	.data_cmd_enable	= MCI_CPSM_STM32_CMDTRANS,
+	.datactrl_first         = true,
+	.datalength_bits	= 25,
+	.signal_direction	= true,
+	.init			= sdmmc_variant_init,
 };
 
 #define to_mci_host(mci)	container_of(mci, struct mmci_host, mci)
@@ -133,6 +179,26 @@ static inline void mmci_writel(struct mmci_host *host, u32 offset,
 				    u32 value)
 {
 	writel(value, host->base + offset);
+}
+
+static inline int mmci_set_opendrain(struct mmci_host *host, u32 *pwr, bool enable)
+{
+	int ret = 0;
+	u32 opendrain = host->variant->opendrain;
+
+	if (opendrain) {
+		if (enable)
+			*pwr |= opendrain;
+		else
+			*pwr &= ~opendrain;
+	} else {
+		if (enable)
+			ret = pinctrl_select_state(host->hw_dev, "opendrain");
+		else
+			ret = pinctrl_select_state(host->hw_dev, "default");
+	}
+
+	return ret;
 }
 
 static int wait_for_command_end(struct mci_host *mci, struct mci_cmd *cmd)
@@ -177,20 +243,32 @@ static int wait_for_command_end(struct mci_host *mci, struct mci_cmd *cmd)
 }
 
 /* send command to the mmc card and wait for results */
-static int do_command(struct mci_host *mci, struct mci_cmd *cmd)
+static int do_command(struct mci_host *mci, struct mci_cmd *cmd, bool adtc)
 {
 	int result;
 	u32 sdi_cmd = 0;
 	struct mmci_host *host = to_mci_host(mci);
+	struct variant_data *variant = host->variant;
 
 	dev_dbg(host->hw_dev, "Request to do CMD%d\n", cmd->cmdidx);
 
-	sdi_cmd = ((cmd->cmdidx & MCI_CMDINDEXMASK) | MCI_CPSM_ENABLE);
+	if (mmci_readl(host, MMCICOMMAND) & variant->cmdreg_cpsm_enable) {
+		mmci_writel(host, MMCICOMMAND, 0);
+		udelay(COMMAND_REG_DELAY);
+	}
+
+	if (variant->cmdreg_stop && cmd->cmdidx == MMC_CMD_STOP_TRANSMISSION)
+		sdi_cmd |= variant->cmdreg_stop;
+
+	sdi_cmd |= ((cmd->cmdidx & MCI_CMDINDEXMASK) | variant->cmdreg_cpsm_enable);
 
 	if (cmd->resp_type) {
-		sdi_cmd |= MCI_CPSM_RESPONSE;
 		if (cmd->resp_type & MMC_RSP_136)
-			sdi_cmd |= MCI_CPSM_LONGRSP;
+			sdi_cmd |= variant->cmdreg_lrsp_crc;
+		else if (cmd->resp_type & MMC_RSP_CRC)
+			sdi_cmd |= variant->cmdreg_srsp_crc;
+		else
+			sdi_cmd |= variant->cmdreg_srsp;
 	}
 
 	dev_dbg(host->hw_dev, "SDI_ARG <= 0x%08X\n", cmd->cmdarg);
@@ -198,13 +276,18 @@ static int do_command(struct mci_host *mci, struct mci_cmd *cmd)
 	udelay(COMMAND_REG_DELAY);
 	dev_dbg(host->hw_dev, "SDI_CMD <= 0x%08X\n", sdi_cmd);
 
+	if (adtc)
+		sdi_cmd |= variant->data_cmd_enable;
+
 	mmci_writel(host, MMCICOMMAND, sdi_cmd);
 	result = wait_for_command_end(mci, cmd);
 
 	/* After CMD3 open drain is switched off and push pull is used. */
 	if ((result == 0) && (cmd->cmdidx == MMC_CMD_SET_RELATIVE_ADDR)) {
-		u32 sdi_pwr = mmci_readl(host, MMCIPOWER) & ~MCI_OD;
-		mmci_writel(host, MMCIPOWER, sdi_pwr);
+		u32 sdi_pwr = host->pwr_reg;
+		mmci_set_opendrain(host, &sdi_pwr, false);
+		/* no-op if there's no MCI_(OD|ROD) bit */
+		mmci_write_pwrreg(host, sdi_pwr);
 	}
 
 	return result;
@@ -400,16 +483,10 @@ static int do_data_transfer(struct mci_host *mci, struct mci_cmd *cmd, struct mc
 	struct mmci_host *host = to_mci_host(mci);
 	u32 data_ctrl;
 	u32 data_len = (u32) (data->blocks * data->blocksize);
+	bool adtc = cmd->resp_type != 0;
 
-	if (host->variant->blksz_datactrl16) {
-		data_ctrl = data->blocksize << 16;
-	} else {
-		u32 blksz_bits;
 
-		blksz_bits = ffs(data->blocksize) - 1;
-		data_ctrl = blksz_bits << 4;
-	}
-	data_ctrl |= MCI_DPSM_ENABLE;
+	data_ctrl = host->ops->get_datactrl_cfg(host, data->blocksize);
 
 	if (data_ctrl & MCI_ST_DPSM_DDRMODE)
 		dev_dbg(host->hw_dev, "MCI_ST_DPSM_DDRMODE\n");
@@ -418,14 +495,16 @@ static int do_data_transfer(struct mci_host *mci, struct mci_cmd *cmd, struct mc
 	mmci_writel(host, MMCIDATALENGTH, data_len);
 	udelay(DATA_REG_DELAY);
 
-	error = do_command(mci, cmd);
-	if (error)
-		return error;
+	if (!host->variant->datactrl_first) {
+		error = do_command(mci, cmd, adtc);
+		if (error)
+			return error;
+	}
 
 	if (data->flags & MMC_DATA_READ)
 		data_ctrl |= MCI_DPSM_DIRECTION;
 
-	mmci_writel(host, MMCIDATACTRL ,data_ctrl);
+	mmci_writel(host, MMCIDATACTRL, data_ctrl);
 
 	if (data->flags & MMC_DATA_READ)
 		error = read_bytes(mci, data->dest, data->blocks,
@@ -433,6 +512,12 @@ static int do_data_transfer(struct mci_host *mci, struct mci_cmd *cmd, struct mc
 	else if (data->flags & MMC_DATA_WRITE)
 		error = write_bytes(mci, (char *)data->src, data->blocks,
 				    data->blocksize);
+
+	if (error)
+		return error;
+
+	if (host->variant->datactrl_first)
+		error = do_command(mci, cmd, adtc);
 
 	return error;
 }
@@ -444,7 +529,7 @@ static int mci_request(struct mci_host *mci, struct mci_cmd *cmd, struct mci_dat
 	if (data)
 		result = do_data_transfer(mci, cmd, data);
 	else
-		result = do_command(mci, cmd);
+		result = do_command(mci, cmd, false);
 
 	return result;
 }
@@ -466,19 +551,27 @@ static int mci_reset(struct mci_host *mci, struct device_d *mci_dev)
 		pwr |= host->plat->sigdir;
 	}
 
-	if (variant->opendrain)
-		pwr |= variant->opendrain;
+	mmci_set_opendrain(host, &pwr, true);
 
-	mmci_writel(host, MMCIPOWER, pwr);
+	host->ops->set_pwrreg(host, pwr);
+
 	return 0;
 }
 
-static void mci_set_ios(struct mci_host *mci, struct mci_ios *ios)
+void mmci_write_clkreg(struct mmci_host *host, u32 clk)
 {
-	struct mmci_host *host = to_mci_host(mci);
+	if (host->clk_reg != clk) {
+		host->clk_reg = clk;
+		mmci_writel(host, MMCICLOCK, clk);
+	}
+}
+
+static void mmci_set_clkreg(struct mmci_host *host, struct mci_ios *ios)
+{
+	struct mci_host *mci = &host->mci;
 	u32 sdi_clkcr;
 
-	sdi_clkcr = mmci_readl(host, MMCICLOCK);
+	sdi_clkcr = host->clk_reg;
 
 	/* Ramp up the clock rate */
 	if (mci->clock) {
@@ -527,8 +620,44 @@ static void mci_set_ios(struct mci_host *mci, struct mci_ios *ios)
 		sdi_clkcr |= buswidth;
 	}
 
-	mmci_writel(host, MMCICLOCK, sdi_clkcr);
+	mmci_write_clkreg(host, sdi_clkcr);
+}
+
+static void mci_set_ios(struct mci_host *mci, struct mci_ios *ios)
+{
+	struct mmci_host *host = to_mci_host(mci);
+	host->ops->set_clkreg(host, ios);
 	udelay(CLK_CHANGE_DELAY);
+}
+
+
+void mmci_write_pwrreg(struct mmci_host *host, u32 pwr)
+{
+	if (host->pwr_reg != pwr) {
+		host->pwr_reg = pwr;
+		mmci_writel(host, MMCIPOWER, pwr);
+	}
+}
+
+static u32 mmci_get_dctrl_cfg(struct mmci_host *host, unsigned int blocksize)
+{
+        return MCI_DPSM_ENABLE | mmci_dctrl_blksz(host, blocksize);
+}
+
+static u32 ux500v2_get_dctrl_cfg(struct mmci_host *host, unsigned int blocksize)
+{
+        return MCI_DPSM_ENABLE | (blocksize << 16);
+}
+
+static struct mmci_host_ops mmci_default_ops = {
+        .get_datactrl_cfg = mmci_get_dctrl_cfg,
+	.set_clkreg = mmci_set_clkreg,
+	.set_pwrreg = mmci_write_pwrreg,
+};
+
+void ux500v2_variant_init(struct mmci_host *host)
+{
+        host->ops->get_datactrl_cfg = ux500v2_get_dctrl_cfg;
 }
 
 static int mmci_of_parse(struct device_node *np,
@@ -549,6 +678,13 @@ static int mmci_of_parse(struct device_node *np,
 		plat->sigdir |= MCI_ST_CMDDIREN;
 	if (of_get_property(np, "st,sig-pin-fbclk", NULL))
 		plat->sigdir |= MCI_ST_FBCLKEN;
+	if (of_get_property(np, "st,sig-dir", NULL))
+		plat->sigdir |= MCI_STM32_DIRPOL;
+	if (of_get_property(np, "st,neg-edge", NULL))
+		plat->clk_reg_add |= MCI_STM32_CLK_NEGEDGE;
+	if (of_get_property(np, "st,use-ckin", NULL))
+		plat->clk_reg_add |= MCI_STM32_CLK_SELCKIN;
+
 
 	if (of_get_property(np, "mmc-cap-mmc-highspeed", NULL))
 		plat->capabilities |= MMC_CAP_MMC_HIGHSPEED;
@@ -564,7 +700,7 @@ static int mmci_probe(struct amba_device *dev, const struct amba_id *id)
 	struct device_node *np = hw_dev->device_node;
 	struct mmci_platform_data *plat = hw_dev->platform_data;
 	struct variant_data *variant = id->data;
-	u32 sdi_u32;
+	u32 sdi_u32, pwrreg, clkreg;
 	struct mmci_host *host;
 	struct clk *clk;
 	int ret;
@@ -606,10 +742,17 @@ static int mmci_probe(struct amba_device *dev, const struct amba_id *id)
 	host->variant = variant;
 	host->plat = plat;
 
-	mmci_writel(host, MMCIPOWER, plat->sigdir | variant->pwrreg_powerup);
+	host->ops = &mmci_default_ops;
 
-	mmci_writel(host, MMCICLOCK,
-		plat->clkdiv_init | variant->clkreg_enable | variant->clkreg);
+	if (variant->init)
+		variant->init(host);
+
+	pwrreg = plat->sigdir | variant->pwrreg_powerup;
+	host->ops->set_pwrreg(host, pwrreg);
+
+	clkreg = plat->clkdiv_init | variant->clkreg_enable | variant->clkreg;
+	mmci_write_clkreg(host, clkreg);
+
 	udelay(CLK_CHANGE_DELAY);
 
 	/* Disable mmc interrupts */
@@ -623,8 +766,8 @@ static int mmci_probe(struct amba_device *dev, const struct amba_id *id)
 	 * so we try to adjust the clock down to this,
 	 * (if possible).
 	 */
-	if (host->mclk > 100000000) {
-		ret = clk_set_rate(clk, 100000000);
+	if (host->mclk > variant->f_max) {
+		ret = clk_set_rate(clk, variant->f_max);
 		if (ret < 0)
 			goto clk_disable;
 		host->mclk = clk_get_rate(clk);
@@ -638,6 +781,8 @@ static int mmci_probe(struct amba_device *dev, const struct amba_id *id)
 	 */
 	if (variant->st_clkdiv)
 		host->mci.f_min = DIV_ROUND_UP(host->mclk, 257);
+	else if (variant->stm32_clkdiv)
+		host->mci.f_min = DIV_ROUND_UP(host->mclk, 2046);
 	else
 		host->mci.f_min = DIV_ROUND_UP(host->mclk, 512);
 	/*
@@ -696,6 +841,11 @@ static struct amba_id mmci_ids[] = {
 		.id	= 0x10480180,
 		.mask	= 0xf0ffffff,
 		.data	= &variant_ux500v2,
+	},
+	{
+		.id     = 0x10153180,
+		.mask	= 0xf0ffffff,
+		.data	= &variant_stm32_sdmmc,
 	},
 	{ 0, 0 },
 };
