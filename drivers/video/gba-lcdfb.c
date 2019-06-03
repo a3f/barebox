@@ -18,28 +18,17 @@
 
 struct gba_lcdfb_priv {
 	struct fb_info info;
+	struct device_d *dev;
 	void __iomem *mmio;
 };
 
-static int gba_lcdfb_activate_var(struct fb_info *info)
+static void gba_lcdfb_enable(void __iomem *mmio)
 {
-	struct gba_lcdfb_priv *priv = info->priv;
-	struct fb_videomode *mode = info->mode;
-
-	if (info->bits_per_pixel != 16 || mode->xres != 240 || mode->yres != 160) {
-		dev_err(&info->dev, "only 240x160@XR15 supported\n");
-		return -EINVAL;
-	}
-
 	/* Use BG2 in bitmap mode (240x160, 32768 colors) */
-	writel(DISPCNT_DISPENABLE(2) | DISPCNT_BGMODE(3), priv->mmio + DISPCNT);
-
-	return 0;
+	writel(DISPCNT_DISPENABLE(2) | DISPCNT_BGMODE(3), mmio + DISPCNT);
 }
 
-static struct fb_ops gba_lcdfb_ops = {
-	.fb_activate_var = gba_lcdfb_activate_var,
-};
+static struct fb_ops gba_lcdfb_ops;
 
 static int gba_lcdfb_probe(struct device_d *dev)
 {
@@ -49,6 +38,8 @@ static int gba_lcdfb_probe(struct device_d *dev)
 	int ret = 0;
 
 	priv = xzalloc(sizeof(*priv));
+
+	priv->dev = dev;
 
 	priv->mmio = dev_request_mem_region_by_name(dev, "mmio");
 	if (IS_ERR(priv->mmio))
@@ -71,7 +62,7 @@ static int gba_lcdfb_probe(struct device_d *dev)
 	info->blue.offset = 0;
 	info->green.offset = 5;
 	info->red.offset = 10;
-	gba_lcdfb_activate_var(info);
+	gba_lcdfb_enable(priv->mmio);
 
 	ret = register_framebuffer(info);
 	if (ret)
