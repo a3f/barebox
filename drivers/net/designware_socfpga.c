@@ -124,7 +124,7 @@ static int socfpga_dwc_ether_probe(struct device_d *dev)
 
 	dwc_dev = xzalloc(sizeof(*dwc_dev));
 
-	priv = dwc_drv_probe(dev);
+	priv = dwc_drv_probe(dev, true);
 	if (IS_ERR(priv))
 		return PTR_ERR(priv);
 
@@ -148,14 +148,9 @@ static int socfpga_dwc_ether_probe(struct device_d *dev)
 	return socfpga_dwc_set_phy_mode(dwc_dev);
 }
 
-static struct dw_eth_drvdata socfpga_stmmac_drvdata = {
-	.enh_desc = 1,
-};
-
 static __maybe_unused struct of_device_id socfpga_dwc_ether_compatible[] = {
 	{
 		.compatible = "altr,socfpga-stmmac",
-		.data = &socfpga_stmmac_drvdata,
 	}, {
 		/* sentinel */
 	}

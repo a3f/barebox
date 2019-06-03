@@ -88,6 +88,21 @@ config DRIVER_NET_DESIGNWARE_SOCFPGA
 	  This option enables support for the Synopsys
 	  Designware Core Univesal MAC 10M/100M/1G ethernet IP on SoCFPGA.
 
+config DRIVER_NET_DESIGNWARE_STM32
+	bool "Designware Universal MAC ethernet driver for STM32 platforms"
+	depends on ARCH_STM32MP
+	select MFD_SYSCON
+	help
+	  This option enables support for the Synopsys
+	  Designware Core Univesal MAC 10M/100M/1G ethernet IP on STM32 family
+	  including STM32MP1.
+
+config DRIVER_NET_DESIGNWARE_QOS
+	bool "Synopsys Designware Ethernet QOS IP block driver"
+	help
+	  This option enables support for the Synopsys Designware Ethernet QOS
+	  IP on STM32MP and Tegra family of CPUs.
+
 endif
 
 config DRIVER_NET_DM9K
