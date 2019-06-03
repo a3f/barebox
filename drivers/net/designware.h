@@ -24,22 +24,16 @@ struct dw_eth_dev {
 	u8 *txbuffs;
 	u8 *rxbuffs;
 
-	struct eth_mac_regs *mac_regs_p;
+	void __iomem *mac_regs_p;
 	struct eth_dma_regs *dma_regs_p;
 	int phy_addr;
 	phy_interface_t interface;
 	int enh_desc;
 
 	struct reset_control	*rst;
-
-	struct clk_bulk_data *clks;
 };
 
-struct dw_eth_drvdata {
-	bool enh_desc;
-};
-
-struct dw_eth_dev *dwc_drv_probe(struct device_d *dev);
+struct dw_eth_dev *dwc_drv_probe(struct device_d *dev, bool enh_desc);
 void dwc_drv_remove(struct device_d *dev);
 
 #define CONFIG_TX_DESCR_NUM	16
@@ -48,22 +42,41 @@ void dwc_drv_remove(struct device_d *dev);
 #define TX_TOTAL_BUFSIZE	(CONFIG_ETH_BUFSIZE * CONFIG_TX_DESCR_NUM)
 #define RX_TOTAL_BUFSIZE	(CONFIG_ETH_BUFSIZE * CONFIG_RX_DESCR_NUM)
 
-struct eth_mac_regs {
-	u32 conf;		/* 0x00 */
-	u32 framefilt;		/* 0x04 */
-	u32 hashtablehigh;	/* 0x08 */
-	u32 hashtablelow;	/* 0x0c */
-	u32 miiaddr;		/* 0x10 */
-	u32 miidata;		/* 0x14 */
-	u32 flowcontrol;	/* 0x18 */
-	u32 vlantag;		/* 0x1c */
-	u32 version;		/* 0x20 */
-	u8 reserved_1[20];
-	u32 intreg;		/* 0x38 */
-	u32 intmask;		/* 0x3c */
-	u32 macaddr0hi;		/* 0x40 */
-	u32 macaddr0lo;		/* 0x44 */
-};
+/*  MAC registers */
+#define GMAC_CONFIG			0x00000000
+#define GMAC_PACKET_FILTER		0x00000008
+#define GMAC_HASH_TAB_0_31		0x00000010
+#define GMAC_HASH_TAB_32_63		0x00000014
+#define GMAC_RX_FLOW_CTRL		0x00000090
+#define GMAC_QX_TX_FLOW_CTRL(x)		(0x70 + x * 4)
+#define GMAC_TXQ_PRTY_MAP0		0x98
+#define GMAC_TXQ_PRTY_MAP1		0x9C
+#define GMAC_RXQ_CTRL0			0x000000a0
+#define GMAC_RXQ_CTRL1			0x000000a4
+#define GMAC_RXQ_CTRL2			0x000000a8
+#define GMAC_RXQ_CTRL3			0x000000ac
+#define GMAC_INT_STATUS			0x000000b0
+#define GMAC_INT_EN			0x000000b4
+#define GMAC_1US_TIC_COUNTER		0x000000dc
+#define GMAC_PCS_BASE			0x000000e0
+#define GMAC_PHYIF_CONTROL_STATUS	0x000000f8
+#define GMAC_PMT			0x000000c0
+#define GMAC_DEBUG			0x00000114
+#define GMAC_HW_FEATURE0		0x0000011c
+#define GMAC_HW_FEATURE1		0x00000120
+#define GMAC_HW_FEATURE2		0x00000124
+#define GMAC_HW_FEATURE3		0x00000128
+#define GMAC_MDIO_ADDR			0x00000200
+#define GMAC_MDIO_DATA			0x00000204
+#define GMAC_ADDR_HIGH(reg)		(0x300 + reg * 8)
+#define GMAC_ADDR_LOW(reg)		(0x304 + reg * 8)
+
+/* MAC HW ADDR regs */
+#define GMAC_HI_DCS			GENMASK(18, 16)
+#define GMAC_HI_DCS_SHIFT		16
+#define GMAC_HI_REG_AE			BIT(31)
+
+
 
 /* MAC configuration register definitions */
 #define FRAMEBURSTENABLE	(1 << 21)
