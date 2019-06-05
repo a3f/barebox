@@ -4,23 +4,21 @@
  * Author: Alexandre Torgue <alexandre.torgue@st.com>.
  */
 
-/dts-v1/;
-
-#include <arm/stm32mp157c.dtsi>
-#include <arm/stm32mp157-pinctrl.dtsi>
+#include <arm/stm32mp157a-dk1.dts>
 #include "stm32mp157c.dtsi"
 
 / {
-	model = "STMicroelectronics STM32MP157A-DK1 Discovery Board";
-	compatible = "st,stm32mp157a-dk1", "st,stm32mp157";
+	led {
+		red {
+			label = "error";
+			gpios = <&gpioa 13 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+			status = "okay";
+		};
 
-	aliases {
-		ethernet0 = &ethernet0;
-		serial0 = &uart4;
-	};
-
-	chosen {
-		stdout-path = "serial0:115200n8";
+		blue {
+			default-state = "on";
+		};
 	};
 
 	sram: sram@10050000 {
@@ -33,24 +31,6 @@
 		dma_pool: dma_pool@0 {
 			reg = <0x0 0x10000>;
 			pool;
-		};
-	};
-};
-
-&ethernet0 {
-	status = "okay";
-	pinctrl-0 = <&ethernet0_rgmii_pins_a>;
-	pinctrl-names = "default", "sleep";
-	phy-mode = "rgmii";
-	max-speed = <1000>;
-	phy-handle = <&phy0>;
-
-	mdio0 {
-		#address-cells = <1>;
-		#size-cells = <0>;
-		compatible = "snps,dwmac-mdio";
-		phy0: ethernet-phy@0 {
-			reg = <0>;
 		};
 	};
 };
