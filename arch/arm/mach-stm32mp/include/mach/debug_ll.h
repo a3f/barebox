@@ -20,9 +20,10 @@ static inline void PUTC_LL(int c)
 {
 	void __iomem *base = IOMEM(DEBUG_LL_UART_ADDR);
 
-	writel(c, base + TDR_OFFSET);
+	while ((readl(base + ISR_OFFSET) & USART_ISR_TXE) == 0)
+		;
 
-	while ((readl(base + ISR_OFFSET) & USART_ISR_TXE) == 0);
+	writel(c, base + TDR_OFFSET);
 }
 
 #endif /* __MACH_STM32MP1_DEBUG_LL_H */
