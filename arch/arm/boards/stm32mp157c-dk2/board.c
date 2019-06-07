@@ -81,6 +81,66 @@ static int dk2_sysconf_init(void)
 	pr_debug("[0x%x] SYSCFG.bootr = 0x%08x\n",
 	      (u32)syscfg + SYSCFG_BOOTR, reg);
 
+	#if 0
+	if (IS_ENABLED(CONFIG_DM_REGULATOR)) {
+		u32 otp = 0;
+		u32 val;
+		int ret;
+		struct device_d *pwr_dev, *pwr_reg, *dev;
+		/* High Speed Low Voltage Pad mode Enable for SPI, SDMMC, ETH, QSPI
+		 * and TRACE. Needed above ~50MHz and conditioned by AFMUX selection.
+		 * The customer will have to disable this for low frequencies
+		 * or if AFMUX is selected but the function not used, typically for
+		 * TRACE. Otherwise, impact on power consumption.
+		 *
+		 * WARNING:
+		 *   enabling High Speed mode while VDD>2.7V
+		 *   with the OTP product_below_2v5 (OTP 18, BIT 13)
+		 *   erroneously set to 1 can damage the IC!
+		 *   => U-Boot set the register only if VDD < 2.7V (in DT)
+		 *      but this value need to be consistent with board design
+		 */
+		ret = syscon_get_by_driver_data(STM32MP_SYSCON_PWR, &pwr_dev);
+		if (!ret) {
+
+			ret = uclass_get_device_by_driver(UCLASS_MISC,
+					DM_GET_DRIVER(stm32mp_bsec),
+					&dev);
+			if (ret) {
+				pr_err("Can't find stm32mp_bsec driver\n");
+				return -ENODEV;
+			}
+
+			ret = misc_read(dev, STM32_BSEC_SHADOW(18), &otp, 4);
+			if (!ret)
+				otp = otp & BIT(13);
+
+			/* get VDD = pwr-supply */
+			ret = device_get_supply_regulator(pwr_dev, "pwr-supply",
+					&pwr_reg);
+
+			/* check if VDD is Low Voltage */
+			if (!ret) {
+				if (regulator_get_value(pwr_reg) < 2700000) {
+					regmap_write(SYSCFG_IOCTRLSETR_HSLVEN_TRACE |
+							SYSCFG_IOCTRLSETR_HSLVEN_QUADSPI |
+							SYSCFG_IOCTRLSETR_HSLVEN_ETH |
+							SYSCFG_IOCTRLSETR_HSLVEN_SDMMC |
+							SYSCFG_IOCTRLSETR_HSLVEN_SPI,
+							syscfg + SYSCFG_IOCTRLSETR);
+
+					if (!otp)
+						pr_err("product_below_2v5=0: HSLVEN protected by HW\n");
+				} else {
+					if (otp)
+						pr_err("product_below_2v5=1: HSLVEN update is destructive, no update as VDD>2.7V\n");
+				}
+			} else {
+				pr_debug("VDD unknown");
+			}
+		}
+	}
+	#endif
 	regmap_read(syscfg, SYSCFG_IOCTRLSETR, &reg);
 	pr_debug("[0x%x] SYSCFG.IOCTRLSETR = 0x%08x\n",
 	      (u32)syscfg + SYSCFG_IOCTRLSETR, reg);
