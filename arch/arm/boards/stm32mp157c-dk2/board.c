@@ -5,6 +5,7 @@
 #include <asm/memory.h>
 #include <mach/stm32.h>
 #include <mfd/syscon.h>
+#include <envfs.h>
 
 #define SYSCFG_BOOTR		0x00
 #define SYSCFG_PMCSETR		0x04
@@ -64,6 +65,17 @@ static int dk2_postcore_init(void)
 	return 0;
 }
 mem_initcall(dk2_postcore_init);
+
+static int dk2_devices_init(void)
+{
+	if (!of_machine_is_compatible("st,stm32mp157c-dk2"))
+		return 0;
+
+	defaultenv_append_directory(defaultenv_dk2);
+
+	return 0;
+}
+device_initcall(dk2_devices_init);
 
 static int dk2_sysconf_init(void)
 {
