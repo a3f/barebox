@@ -1,1 +1,1 @@
-obj- := __dummy__.o
+obj-$(CONFIG_ARM_PSCI) += psci.o
