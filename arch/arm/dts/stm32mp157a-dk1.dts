@@ -5,38 +5,4 @@
  */
 
 #include <arm/stm32mp157a-dk1.dts>
-#include "stm32mp157c.dtsi"
-
-/ {
-	led {
-		red {
-			label = "error";
-			gpios = <&gpioa 13 GPIO_ACTIVE_LOW>;
-			default-state = "off";
-			status = "okay";
-		};
-
-		blue {
-			default-state = "on";
-		};
-	};
-
-	sram: sram@10050000 {
-		compatible = "mmio-sram";
-		reg = <0x10050000 0x10000>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges = <0 0x10050000 0x10000>;
-
-		dma_pool: dma_pool@0 {
-			reg = <0x0 0x10000>;
-			pool;
-		};
-	};
-};
-
-&uart4 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&uart4_pins_a>;
-	status = "okay";
-};
+#include "stm32mp157a-dk1.dtsi"
