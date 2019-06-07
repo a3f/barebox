@@ -55,6 +55,7 @@ static inline unsigned long global_variable_offset(void)
 }
 
 void setup_c(void);
+void pbl_barebox_break(void);
 void relocate_to_current_adr(void);
 void relocate_to_adr(unsigned long target);
 void __noreturn barebox_arm_entry(unsigned long membase, unsigned long memsize, void *boarddata);
@@ -180,6 +181,7 @@ static inline unsigned long arm_mem_barebox_image(unsigned long membase,
 				(uint32_t r0, uint32_t r1, uint32_t r2)	\
 		{							\
 			__barebox_arm_head();				\
+			pbl_barebox_break();				\
 			__##name(r0, r1, r2);				\
 		}							\
 		static void NAKED noinline __##name			\

@@ -1287,6 +1287,15 @@ config DEBUG_INITCALLS
 	help
 	  If enabled this will print initcall traces.
 
+
+config PBL_BREAK
+	bool "Execute software break on pbl start"
+	help
+	  If this enabled, barebox will be compiled with BKPT instruction
+	  during early pbl init and entry of the main barebox.
+	  This option can only be used with a JTAG debugger,
+	  the board hangs otherwise.
+
 endmenu
 
 config HAS_DEBUG_LL
