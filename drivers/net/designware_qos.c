@@ -1044,8 +1044,8 @@ static int eqos_send(struct eth_device *dev, void *packet, int length)
 {
 	struct eqos_priv *eqos = dev->priv;
 	struct eqos_desc *tx_desc;
-	uint64_t start;
 	dma_addr_t dma;
+	unsigned long des3;
 	int ret;
 
 
@@ -1069,19 +1069,16 @@ static int eqos_send(struct eth_device *dev, void *packet, int length)
 	writel(EQOS_DESC3_OWN | EQOS_DESC3_FD | EQOS_DESC3_LD | length, &tx_desc->des3);
 	writel((unsigned long)(tx_desc + 1), &eqos->dma_regs->ch0_txdesc_tail_pointer);
 
-	start = get_time_ns(); // TODO replace with poll_timeout
-	ret = -ETIMEDOUT;
-	do {
-		if (!(readl(&tx_desc->des3) & EQOS_DESC3_OWN)) {
-			ret = 0;
-			break;
-		}
-	} while (!is_timeout(start, 100 * MSECOND));
+
+	ret = readl_poll_timeout(&tx_desc->des3, des3,
+				  !(des3 & EQOS_DESC3_OWN),
+				  100000);
 
 	dma_unmap_single(eqos->dev, dma, length, DMA_TO_DEVICE);
 
 	if (ret == -ETIMEDOUT)
 		pr_debug("%s: TX timeout\n", __func__);
+
 	return ret;
 }
 
