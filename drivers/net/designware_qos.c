@@ -226,12 +226,11 @@ struct eqos_tegra186_regs {
 #define EQOS_DESCRIPTOR_ALIGN	64
 #define EQOS_DESCRIPTORS_TX	4
 #define EQOS_DESCRIPTORS_RX	4
-#define EQOS_DESCRIPTORS_NUM	(EQOS_DESCRIPTORS_TX + EQOS_DESCRIPTORS_RX)
+#define EQOS_DESCRIPTORS_NUM   (EQOS_DESCRIPTORS_TX + EQOS_DESCRIPTORS_RX)
 #define EQOS_DESCRIPTORS_SIZE	ALIGN(EQOS_DESCRIPTORS_NUM * \
 				      EQOS_DESCRIPTOR_SIZE, EQOS_DESCRIPTOR_ALIGN)
 #define EQOS_BUFFER_ALIGN	EQOS_DESCRIPTOR_ALIGN
 #define EQOS_MAX_PACKET_SIZE	ALIGN(1568, EQOS_DESCRIPTOR_ALIGN)
-#define EQOS_RX_BUFFER_SIZE	(EQOS_DESCRIPTORS_RX * EQOS_MAX_PACKET_SIZE)
 
 #define SYSCFG_MCU_ETH_MASK		BIT(23)
 #define SYSCFG_MP1_ETH_MASK		GENMASK(23, 16)
@@ -286,9 +285,6 @@ struct eqos_priv {
 	struct eqos_desc *tx_descs;
 	struct eqos_desc *rx_descs;
 	int tx_desc_idx, rx_desc_idx;
-	void *tx_dma_buf; // TODO remove?
-	void *rx_dma_buf;
-	void *rx_pkt;
 	bool started;
 	struct clk_bulk_data *clks;
 	int num_clks;
@@ -315,12 +311,9 @@ struct eqos_priv {
  *
  * Note that this only applies to descriptors. The packet data buffers do
  * not have the same constraints since they are 1536 bytes large, so they
+ * FIXME reead and remove
  * are unlikely to share cache-lines.
  */
-static void *eqos_alloc_descs(unsigned int num)
-{
-	return dma_alloc_coherent(EQOS_DESCRIPTORS_SIZE, DMA_ADDRESS_BROKEN);
-}
 
 static int eqos_mdio_wait_idle(struct eqos_priv *eqos)
 {
@@ -738,7 +731,7 @@ static int dwmac4_dma_reset(void __iomem *ioaddr)
 static int eqos_start(struct eth_device *edev)
 {
 	struct eqos_priv *eqos = edev->priv;
-	int ret, i;
+	int ret;
 	unsigned long rate;
 	u32 mode_set;
 	u32 val, tx_fifo_sz, rx_fifo_sz, tqs, rqs, pbl;
@@ -952,26 +945,15 @@ static int eqos_start(struct eth_device *edev)
 		EQOS_DMA_SYSBUS_MODE_BLEN8 | EQOS_DMA_SYSBUS_MODE_BLEN4;
 	writel(val, &eqos->dma_regs->sysbus_mode);
 
-	/* Set up descriptors */
-
-	for (i = 0; i < EQOS_DESCRIPTORS_RX; i++) {
-		struct eqos_desc *rx_desc = &eqos->rx_descs[i];
-		rx_desc->des0 = (u32)(ulong)(eqos->rx_dma_buf +
-					     (i * EQOS_MAX_PACKET_SIZE));
-		rx_desc->des3 |= EQOS_DESC3_BUF1V;
-		barrier();
-		rx_desc->des3 |= EQOS_DESC3_OWN;
-	}
-
-	barrier();
+	/* Set up descriptor pointers */
 
 	writel(0, &eqos->dma_regs->ch0_txdesc_list_haddress);
-	writel((ulong)eqos->tx_descs, &eqos->dma_regs->ch0_txdesc_list_address);
+	writel((unsigned long)eqos->tx_descs, &eqos->dma_regs->ch0_txdesc_list_address);
 	writel(EQOS_DESCRIPTORS_TX - 1,
 	       &eqos->dma_regs->ch0_txdesc_ring_length);
 
 	writel(0, &eqos->dma_regs->ch0_rxdesc_list_haddress);
-	writel((ulong)eqos->rx_descs, &eqos->dma_regs->ch0_rxdesc_list_address);
+	writel((unsigned long)eqos->rx_descs, &eqos->dma_regs->ch0_rxdesc_list_address);
 	writel(EQOS_DESCRIPTORS_RX - 1,
 	       &eqos->dma_regs->ch0_rxdesc_ring_length);
 
@@ -992,7 +974,7 @@ static int eqos_start(struct eth_device *edev)
 	 * that's not distinguishable from none of the descriptors being
 	 * available.
 	 */
-	last_rx_desc = (ulong)&eqos->rx_descs[(EQOS_DESCRIPTORS_RX - 1)];
+	last_rx_desc = (unsigned long)&eqos->rx_descs[(EQOS_DESCRIPTORS_RX - 1)];
 	writel(last_rx_desc, &eqos->dma_regs->ch0_rxdesc_tail_pointer);
 
 	eqos->started = true;
@@ -1063,26 +1045,29 @@ static int eqos_send(struct eth_device *dev, void *packet, int length)
 	struct eqos_priv *eqos = dev->priv;
 	struct eqos_desc *tx_desc;
 	uint64_t start;
+	dma_addr_t dma;
 	int ret;
 
-	memcpy(eqos->tx_dma_buf, packet, length);
-	barrier();
 
 	tx_desc = &eqos->tx_descs[eqos->tx_desc_idx];
 	eqos->tx_desc_idx++;
 	eqos->tx_desc_idx %= EQOS_DESCRIPTORS_TX;
 
-	tx_desc->des0 = (ulong)eqos->tx_dma_buf;
+	dma = dma_map_single(eqos->dev, packet, length, DMA_TO_DEVICE);
+	if (dma_mapping_error(eqos->dev, dma))
+		return -EFAULT;
+
+	tx_desc->des0 = (unsigned long)dma;
 	tx_desc->des1 = 0;
 	tx_desc->des2 = length;
 	/*
-	 * Make sure that if HW sees the _OWN write below, it will see all the
-	 * writes to the rest of the descriptor too.
+	 * Make sure the compiler doesn't reorder the _OWN write below, before
+	 * the writes to the rest of the descriptor.
 	 */
 	barrier();
 
 	writel(EQOS_DESC3_OWN | EQOS_DESC3_FD | EQOS_DESC3_LD | length, &tx_desc->des3);
-	writel((ulong)(tx_desc + 1), &eqos->dma_regs->ch0_txdesc_tail_pointer);
+	writel((unsigned long)(tx_desc + 1), &eqos->dma_regs->ch0_txdesc_tail_pointer);
 
 	start = get_time_ns(); // TODO replace with poll_timeout
 	ret = -ETIMEDOUT;
@@ -1093,6 +1078,8 @@ static int eqos_send(struct eth_device *dev, void *packet, int length)
 		}
 	} while (!is_timeout(start, 100 * MSECOND));
 
+	dma_unmap_single(eqos->dev, dma, length, DMA_TO_DEVICE);
+
 	if (ret == -ETIMEDOUT)
 		pr_debug("%s: TX timeout\n", __func__);
 	return ret;
@@ -1102,41 +1089,33 @@ static int eqos_recv(struct eth_device *edev)
 {
 	struct eqos_priv *eqos = edev->priv;
 	struct eqos_desc *rx_desc;
-	u8 *buffer, *packet_expected;
+	void *frame;
 	int length;
 
 	rx_desc = &eqos->rx_descs[eqos->rx_desc_idx];
 	if (readl(&rx_desc->des3) & EQOS_DESC3_OWN)
 		return 0;
 
-	buffer = eqos->rx_dma_buf + (eqos->rx_desc_idx * EQOS_MAX_PACKET_SIZE);
+	frame = phys_to_virt(rx_desc->des0);
 	length = rx_desc->des3 & 0x7fff;
 
-	barrier(); // FIXME remove
-	net_receive(edev, buffer, length);
-	barrier(); // TODO use streaming mapping
+	dma_sync_single_for_cpu((unsigned long)frame, length, DMA_FROM_DEVICE);
+	net_receive(edev, frame, length);
+	dma_sync_single_for_device((unsigned long)frame, length, DMA_FROM_DEVICE);
 
-	packet_expected = eqos->rx_dma_buf +
-		(eqos->rx_desc_idx * EQOS_MAX_PACKET_SIZE);
-	if (buffer != packet_expected) {
-		debug("%s: Unexpected packet (expected %p)\n", __func__,
-		      packet_expected);
-		return -EINVAL;
-	}
-
-	rx_desc->des0 = (u32)(ulong)buffer;
+	rx_desc->des0 = (unsigned long)frame;
 	rx_desc->des1 = 0;
 	rx_desc->des2 = 0;
 	/*
 	 * Make sure that if HW sees the _OWN write below, it will see all the
 	 * writes to the rest of the descriptor too.
 	 */
+	rx_desc->des3 |= EQOS_DESC3_BUF1V;
 	barrier();
-	rx_desc->des3 |= EQOS_DESC3_OWN | EQOS_DESC3_BUF1V;
-	//dma_sync_single_for_device((dma_addr_t)rx_desc, length, DMA_FROM_DEVICE);
+	rx_desc->des3 |= EQOS_DESC3_OWN;
 	barrier();
 
-	writel((ulong)rx_desc, &eqos->dma_regs->ch0_rxdesc_tail_pointer);
+	writel((unsigned long)rx_desc, &eqos->dma_regs->ch0_rxdesc_tail_pointer);
 
 	eqos->rx_desc_idx++;
 	eqos->rx_desc_idx %= EQOS_DESCRIPTORS_RX;
@@ -1144,55 +1123,48 @@ static int eqos_recv(struct eth_device *edev)
 	return 0;
 }
 
-static int eqos_probe_resources(struct eqos_priv *eqos)
+static int eqos_init_resources(struct eqos_priv *eqos)
 {
-	int ret;
+	int ret = -ENOMEM;
+	int i;
+	void *p;
 
-	eqos->descs = eqos_alloc_descs(EQOS_DESCRIPTORS_TX +
-				       EQOS_DESCRIPTORS_RX);
+	eqos->descs = dma_alloc_coherent(EQOS_DESCRIPTORS_SIZE, DMA_ADDRESS_BROKEN);
 	if (!eqos->descs) {
 		pr_debug("%s: eqos_alloc_descs() failed\n", __func__);
-		ret = -ENOMEM;
 		goto err;
 	}
 	eqos->tx_descs = (struct eqos_desc *)eqos->descs;
 	eqos->rx_descs = (eqos->tx_descs + EQOS_DESCRIPTORS_TX);
 
-	eqos->tx_dma_buf = dma_alloc_coherent(EQOS_MAX_PACKET_SIZE, DMA_ADDRESS_BROKEN);
-	if (!eqos->tx_dma_buf) {
-		pr_debug("%s: dma_alloc_coherent(tx_dma_buf) failed\n", __func__);
-		ret = -ENOMEM;
-		goto err;
-	}
+	p = dma_alloc(EQOS_DESCRIPTORS_RX * EQOS_MAX_PACKET_SIZE);
+	if (!p)
+		goto err_free_desc;
 
-	eqos->rx_dma_buf = dma_alloc_coherent(EQOS_RX_BUFFER_SIZE, DMA_ADDRESS_BROKEN);
-	if (!eqos->rx_dma_buf) {
-		pr_debug("%s: dma_alloc_coherent(rx_dma_buf) failed\n", __func__);
-		ret = -ENOMEM;
-		goto err_free_tx_dma_buf;
-	}
+	for (i = 0; i < EQOS_DESCRIPTORS_RX; i++) {
+		struct eqos_desc *rx_desc = &eqos->rx_descs[i];
+		dma_addr_t dma;
 
-	eqos->rx_pkt = dma_alloc_coherent(EQOS_MAX_PACKET_SIZE, DMA_ADDRESS_BROKEN);
-	if (!eqos->rx_pkt) {
-		pr_debug("%s: dma_alloc_coherent(rx_pkt) failed\n", __func__);
-		ret = -ENOMEM;
-		goto err_free_rx_dma_buf;
-	}
+		dma = dma_map_single(eqos->dev, p, EQOS_MAX_PACKET_SIZE, DMA_FROM_DEVICE);
+		if (dma_mapping_error(eqos->dev, dma)) {
+			ret = -EFAULT;
+			goto err_free_rx_bufs;
+		}
 
-	ret = eqos->config->ops->probe_resources(eqos->dev);
-	if (ret < 0) {
-		pr_err("eqos_probe_resources() failed: %s\n", strerror(-ret));
-		goto err_free_rx_pkt;
+		rx_desc->des0 = dma;
+		rx_desc->des3 |= EQOS_DESC3_BUF1V;
+		barrier();
+		rx_desc->des3 |= EQOS_DESC3_OWN;
+
+		p += EQOS_MAX_PACKET_SIZE;
 	}
 
 	return 0;
 
-err_free_rx_pkt:
-	dma_free_coherent(eqos->rx_pkt, 0, EQOS_MAX_PACKET_SIZE);
-err_free_rx_dma_buf:
-	dma_free_coherent(eqos->rx_dma_buf, 0, EQOS_RX_BUFFER_SIZE);
-err_free_tx_dma_buf:
-	dma_free_coherent(eqos->tx_dma_buf, 0, EQOS_MAX_PACKET_SIZE);
+err_free_rx_bufs:
+	dma_free(phys_to_virt(eqos->rx_descs[0].des0));
+err_free_desc:
+	dma_free_coherent(eqos->descs, 0, EQOS_DESCRIPTORS_SIZE);
 err:
 
 	return ret;
@@ -1205,9 +1177,8 @@ static void eqos_remove_resources(struct device_d *dev)
 	if (eqos->config->ops->remove_resources)
 		eqos->config->ops->remove_resources(dev);
 
-	dma_free_coherent(eqos->rx_pkt, 0, EQOS_MAX_PACKET_SIZE);
-	dma_free_coherent(eqos->rx_dma_buf, 0, EQOS_RX_BUFFER_SIZE);
-	dma_free_coherent(eqos->tx_dma_buf, 0, EQOS_MAX_PACKET_SIZE);
+	dma_free(phys_to_virt(eqos->rx_descs[0].des0));
+	dma_free_coherent(eqos->descs, 0, EQOS_DESCRIPTORS_SIZE);
 
 	clk_bulk_put(eqos->num_clks, eqos->clks);
 }
@@ -1343,9 +1314,15 @@ static int eqos_probe(struct device_d *dev)
 		eqos->phy_interface = ret;
 
 
-	ret = eqos_probe_resources(eqos);
+	ret = eqos_init_resources(eqos);
 	if (ret < 0) {
-		pr_err("eqos_probe_resources() failed: %s\n", strerror(-ret));
+		pr_err("eqos_init_resources() failed: %s\n", strerror(-ret));
+		return ret;
+	}
+
+	ret = eqos->config->ops->probe_resources(eqos->dev);
+	if (ret < 0) {
+		pr_err("probe_resources() failed: %s\n", strerror(-ret));
 		return ret;
 	}
 
