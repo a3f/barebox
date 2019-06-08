@@ -1540,7 +1540,7 @@ static const struct of_device_id eqos_ids[] = {
 		.data = &eqos_tegra186_config
 	},
 	{
-		.compatible = "snps,dwmac-4.20a",
+		.compatible = "st,stm32mp1-dwmac",
 		.data = &eqos_stm32_config
 	},
 	{ }
