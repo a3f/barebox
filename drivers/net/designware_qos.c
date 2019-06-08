@@ -340,9 +340,6 @@ static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 	u32 val;
 	int ret;
 
-	pr_debug("%s(dev=%p, addr=%x, reg=%d):\n", __func__, eqos->dev, mdio_addr,
-	      mdio_reg);
-
 	ret = eqos_mdio_wait_idle(eqos);
 	if (ret) {
 		pr_err("MDIO not idle at entry");
@@ -372,8 +369,6 @@ static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 	val = readl(&eqos->mac_regs->mdio_data);
 	val &= EQOS_MAC_MDIO_DATA_GD_MASK;
 
-	pr_debug("%s: val=%x\n", __func__, val);
-
 	return val;
 }
 
@@ -383,9 +378,6 @@ static int eqos_mdio_write(struct mii_bus *bus, int mdio_addr,
 	struct eqos_priv *eqos = bus->priv;
 	u32 val;
 	int ret;
-
-	pr_debug("%s(dev=%p, addr=%x, reg=%d, val=%x):\n", __func__, eqos->dev,
-	      mdio_addr, mdio_reg, mdio_val);
 
 	ret = eqos_mdio_wait_idle(eqos);
 	if (ret) {
@@ -467,23 +459,18 @@ static int eqos_start_clks_stm32(struct eqos_priv *eqos)
 		return ret;
 	}
 
-	pr_debug("%s: OK\n", __func__);
 	return 0;
 }
 
 static void eqos_stop_clks_tegra186(struct eqos_priv *eqos)
 {
 	clk_bulk_disable(ARRAY_SIZE(tegra_clks), eqos->clks);
-
-	pr_debug("%s: OK\n", __func__);
 }
 
 static void eqos_stop_clks_stm32(struct eqos_priv *eqos)
 {
 	clk_bulk_disable(ARRAY_SIZE(stm32_clks), eqos->clks);
 	// FIXME that one  optional PHY clock
-
-	pr_debug("%s: OK\n", __func__);
 }
 
 static int eqos_start_resets_tegra186(struct eqos_priv *eqos)
@@ -510,7 +497,6 @@ static int eqos_start_resets_tegra186(struct eqos_priv *eqos)
 		return ret;
 	}
 
-	pr_debug("%s: OK\n", __func__);
 	return 0;
 }
 
@@ -556,8 +542,6 @@ static int eqos_calibrate_pads_tegra186(struct eqos_priv *eqos)
 failed:
 	clrbits_le32(&eqos->tegra186_regs->sdmemcomppadctrl,
 		     EQOS_SDMEMCOMPPADCTRL_PAD_E_INPUT_OR_E_PWRD);
-
-	pr_debug("%s: returns %d\n", __func__, ret);
 
 	return ret;
 }
@@ -706,8 +690,6 @@ static void eqos_adjust_link(struct eth_device *edev)
 	int ret;
 	bool en_calibration;
 
-	pr_debug("%s(edev=%p):\n", __func__, edev);
-
 	if (edev->phydev->duplex)
 		ret = eqos_set_full_duplex(eqos);
 	else
@@ -840,10 +822,7 @@ static int eqos_start(struct eth_device *edev)
 	u32 val, tx_fifo_sz, rx_fifo_sz, tqs, rqs, pbl;
 	unsigned long last_rx_desc;
 
-	pr_debug("%s(edev=%p):\n", __func__, edev);
-
-	eqos->tx_desc_idx = 0;
-	eqos->rx_desc_idx = 0;
+	eqos->tx_desc_idx = eqos->rx_desc_idx = 0;
 
 	dwmac4_dma_reset(eqos->regs);
 
@@ -853,7 +832,6 @@ static int eqos_start(struct eth_device *edev)
 		goto err;
 	}
 
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 	if (eqos->config->ops->eqos_start_resets) {
 		ret = eqos->config->ops->eqos_start_resets(eqos);
 		if (ret < 0) {
@@ -862,13 +840,11 @@ static int eqos_start(struct eth_device *edev)
 		}
 	}
 
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 	udelay(10);
 
 	writel(eqos->address0_high, &eqos->mac_regs->address0_high);
 	writel(eqos->address0_low, &eqos->mac_regs->address0_low);
 
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 	#if  1
 	ret = readl_poll_timeout(&eqos->dma_regs->mode, mode_set,
 				 !(mode_set & EQOS_DMA_MODE_SWR),
@@ -893,9 +869,7 @@ static int eqos_start(struct eth_device *edev)
 	#endif
 
 
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 	if (eqos->config->ops->eqos_calibrate_pads) {
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 		ret = eqos->config->ops->eqos_calibrate_pads(eqos);
 		if (ret < 0) {
 			pr_err("eqos_calibrate_pads() failed: %s\n", strerror(-ret));
@@ -903,21 +877,17 @@ static int eqos_start(struct eth_device *edev)
 		}
 	}
 
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 	rate = eqos->config->ops->eqos_get_tick_clk_rate(eqos);
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 
 	val = (rate / 1000000) - 1;
 	writel(val, &eqos->mac_regs->us_tic_counter);
 
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 	ret = phy_device_connect(edev, &eqos->miibus, eqos->phy_addr,
 				 eqos_adjust_link, 0, eqos->phy_interface);
 	if (ret) {
 		pr_err("phy_device_connect() failed");
 		goto err_stop_resets;
 	}
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 
 	/* Configure MTL */
 
@@ -1078,7 +1048,6 @@ static int eqos_start(struct eth_device *edev)
 
 	/* Set up descriptors */
 
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 	for (i = 0; i < EQOS_DESCRIPTORS_RX; i++) {
 		struct eqos_desc *rx_desc = &eqos->rx_descs[i];
 		rx_desc->des0 = (u32)(ulong)(eqos->rx_dma_buf +
@@ -1099,7 +1068,6 @@ static int eqos_start(struct eth_device *edev)
 	writel((ulong)eqos->rx_descs, &eqos->dma_regs->ch0_rxdesc_list_address);
 	writel(EQOS_DESCRIPTORS_RX - 1,
 	       &eqos->dma_regs->ch0_rxdesc_ring_length);
-	pr_debug("%s(line=%d):\n", __func__, __LINE__);
 
 	/* Enable everything */
 
@@ -1123,7 +1091,6 @@ static int eqos_start(struct eth_device *edev)
 
 	eqos->started = true;
 
-	pr_debug("%s: OK\n", __func__);
 	return 0;
 
 err_stop_resets:
@@ -1133,7 +1100,7 @@ err_stop_clks:
 	if (eqos->config->ops->eqos_stop_clks)
 		eqos->config->ops->eqos_stop_clks(eqos);
 err:
-	pr_err("FAILED: %s\n", strerror(-ret));
+	pr_err("%s: failed with %s\n", __func__, strerror(-ret));
 	return ret;
 }
 
@@ -1142,7 +1109,6 @@ static void eqos_stop(struct eth_device *dev)
 	struct eqos_priv *eqos = dev->priv;
 	int i;
 
-	pr_debug("%s(dev=%p):\n", __func__, dev);
 
 	if (!eqos->started)
 		return;
@@ -1186,7 +1152,6 @@ static void eqos_stop(struct eth_device *dev)
 	if (eqos->config->ops->eqos_stop_clks)
 		eqos->config->ops->eqos_stop_clks(eqos);
 
-	pr_debug("%s: OK\n", __func__);
 }
 
 static int eqos_send(struct eth_device *dev, void *packet, int length)
@@ -1195,9 +1160,6 @@ static int eqos_send(struct eth_device *dev, void *packet, int length)
 	struct eqos_desc *tx_desc;
 	uint64_t start;
 	int ret;
-
-	pr_debug("%s(dev=%p, packet=%p, length=%d):\n", __func__, dev, packet,
-	      length);
 
 	memcpy(eqos->tx_dma_buf, packet, length);
 	barrier();
@@ -1245,7 +1207,6 @@ static int eqos_recv(struct eth_device *edev)
 
 	buffer = eqos->rx_dma_buf + (eqos->rx_desc_idx * EQOS_MAX_PACKET_SIZE);
 	length = rx_desc->des3 & 0x7fff;
-	pr_debug("%s: buffer=%p, length=%d\n", __func__, buffer, length);
 
 	barrier(); // FIXME remove
 	net_receive(edev, buffer, length);
@@ -1292,8 +1253,6 @@ static int eqos_probe_resources_core(struct eqos_priv *eqos)
 	}
 	eqos->tx_descs = (struct eqos_desc *)eqos->descs;
 	eqos->rx_descs = (eqos->tx_descs + EQOS_DESCRIPTORS_TX);
-	pr_debug("%s: tx_descs=%p, rx_descs=%p\n", __func__, eqos->tx_descs,
-	      eqos->rx_descs);
 
 	eqos->tx_dma_buf = dma_alloc_coherent(EQOS_MAX_PACKET_SIZE, DMA_ADDRESS_BROKEN);
 	if (!eqos->tx_dma_buf) {
@@ -1301,7 +1260,6 @@ static int eqos_probe_resources_core(struct eqos_priv *eqos)
 		ret = -ENOMEM;
 		goto err;
 	}
-	pr_debug("%s: tx_dma_buf=%p\n", __func__, eqos->tx_dma_buf);
 
 	eqos->rx_dma_buf = dma_alloc_coherent(EQOS_RX_BUFFER_SIZE, DMA_ADDRESS_BROKEN);
 	if (!eqos->rx_dma_buf) {
@@ -1309,7 +1267,6 @@ static int eqos_probe_resources_core(struct eqos_priv *eqos)
 		ret = -ENOMEM;
 		goto err_free_tx_dma_buf;
 	}
-	pr_debug("%s: rx_dma_buf=%p\n", __func__, eqos->rx_dma_buf);
 
 	eqos->rx_pkt = dma_alloc_coherent(EQOS_MAX_PACKET_SIZE, DMA_ADDRESS_BROKEN);
 	if (!eqos->rx_pkt) {
@@ -1317,9 +1274,7 @@ static int eqos_probe_resources_core(struct eqos_priv *eqos)
 		ret = -ENOMEM;
 		goto err_free_rx_dma_buf;
 	}
-	pr_debug("%s: rx_pkt=%p\n", __func__, eqos->rx_pkt);
 
-	pr_debug("%s: OK\n", __func__);
 	return 0;
 
 err_free_rx_dma_buf:
@@ -1328,7 +1283,6 @@ err_free_tx_dma_buf:
 	free(eqos->tx_dma_buf);
 err:
 
-	pr_debug("%s: returns %d\n", __func__, ret);
 	return ret;
 }
 
@@ -1336,13 +1290,10 @@ static int eqos_remove_resources_core(struct device_d *dev)
 {
 	struct eqos_priv *eqos = dev->priv;
 
-	pr_debug("%s(dev=%p):\n", __func__, dev);
-
 	free(eqos->rx_pkt);
 	free(eqos->rx_dma_buf);
 	free(eqos->tx_dma_buf);
 
-	pr_debug("%s: OK\n", __func__);
 	return 0;
 }
 
@@ -1351,8 +1302,6 @@ static int eqos_probe_resources_tegra186(struct device_d *dev)
 	struct eqos_priv *eqos = dev->priv;
 	int phy_reset;
 	int ret;
-
-	pr_debug("%s(dev=%p):\n", __func__, dev);
 
 	eqos->reset_ctl = reset_control_get(dev, "eqos");
 	if (IS_ERR(eqos->reset_ctl)) {
@@ -1377,7 +1326,6 @@ static int eqos_probe_resources_tegra186(struct device_d *dev)
 		return ret;
 	}
 
-	pr_debug("%s: OK\n", __func__);
 	return 0;
 
 release_res:
@@ -1391,8 +1339,6 @@ static int eqos_probe_resources_stm32(struct device_d *dev)
 	struct device_node *np = dev->device_node;
 	size_t max_clks;
 	int ret;
-
-	pr_debug("%s(dev=%p):\n", __func__, dev);
 
 	/* Gigabit Ethernet 125MHz clock selection. */
 	eqos->eth_clk_sel_reg = of_property_read_bool(np, "st,eth-clk-sel");
@@ -1448,7 +1394,6 @@ static int eqos_remove_resources_tegra186(struct device_d *dev)
 	gpio_free(eqos->phy_reset_gpio);
 	reset_control_put(eqos->reset_ctl);
 
-	pr_debug("%s: OK\n", __func__);
 	return 0;
 }
 
@@ -1456,11 +1401,8 @@ static int eqos_remove_resources_stm32(struct device_d *dev)
 {
 	struct eqos_priv *eqos = dev->priv;
 
-	pr_debug("%s(dev=%p):\n", __func__, dev);
-
 	clk_bulk_put(ARRAY_SIZE(stm32_clks), eqos->clks);
 
-	pr_debug("%s: OK\n", __func__);
 	return 0;
 }
 
@@ -1471,8 +1413,6 @@ static int eqos_probe(struct device_d *dev)
 	struct eth_device *edev;
 	struct resource *iores;
 	int ret;
-
-	pr_debug("%s(dev=%p):\n", __func__, dev);
 
 	eqos = xzalloc(sizeof(*eqos));
 
@@ -1539,7 +1479,6 @@ static int eqos_probe(struct device_d *dev)
 	mdiobus_register(&eqos->miibus);
 	eth_register(edev);
 
-	pr_debug("%s: OK\n", __func__);
 	return 0;
 
 err_remove_resources_tegra:
@@ -1547,7 +1486,6 @@ err_remove_resources_tegra:
 err_remove_resources_core:
 	eqos_remove_resources_core(dev);
 
-	pr_debug("%s: returns %d\n", __func__, ret);
 	return ret;
 }
 
@@ -1555,14 +1493,10 @@ static void eqos_remove(struct device_d *dev)
 {
 	struct eqos_priv *eqos = dev->priv;
 
-	pr_debug("%s(dev=%p):\n", __func__, dev);
-
 	mdiobus_unregister(&eqos->miibus);
 	eqos->config->ops->eqos_remove_resources(dev);
 
 	eqos_probe_resources_core(eqos);
-
-	pr_debug("%s: OK\n", __func__);
 }
 
 static struct eqos_ops eqos_tegra186_ops = {
