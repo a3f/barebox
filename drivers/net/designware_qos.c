@@ -996,7 +996,6 @@ static void eqos_stop(struct eth_device *dev)
 	struct eqos_priv *eqos = dev->priv;
 	int i;
 
-
 	if (!eqos->started)
 		return;
 	eqos->started = false;
@@ -1048,7 +1047,6 @@ static int eqos_send(struct eth_device *dev, void *packet, int length)
 	unsigned long des3;
 	int ret;
 
-
 	tx_desc = &eqos->tx_descs[eqos->tx_desc_idx];
 	eqos->tx_desc_idx++;
 	eqos->tx_desc_idx %= EQOS_DESCRIPTORS_TX;
@@ -1068,7 +1066,6 @@ static int eqos_send(struct eth_device *dev, void *packet, int length)
 
 	writel(EQOS_DESC3_OWN | EQOS_DESC3_FD | EQOS_DESC3_LD | length, &tx_desc->des3);
 	writel((unsigned long)(tx_desc + 1), &eqos->dma_regs->ch0_txdesc_tail_pointer);
-
 
 	ret = readl_poll_timeout(&tx_desc->des3, des3,
 				  !(des3 & EQOS_DESC3_OWN),
@@ -1309,7 +1306,6 @@ static int eqos_probe(struct device_d *dev)
 		eqos->phy_interface = PHY_INTERFACE_MODE_MII;
 	else
 		eqos->phy_interface = ret;
-
 
 	ret = eqos_init_resources(eqos);
 	if (ret < 0) {
