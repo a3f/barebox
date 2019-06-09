@@ -3,7 +3,7 @@
  * Copyright (c) 2016, NVIDIA CORPORATION.
  * Copyright (c) 2019, Ahmad Fatoum, Pengutronix
  *
- * Portions based on U-Boot's rtl8169.c and dwc_eth_qos.
+ * Portions based on U-Boot's rtl8169.c and dwc_eth_qos.c
  */
 
 #include <common.h>
@@ -294,26 +294,6 @@ struct eqos_priv {
 	u32 address0_high;
 	u32 address0_low;
 };
-
-/*
- * TX and RX descriptors are 16 bytes. This causes problems with the cache
- * maintenance on CPUs where the cache-line size exceeds the size of these
- * descriptors. What will happen is that when the driver receives a packet
- * it will be immediately requeued for the hardware to reuse. The CPU will
- * therefore need to flush the cache-line containing the descriptor, which
- * will cause all other descriptors in the same cache-line to be flushed
- * along with it. If one of those descriptors had been written to by the
- * device those changes (and the associated packet) will be lost.
- *
- * To work around this, we make use of non-cached memory if available. If
- * descriptors are mapped uncached there's no need to manually flush them
- * or invalidate them.
- *
- * Note that this only applies to descriptors. The packet data buffers do
- * not have the same constraints since they are 1536 bytes large, so they
- * FIXME reead and remove
- * are unlikely to share cache-lines.
- */
 
 static int eqos_mdio_wait_idle(struct eqos_priv *eqos)
 {
