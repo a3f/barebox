@@ -50,6 +50,7 @@ static unsigned long fmax = 515633;
  * @blksz_datactrl16: true if Block size is at b16..b30 position in datactrl register
  * @signal_direction: input/out direction of bus signals can be indicated
  * @pwrreg_powerup: power up value for MMCIPOWER register
+ * @opendrain: bitmask identifying the OPENDRAIN bit inside MMCIPOWER register
  */
 struct variant_data {
 	unsigned int		clkreg;
@@ -62,6 +63,7 @@ struct variant_data {
 	bool			blksz_datactrl16;
 	bool			signal_direction;
 	u32			pwrreg_powerup;
+	u32			opendrain;
 };
 
 static struct variant_data variant_arm = {
@@ -69,6 +71,7 @@ static struct variant_data variant_arm = {
 	.fifohalfsize		= 8 * 4,
 	.datalength_bits	= 16,
 	.pwrreg_powerup		= MCI_PWR_UP,
+	.opendrain		= MCI_ROD,
 };
 
 static struct variant_data variant_arm_extended_fifo = {
@@ -76,6 +79,7 @@ static struct variant_data variant_arm_extended_fifo = {
 	.fifohalfsize		= 64 * 4,
 	.datalength_bits	= 16,
 	.pwrreg_powerup		= MCI_PWR_UP,
+	.opendrain		= MCI_ROD,
 };
 
 static struct variant_data variant_ux500 = {
@@ -88,6 +92,7 @@ static struct variant_data variant_ux500 = {
 	.st_clkdiv		= true,
 	.pwrreg_powerup		= MCI_PWR_ON,
 	.signal_direction	= true,
+	.opendrain		= MCI_OD,
 };
 
 static struct variant_data variant_ux500v2 = {
@@ -101,6 +106,7 @@ static struct variant_data variant_ux500v2 = {
 	.blksz_datactrl16	= true,
 	.pwrreg_powerup		= MCI_PWR_ON,
 	.signal_direction	= true,
+	.opendrain		= MCI_OD,
 };
 
 struct mmci_host {
@@ -460,15 +466,8 @@ static int mci_reset(struct mci_host *mci, struct device_d *mci_dev)
 		pwr |= host->plat->sigdir;
 	}
 
-	if (host->hw_designer != AMBA_VENDOR_ST) {
-		pwr |= MCI_ROD;
-	} else {
-		/*
-		 * The ST Micro variant use the ROD bit for something
-		 * else and only has OD (Open Drain).
-		 */
-		pwr |= MCI_OD;
-	}
+	if (variant->opendrain)
+		pwr |= variant->opendrain;
 
 	mmci_writel(host, MMCIPOWER, pwr);
 	return 0;
