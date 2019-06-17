@@ -43,66 +43,46 @@
 	(((((mck) * 10) / ((baud) * 16)) % 10) >= 5) ? \
 	(mck / (baud * 16) + 1) : ((mck) / (baud * 16))
 
-
-#define	PIO4_MSKR	0x0000	/* PIO Mask Register */
-#define	PIO4_CFGR	0x0004	/* PIO Configuration Register */
-#define	PIO4_SODR	0x0010	/* PIO Set Output Data Register */
-#define	PIO4_CODR	0x0014	/* PIO Clear Output Data Register */
-#define	PIO4_IDR		0x0024	/* PIO Interrupt Disable Register */
-
-#define	AT91C_PIO4_CFGR_FUNC_GPIO	0x00
-#define	AT91C_PIO4_CFGR_DIR	(0x01 << 8)	/* Direction */
-
-static void pio_set_gpio_output(void __iomem *pio, unsigned pin, int value)
-{
-
-	unsigned mask = pin_to_mask(pin);
-	writel(mask, pio + PIO4_MSKR);
-	writel(AT91C_PIO4_CFGR_FUNC_GPIO | AT91C_PIO4_CFGR_DIR,
-		     pio + PIO4_CFGR);
-	writel(mask, pio + (value ? PIO4_SODR : PIO4_CODR));
-}
 static void turn_led(unsigned color)
 {
-	pio_set_gpio_output(IOMEM(SAMA5D2_BASE_PIOA), 10, color & RGB_LED_RED);
-	pio_set_gpio_output(IOMEM(SAMA5D2_BASE_PIOB), 1, color & RGB_LED_GREEN);
-	pio_set_gpio_output(IOMEM(SAMA5D2_BASE_PIOA), 31, color & RGB_LED_BLUE);
-}
+	struct {
+		unsigned long pio;
+		unsigned bit;
+		unsigned color;
+	} *led, leds[] = {
+		{ .pio = SAMA5D2_BASE_PIOA, .bit = 10, .color = color & RGB_LED_RED },
+		{ .pio = SAMA5D2_BASE_PIOB, .bit =  1, .color = color & RGB_LED_GREEN },
+		{ .pio = SAMA5D2_BASE_PIOA, .bit = 31, .color = color & RGB_LED_BLUE },
+		{ /* sentinel */ },
+	};
 
-#define		AT91C_PIO_CFGR_FUNC_PERIPH_A	0x01
-static void pio4_set_periph(void __iomem *pio, unsigned mask, unsigned func)
-{
-	unsigned int value = func;
-	writel(mask, pio + PIO4_MSKR);
-	writel(value, pio + PIO4_CFGR);
-}
-
-static void configure_piod_pin(unsigned pin)
-{
-	void __iomem *pio = IOMEM(SAMA5D2_BASE_PIOD);
-	unsigned mask = pin_to_mask(pin);
-
-	pio4_set_periph(pio, mask, AT91C_PIO_CFGR_FUNC_PERIPH_A);
+	for (led = leds; led->pio; led++) {
+		at91_mux_gpio4_enable(IOMEM(led->pio), BIT(led->bit));
+		at91_mux_gpio4_input(IOMEM(led->pio), BIT(led->bit), false);
+		at91_mux_gpio4_set(IOMEM(led->pio), BIT(led->bit), led->color);
+	}
 }
 
 static void dbgu_init(void)
 {
 	unsigned mck = MASTER_CLOCK;
 
-	configure_piod_pin(AT91_PIN_PD2); /* DBGU RXD */
-	configure_piod_pin(AT91_PIN_PD3); /* DBGU TXD */
+	at91_mux_pio4_set_A_periph(IOMEM(SAMA5D2_BASE_PIOD),
+				   pin_to_mask(AT91_PIN_PD2)); /* DBGU RXD */
+	at91_mux_pio4_set_A_periph(IOMEM(SAMA5D2_BASE_PIOD),
+				   pin_to_mask(AT91_PIN_PD3)); /* DBGU TXD */
 
 	sama5d2_pmc_enable_periph_clock(SAMA5D2_ID_UART1);
 
 	if (at91_pmc_check_mck_h32mxdiv(IOMEM(SAMA5D2_BASE_PMC))) {
 		mck /= 2;
-	} else {
 	}
 
 	at91_dbgu_setup_ll(SAMA5D2_BASE_UART1, BAUDRATE(mck, 115200));
 
 	putc_ll('>');
 }
+
 
 static void ddramc_reg_config(struct at91_ddramc_register *ddramc_config)
 {

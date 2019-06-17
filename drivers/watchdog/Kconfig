@@ -81,4 +81,10 @@ config RAVE_SP_WATCHDOG
 	depends on RAVE_SP_CORE
 	help
 	  Support for the watchdog on RAVE SP device.
+
+config WATCHDOG_AT91SAM9
+	bool "Watchdog for AT91SAM9 and SAMA5 SoCs"
+	depends on ARCH_AT91
+	help
+	  Support for the watchdog in AT91SAM9X and SAMA5D{2,3,4} SoCs.
 endif

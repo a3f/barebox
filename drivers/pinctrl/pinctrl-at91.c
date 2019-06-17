@@ -45,6 +45,7 @@ struct at91_gpio_chip {
 	struct gpio_chip	chip;
 	void __iomem		*regbase;	/* PIO bank virtual address */
 	struct at91_pinctrl_mux_ops *ops;	/* ops */
+	u32			flags;
 };
 
 #define MAX_GPIO_BANKS		5
@@ -84,6 +85,9 @@ static inline struct at91_gpio_chip *pin_to_controller(unsigned pin)
  * @mux_B_periph: mux as periph B
  * @mux_C_periph: mux as periph C
  * @mux_D_periph: mux as periph D
+ * @mux_E_periph: mux as periph E
+ * @mux_F_periph: mux as periph F
+ * @mux_G_periph: mux as periph G
  * @set_deglitch: enable/disable deglitch
  * @set_debounce: enable/disable debounce
  * @set_pulldown: enable/disable pulldown
@@ -95,6 +99,9 @@ struct at91_pinctrl_mux_ops {
 	void (*mux_B_periph)(void __iomem *pio, unsigned mask);
 	void (*mux_C_periph)(void __iomem *pio, unsigned mask);
 	void (*mux_D_periph)(void __iomem *pio, unsigned mask);
+	void (*mux_E_periph)(void __iomem *pio, unsigned mask);
+	void (*mux_F_periph)(void __iomem *pio, unsigned mask);
+	void (*mux_G_periph)(void __iomem *pio, unsigned mask);
 	bool (*get_deglitch)(void __iomem *pio, unsigned pin);
 	void (*set_deglitch)(void __iomem *pio, unsigned mask, bool in_on);
 	bool (*get_debounce)(void __iomem *pio, unsigned pin, u32 *div);
@@ -151,6 +158,21 @@ int at91_mux_pin(unsigned pin, enum at91_mux mux, int use_pullup)
 		if (!at91_gpio->ops->mux_D_periph)
 			return -EINVAL;
 		at91_gpio->ops->mux_D_periph(pio, mask);
+		break;
+	case AT91_MUX_PERIPH_E:
+		if (!at91_gpio->ops->mux_E_periph)
+			return -EINVAL;
+		at91_gpio->ops->mux_E_periph(pio, mask);
+		break;
+	case AT91_MUX_PERIPH_F:
+		if (!at91_gpio->ops->mux_F_periph)
+			return -EINVAL;
+		at91_gpio->ops->mux_F_periph(pio, mask);
+		break;
+	case AT91_MUX_PERIPH_G:
+		if (!at91_gpio->ops->mux_G_periph)
+			return -EINVAL;
+		at91_gpio->ops->mux_G_periph(pio, mask);
 		break;
 	}
 	if (mux)
@@ -608,17 +630,6 @@ static void at91_gpio_free(struct gpio_chip *chip, unsigned offset)
 	dev_dbg(chip->dev, "%s:%d pio%c%d(%d)\n", __func__, __LINE__,
 		 'A' + pin_to_bank(chip->base), offset, chip->base + offset);
 }
-
-static struct gpio_ops at91_gpio_ops = {
-	.request = at91_gpio_request,
-	.free = at91_gpio_free,
-	.direction_input = at91_gpio_direction_input,
-	.direction_output = at91_gpio_direction_output,
-	.get_direction = at91_gpio_get_direction,
-	.get = at91_gpio_get,
-	.set = at91_gpio_set,
-};
-
 static struct of_device_id at91_gpio_dt_ids[] = {
 	{
 		.compatible = "atmel,at91rm9200-gpio",

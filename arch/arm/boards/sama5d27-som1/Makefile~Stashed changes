@@ -1,0 +1,5 @@
+lwl-y += lowlevel.o
+obj-y += sama5d27_som1.o
+ifeq ($(CONFIG_MACH_SAMA5D27_SOM1_DT),)
+obj-y += board.o
+endif
