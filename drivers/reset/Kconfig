@@ -21,4 +21,9 @@ config RESET_IMX7
 	help
 	  This enables the reset controller driver for i.MX7 SoCs.
 
+config RESET_STM32F
+	bool "STM32F Reset Driver"
+	help
+	  This enables the reset controller driver for STM32F MCUs.
+
 endif
