@@ -26,4 +26,10 @@ config RESET_STM32F
 	help
 	  This enables the reset controller driver for STM32F MCUs.
 
+config RESET_STM32MP
+	bool "STM32MP Reset Driver"
+	default ARCH_STM32MP
+	help
+	  This enables the reset controller driver for STM32MP SoCs.
+
 endif
