@@ -40,4 +40,8 @@ config PSCI_CLIENT
 	depends on CPU_32v7 || CPU_64v8
 	select ARM_SMCCC
 
+config PSCI_SYSRESET
+        bool "PSCI system reset driver"
+	depends on PSCI_CLIENT
+
 endmenu
