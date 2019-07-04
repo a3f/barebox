@@ -449,6 +449,10 @@ config ARM_PSCI
 	  PSCI is used for controlling secondary CPU cores on some systems. Say
 	  yes here if you want barebox to service PSCI calls on such systems.
 
+config ARM_PSCI_CLIENT
+	bool
+	select ARM_SMCCC
+
 config ARM_PSCI_DEBUG
 	bool "Enable PSCI debugging"
 	depends on ARM_PSCI
