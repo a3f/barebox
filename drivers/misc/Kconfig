@@ -35,4 +35,8 @@ config UBOOTVAR
 	  While it can be used standalone, it is best when coupled
 	  with corresponding filesystem driver.
 
+config PSCI_SYSRESET
+        bool "PSCI system reset driver"
+	depends on FIRMWARE_PSCI
+
 endmenu
