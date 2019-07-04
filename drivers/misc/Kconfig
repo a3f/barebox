@@ -35,4 +35,9 @@ config UBOOTVAR
 	  While it can be used standalone, it is best when coupled
 	  with corresponding filesystem driver.
 
+config PSCI_CLIENT
+	bool "PSCI client driver"
+	depends on CPU_32v7 || CPU_64v8
+	select ARM_SMCCC
+
 endmenu
