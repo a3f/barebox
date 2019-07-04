@@ -12,4 +12,9 @@ config FIRMWARE_ALTERA_SERIAL
 config FIRMWARE_ALTERA_SOCFPGA
 	bool "Altera SoCFPGA fpga loader"
 	depends on ARCH_SOCFPGA
+
+config FIRMWARE_PSCI
+	bool "PSCI firmware communication driver"
+	select ARM_SMCCC
+
 endmenu
