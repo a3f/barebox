@@ -34,3 +34,14 @@
 		};
 	};
 };
+
+&bsec {
+	bsec-serial@34 {
+		reg = <0x34 0xC>;
+	};
+
+	bsec-ethaddr@e4 {
+		reg = <0xe4 0x6>;
+		barebox,provide-mac-address = <&ethernet0>;
+	};
+};
