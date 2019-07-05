@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) 2017, STMicroelectronics - All Rights Reserved
+ * Copyright (C) 2019, Ahmad Fatoum, Pengutronix
  * Author(s): Patrice Chotard, <patrice.chotard@st.com> for STMicroelectronics.
  */
 
@@ -8,13 +9,8 @@
 #include <init.h>
 #include <linux/err.h>
 #include <linux/reset-controller.h>
-#include <mach/stm32mp1_smc.h>
 #include <asm/io.h>
 
-#define RCC_APB5RST_BANK 0x62
-#define RCC_AHB5RST_BANK 0x64
-
-/* reset clear offset for STM32MP RCC */
 #define RCC_CL 0x4
 
 struct stm32mp_reset {
@@ -27,17 +23,6 @@ static struct stm32mp_reset *to_stm32mp_reset(struct reset_controller_dev *rcdev
 	return container_of(rcdev, struct stm32mp_reset, rcdev);
 }
 
-static inline bool is_trusted(void)
-{
-	return false;
-}
-
-static bool has_reset_smc(unsigned int bank)
-{
-	return is_trusted() && (bank == RCC_APB5RST_BANK << 2 ||
-				bank == RCC_AHB5RST_BANK << 2);
-}
-
 static int stm32mp_reset_assert(struct reset_controller_dev *rcdev,
 				unsigned long id)
 {
@@ -46,11 +31,7 @@ static int stm32mp_reset_assert(struct reset_controller_dev *rcdev,
 	int offset = id % BITS_PER_LONG;
 
 	/* reset assert is done in rcc set register */
-	if (has_reset_smc(bank))
-		stm32_smc_exec(STM32_SMC_RCC, STM32_SMC_REG_WRITE,
-			       bank, BIT(offset));
-	else
-		writel(BIT(offset), priv->base + bank);
+	writel(BIT(offset), priv->base + bank);
 
 	return 0;
 }
@@ -62,12 +43,7 @@ static int stm32mp_reset_deassert(struct reset_controller_dev *rcdev,
 	int bank = (id / BITS_PER_LONG) * 4;
 	int offset = id % BITS_PER_LONG;
 
-	/* reset deassert is done in rcc clr register */
-	if (has_reset_smc(bank))
-		stm32_smc_exec(STM32_SMC_RCC, STM32_SMC_REG_WRITE,
-			       bank + RCC_CL, BIT(offset));
-	else
-		writel(BIT(offset), priv->base + bank + RCC_CL);
+	writel(BIT(offset), priv->base + bank + RCC_CL);
 
 	return 0;
 }
