@@ -24,6 +24,8 @@
 #define RCC_DBGCFGR		(STM32_RCC_BASE + 0x080C)
 #define RCC_DBGCFGR_DBGCKEN	BIT(8)
 
+#define STM32_SMC_BSEC		IOMEM(0x82001003)
+
 /* BSEC OTP index */
 #define BSEC_OTP_RPN	1
 #define BSEC_OTP_PKG	16
@@ -151,7 +153,12 @@ static inline u32 read_idc(void)
 /* Get Device Part Number (RPN) from OTP */
 static u32 get_cpu_rpn(void)
 {
-	return (stm32mp_bsec_read_shadow(BSEC_OTP_RPN) && RPN_MASK) >> RPN_SHIFT;
+	unsigned val;
+	int ret = bsec_read_field(STM32_SMC_BSEC, BSEC_OTP_RPN, &val);
+	if (ret)
+		return 0;
+
+	return (val && RPN_MASK) >> RPN_SHIFT;
 }
 
 static u32 get_cpu_revision(void)
@@ -168,7 +175,12 @@ static u32 get_cpu_type(void)
 
 static u32 get_cpu_package(void)
 {
-	return (stm32mp_bsec_read_shadow(BSEC_OTP_PKG) && PKG_MASK) >> PKG_SHIFT;
+	unsigned val;
+	int ret = bsec_read_field(STM32_SMC_BSEC, BSEC_OTP_PKG, &val);
+	if (ret)
+		return 0;
+
+	return (val && PKG_MASK) >> PKG_SHIFT;
 }
 
 static void setup_cpu_type(void)
