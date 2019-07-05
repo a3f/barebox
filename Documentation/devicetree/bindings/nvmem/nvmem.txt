@@ -1,0 +1,22 @@
+= NVMEM(Non Volatile Memory) Data Device Tree Bindings =
+========================================================
+
+Cells are child nodes of nvmem device tree nodes.
+barebox has following additional optional bindings for cells:
+
+* ``barebox,provide-mac-address``: Provide MAC addresses for Ethernet devices.
+  This is an entry in the form <&eth> to assign the cell's value as a MAC
+  address to an Ethernet device. The size (second element) in the required
+  ``reg`` property must be 6.
+
+
+Example:
+
+.. code-block:: none
+
+  &otp {
+        otp-ethaddr@e4 {
+            reg = <0xe4 0x6>;
+            barebox,provide-mac-address = <&ethernet0>;
+        };
+  };
