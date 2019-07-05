@@ -9,6 +9,8 @@
 #include <mach/stm32.h>
 #include <mach/bsec.h>
 #include <mach/revision.h>
+#include <mach/bootsource.h>
+#include <bootsource.h>
 
 /* DBGMCU register */
 #define DBGMCU_IDC		(STM32_DBGMCU_BASE + 0x00)
@@ -44,6 +46,83 @@
 #define PKG_AB_LBGA354	3
 #define PKG_AC_TFBGA361	2
 #define PKG_AD_TFBGA257	1
+
+/*
+ * enumerated for boot interface from Bootrom, used in TAMP_BOOT_CONTEXT
+ * - boot device = bit 8:4
+ * - boot instance = bit 3:0
+ */
+#define BOOT_TYPE_MASK		0xF0
+#define BOOT_TYPE_SHIFT		4
+#define BOOT_INSTANCE_MASK	0x0F
+#define BOOT_INSTANCE_SHIFT	0
+
+/* TAMP registers */
+#define TAMP_BACKUP_REGISTER(x)         (STM32_TAMP_BASE + 0x100 + 4 * x)
+/* secure access */
+#define TAMP_BACKUP_MAGIC_NUMBER        TAMP_BACKUP_REGISTER(4)
+#define TAMP_BACKUP_BRANCH_ADDRESS      TAMP_BACKUP_REGISTER(5)
+/* non secure access */
+#define TAMP_BOOT_CONTEXT               TAMP_BACKUP_REGISTER(20)
+#define TAMP_BOOTCOUNT                  TAMP_BACKUP_REGISTER(21)
+
+#define TAMP_BOOT_MODE_MASK             GENMASK(15, 8)
+#define TAMP_BOOT_MODE_SHIFT            8
+#define TAMP_BOOT_DEVICE_MASK           GENMASK(7, 4)
+#define TAMP_BOOT_INSTANCE_MASK         GENMASK(3, 0)
+#define TAMP_BOOT_FORCED_MASK           GENMASK(7, 0)
+#define TAMP_BOOT_DEBUG_ON              BIT(16)
+
+
+static enum stm32mp_forced_boot_mode __stm32mp_forced_boot_mode;
+enum stm32mp_forced_boot_mode st32mp_get_forced_boot_mode(void)
+{
+	return __stm32mp_forced_boot_mode;
+}
+
+static void setup_boot_mode(void)
+{
+	u32 boot_ctx = readl(TAMP_BOOT_CONTEXT);
+	u32 boot_mode =
+		(boot_ctx & TAMP_BOOT_MODE_MASK) >> TAMP_BOOT_MODE_SHIFT;
+	int instance = (boot_mode & TAMP_BOOT_INSTANCE_MASK) - 1;
+	enum bootsource src = BOOTSOURCE_UNKNOWN;
+
+	switch (boot_mode & TAMP_BOOT_DEVICE_MASK) {
+	case STM32MP_BOOT_SERIAL_UART:
+		src = BOOTSOURCE_SERIAL;
+		break;
+	case STM32MP_BOOT_SERIAL_USB:
+		src = BOOTSOURCE_USB;
+		break;
+	case STM32MP_BOOT_FLASH_SD:
+	case STM32MP_BOOT_FLASH_EMMC:
+		src = BOOTSOURCE_MMC;
+		break;
+	case STM32MP_BOOT_FLASH_NAND:
+		src = BOOTSOURCE_NAND;
+		break;
+	case STM32MP_BOOT_FLASH_NOR:
+		src = BOOTSOURCE_NOR;
+		break;
+	default:
+		pr_debug("unexpected boot mode\n");
+		break;
+	}
+
+	__stm32mp_forced_boot_mode = boot_ctx & TAMP_BOOT_FORCED_MASK;
+
+	pr_debug("%s: boot_ctx=0x%x => boot_mode=%x, instance=%d forced=%x\n",
+		 __func__, boot_ctx, boot_mode, instance,
+		 __stm32mp_forced_boot_mode);
+
+	bootsource_set(src);
+	bootsource_set_instance(instance);
+
+	/* clear TAMP for next reboot */
+	clrsetbits_le32(TAMP_BOOT_CONTEXT, TAMP_BOOT_FORCED_MASK,
+			STM32MP_BOOT_NORMAL);
+}
 
 static int __stm32mp_cputype;
 int stm32mp_cputype(void)
@@ -168,6 +247,7 @@ static int setup_cpu_type(void)
 static int stm32mp_init(void)
 {
 	setup_cpu_type();
+	setup_boot_mode();
 
 	return 0;
 }
