@@ -1,1 +1,1 @@
-obj- := __dummy__.o
+obj-y := init.o
