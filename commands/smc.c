@@ -67,6 +67,9 @@ static int do_smc(int argc, char *argv[])
 		.a3 = 0xdeadbee3,
 	};
 
+	if (argc < 2)
+		return COMMAND_ERROR_USAGE;
+
 	while ((opt = getopt(argc, argv, "nicz")) > 0) {
 		switch (opt) {
 		case 'n':
@@ -89,6 +92,8 @@ static int do_smc(int argc, char *argv[])
 				return COMMAND_ERROR;
 			}
 			break;
+		default:
+			return COMMAND_ERROR_USAGE;
 		}
 	}
 
@@ -101,11 +106,11 @@ BAREBOX_CMD_HELP_TEXT("Options:")
 BAREBOX_CMD_HELP_OPT ("-n",  "Install secure monitor and switch to nonsecure mode")
 BAREBOX_CMD_HELP_OPT ("-i",  "Show information about installed PSCI version")
 BAREBOX_CMD_HELP_OPT ("-c",  "Start secondary CPU core")
-BAREBOX_CMD_HELP_OPT ("-z",  "Turn off secondary CPU core")
 BAREBOX_CMD_HELP_END
 
 BAREBOX_CMD_START(smc)
 	.cmd = do_smc,
 	BAREBOX_CMD_DESC("secure monitor test command")
 	BAREBOX_CMD_GROUP(CMD_GRP_MISC)
+	BAREBOX_CMD_HELP(cmd_smc_help)
 BAREBOX_CMD_END
