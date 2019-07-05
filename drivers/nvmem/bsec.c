@@ -17,16 +17,6 @@
 #include <mach/bsec.h>
 #include <linux/nvmem-provider.h>
 
-#define STM32_SMC_BSEC			0x82001003
-
-/* Service for BSEC */
-#define STM32_SMC_READ_SHADOW		0x01
-#define STM32_SMC_PROG_OTP		0x02
-#define STM32_SMC_WRITE_SHADOW		0x03
-#define STM32_SMC_READ_OTP		0x04
-#define STM32_SMC_READ_ALL		0x05
-#define STM32_SMC_WRITE_ALL		0x06
-
 struct stm32_bsec_data {
 	int num_regs;
 };
@@ -37,13 +27,14 @@ struct bsec_priv {
 	struct device_d dev;
 	struct regmap_config map_config;
 	struct nvmem_config config;
+	const struct stm32_bsec_data *data;
 };
 
 static struct bsec_priv *stm32_bsec;
 
-static int bsec_smc(struct bsec_priv *priv, u8 op, u32 data1, u32 data2, unsigned *val)
+static int bsec_smc(struct bsec_priv *priv, u8 op, u32 field, u32 data2, unsigned *val)
 {
-	enum bsec_smc_t ret = __bsec_smc(priv->base, op, data1, data2, val);
+	enum bsec_smc_t ret = __bsec_smc(priv->base, op, field / 4, data2, val);
 	switch(ret)
 	{
 	case BSEC_SMC_OK:
@@ -66,14 +57,12 @@ static int bsec_smc(struct bsec_priv *priv, u8 op, u32 data1, u32 data2, unsigne
 
 static int st32_bsec_read_shadow(void *ctx, unsigned reg, unsigned *val)
 {
-	return bsec_smc(ctx, STM32_SMC_BSEC_READ_SHADOW, reg, 0, val);
+	return bsec_smc(ctx, BSEC_SMC_READ_SHADOW, reg, 0, val);
 }
 
 static int stm32_bsec_reg_write_shadow(void *ctx, unsigned reg, unsigned val)
 {
-	struct bsec_priv *priv = ctx;
-
-	return bsec_smc(ctx, STM32_SMC_WRITE_SHADOW, reg, val, NULL);
+	return bsec_smc(ctx, BSEC_SMC_WRITE_SHADOW, reg, val, NULL);
 }
 
 static struct regmap_bus stm32_bsec_regmap_bus = {
@@ -153,13 +142,13 @@ static int stm32_bsec_probe(struct device_d *dev)
 	return 0;
 }
 
-static struct imx_ocotp_data stm32mp15_bsec_data = {
-	.num_regs = 95 * 4;
+static struct stm32_bsec_data stm32mp15_bsec_data = {
+	.num_regs = 95 * 4,
 
 };
 
 static __maybe_unused struct of_device_id stm32_bsec_dt_ids[] = {
-	{ .compatible = "st,stm32mp15-bsec", .data = stm32mp15_bsec_data },
+	{ .compatible = "st,stm32mp15-bsec", .data = &stm32mp15_bsec_data },
 	{ /* sentinel */ }
 };
 
