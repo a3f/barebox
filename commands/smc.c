@@ -12,6 +12,35 @@
 #define PSCI_CPU_ON ARM_PSCI_0_2_FN_CPU_ON
 #endif
 
+static const char *psci_xlate_error(int errnum)
+{
+	static char error_string[10];
+
+	switch (errnum) {
+	case 0:
+		return "no error";
+	case ARM_PSCI_RET_NOT_SUPPORTED:
+		return "Operation not supported";
+	case ARM_PSCI_RET_INVAL:
+		return "Invalid argument";
+	case ARM_PSCI_RET_DENIED:
+		return "Operation not permitted";
+	case ARM_PSCI_RET_ALREADY_ON:
+		return "CPU already on";
+	case ARM_PSCI_RET_ON_PENDING:
+		return "CPU_ON in progress";
+	case ARM_PSCI_RET_INTERNAL_FAILURE:
+		return "Internal failure";
+	case ARM_PSCI_RET_NOT_PRESENT:
+		return "CPU is disabled";
+	case ARM_PSCI_RET_INVALID_ADDRESS:
+		return "Bad address\n";
+	};
+
+	sprintf(error_string, "error %d", errnum);
+	return error_string;
+}
+
 static void second_entry(void)
 {
 	struct arm_smccc_res res;
@@ -54,6 +83,11 @@ static int do_smc(int argc, char *argv[])
 		case 'c':
 			arm_smccc_smc(PSCI_CPU_ON,
 				      1, (unsigned long)second_entry, 0, 0, 0, 0, 0, &res);
+			if ((s32)res.a0 < 0) {
+				printf("SMC failed: '%s'\n",
+				       psci_xlate_error(res.a0));
+				return COMMAND_ERROR;
+			}
 			break;
 		}
 	}
