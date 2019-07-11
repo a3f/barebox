@@ -1935,6 +1935,22 @@ config CMD_HAB
 	depends on HAB
 	prompt "High Assurance boot (hab)"
 
+config CMD_SMC
+	bool
+	default ARM_PSCI_DEBUG
+	depends on CPU_32v7 || CPU_64v8
+	select ARM_SMCCC
+	prompt "PSCI Secure Monitor test command (smc)"
+	help
+	  smc - secure monitor test command
+
+	  Secure monitor code test command
+
+	  Options:
+	  	-n	Install secure monitor and switch to nonsecure mode
+	  	-i	Show information about installed PSCI version
+	  	-c	Start secondary CPU core
+
 # end Hardware manipulation commands
 endmenu
 
