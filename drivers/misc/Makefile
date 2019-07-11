@@ -7,3 +7,5 @@ obj-$(CONFIG_SRAM)		+= sram.o
 obj-$(CONFIG_STATE_DRV)		+= state.o
 obj-$(CONFIG_DEV_MEM)		+= mem.o
 obj-$(CONFIG_UBOOTVAR)		+= ubootvar.o
+obj-$(CONFIG_PSCI_CLIENT)	+= psci.o
+obj-$(CONFIG_PSCI_SYSRESET)	+= psci-sysreset.o

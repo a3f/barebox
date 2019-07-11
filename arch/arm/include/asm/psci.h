@@ -106,6 +106,8 @@ static inline void psci_set_ops(struct psci_ops *ops)
 }
 #endif
 
+u32 psci_invoke(ulong function, ulong arg0, ulong arg1, ulong arg2);
+
 void psci_cpu_entry(void);
 
 #ifdef CONFIG_ARM_PSCI_DEBUG
