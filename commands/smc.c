@@ -43,13 +43,10 @@ static const char *psci_xlate_error(int errnum)
 
 static void second_entry(void)
 {
-	struct arm_smccc_res res;
-
 	// racy, possibly garbled, output
 	printf("2nd CPU online, now turn off again\n");
 
-	arm_smccc_smc(ARM_PSCI_0_2_FN_CPU_OFF,
-		      0, 0, 0, 0, 0, 0, 0, &res);
+	psci_invoke(ARM_PSCI_0_2_FN_CPU_OFF, 0, 0, 0);
 
 	printf("2nd CPU still alive?\n");
 
@@ -60,12 +57,7 @@ static void second_entry(void)
 static int do_smc(int argc, char *argv[])
 {
 	int opt;
-	struct arm_smccc_res res = {
-		.a0 = 0xdeadbee0,
-		.a1 = 0xdeadbee1,
-		.a2 = 0xdeadbee2,
-		.a3 = 0xdeadbee3,
-	};
+	u32 ret;
 
 	if (argc < 2)
 		return COMMAND_ERROR_USAGE;
@@ -79,16 +71,17 @@ static int do_smc(int argc, char *argv[])
 				printf("barebox not configured as secure monitor\n");
 			break;
 		case 'i':
-			arm_smccc_smc(ARM_PSCI_0_2_FN_PSCI_VERSION,
-				      0, 0, 0, 0, 0, 0, 0, &res);
-			printf("found psci version %ld.%ld\n", res.a0 >> 16, res.a0 & 0xffff);
+			ret = psci_invoke(ARM_PSCI_0_2_FN_PSCI_VERSION,
+					  0, 0, 0);
+			printf("found psci version %u.%u\n",
+			       ret >> 16, ret & 0xffff);
 			break;
 		case 'c':
-			arm_smccc_smc(PSCI_CPU_ON,
-				      1, (unsigned long)second_entry, 0, 0, 0, 0, 0, &res);
-			if ((s32)res.a0 < 0) {
+			ret = psci_invoke(PSCI_CPU_ON,
+				    1, (ulong)second_entry, 0);
+			if ((s32)ret < 0) {
 				printf("SMC failed: '%s'\n",
-				       psci_xlate_error(res.a0));
+				       psci_xlate_error(ret));
 				return COMMAND_ERROR;
 			}
 			break;
