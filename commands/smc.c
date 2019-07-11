@@ -6,6 +6,12 @@
 #include <linux/arm-smccc.h>
 #include <stdio.h>
 
+#ifdef CONFIG_CPU64
+#define PSCI_CPU_ON ARM_PSCI_0_2_FN_CPU64_ON
+#else
+#define PSCI_CPU_ON ARM_PSCI_0_2_FN_CPU_ON
+#endif
+
 static void second_entry(void)
 {
 	struct arm_smccc_res res;
@@ -46,7 +52,7 @@ static int do_smc(int argc, char *argv[])
 			printf("found psci version %ld.%ld\n", res.a0 >> 16, res.a0 & 0xffff);
 			break;
 		case 'c':
-			arm_smccc_smc(ARM_PSCI_0_2_FN_CPU_ON,
+			arm_smccc_smc(PSCI_CPU_ON,
 				      1, (unsigned long)second_entry, 0, 0, 0, 0, 0, &res);
 			break;
 		}
