@@ -440,7 +440,7 @@ static int dwc_probe_dt(struct device_d *dev, struct dw_eth_dev *priv)
 	return 0;
 }
 
-struct dw_eth_dev *dwc_drv_probe(struct device_d *dev)
+struct dw_eth_dev *dwc_drv_probe(struct device_d *dev, bool enh_desc)
 {
 	struct resource *iores;
 	struct dw_eth_dev *priv;
@@ -449,19 +449,9 @@ struct dw_eth_dev *dwc_drv_probe(struct device_d *dev)
 	void __iomem *base;
 	struct dwc_ether_platform_data *pdata = dev->platform_data;
 	int ret;
-	struct dw_eth_drvdata *drvdata;
 
 	priv = xzalloc(sizeof(struct dw_eth_dev));
-
-	ret = dev_get_drvdata(dev, (const void **)&drvdata);
-	if (ret)
-		return ERR_PTR(ret);
-
-	if (drvdata && drvdata->enh_desc)
-		priv->enh_desc = drvdata->enh_desc;
-	else
-		dev_warn(dev, "No drvdata specified\n");
-
+	priv->enh_desc = enh_desc;
 
 	if (pdata) {
 		priv->phy_addr = pdata->phy_addr;
