@@ -12,15 +12,25 @@
 #include <init.h>
 #include "designware.h"
 
+struct dw_eth_drvdata {
+	bool enh_desc;
+};
+
 static struct dw_eth_drvdata dwmac_370a_drvdata = {
 	.enh_desc = 1,
 };
 
 static int dwc_ether_probe(struct device_d *dev)
 {
+	struct dw_eth_drvdata *drvdata;
 	struct dw_eth_dev *dwc;
+	int ret;
 
-	dwc = dwc_drv_probe(dev);
+	ret = dev_get_drvdata(dev, (const void **)&drvdata);
+	if (ret)
+		return ret;
+
+	dwc = dwc_drv_probe(dev, drvdata->enh_desc);
 	if (IS_ERR(dwc))
 		return PTR_ERR(dwc);
 

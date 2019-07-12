@@ -33,11 +33,7 @@ struct dw_eth_dev {
 	struct reset_control	*rst;
 };
 
-struct dw_eth_drvdata {
-	bool enh_desc;
-};
-
-struct dw_eth_dev *dwc_drv_probe(struct device_d *dev);
+struct dw_eth_dev *dwc_drv_probe(struct device_d *dev, bool enh_desc);
 void dwc_drv_remove(struct device_d *dev);
 
 #define CONFIG_TX_DESCR_NUM	16
