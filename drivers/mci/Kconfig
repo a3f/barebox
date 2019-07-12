@@ -124,9 +124,21 @@ config MCI_ATMEL
 config MCI_MMCI
 	bool "ARM PL180 MMCI"
 	depends on ARM_AMBA
+	select RESET_CONTROLLER
 	help
 	  Enable this entry to add support to read and write SD cards on a
 	  ARM AMBA PL180.
+
+if MCI_MMCI
+
+config MCI_MMCI_SDMMC
+	bool "ARM PL180 MMCI - STM32 SDMMC variant"
+	select RESET_CONTROLLER
+	help
+	  Enable this entry to add support for the STM32 SDMMC variant of the
+	  ARM PL180 MMCI IP.
+
+endif
 
 config MCI_TEGRA
 	bool "Tegra SD/MMC"

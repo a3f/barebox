@@ -216,6 +216,7 @@ struct mmci_host {
 	int			hw_designer;
 	struct variant_data	*variant;
 	struct mmci_host_ops	*ops;
+	struct reset_control	*rst;
 	u32			clk_reg;
 	u32			pwr_reg;
 };
@@ -237,4 +238,10 @@ static inline u32 mmci_dctrl_blksz(struct mmci_host *host, unsigned int blocksiz
         return (ffs(blocksize) - 1) << 4;
 }
 
+#ifdef CONFIG_MCI_MMCI_SDMMC
 void sdmmc_variant_init(struct mmci_host *host);
+#else
+static inline void sdmmc_variant_init(struct mmci_host *host)
+{
+}
+#endif

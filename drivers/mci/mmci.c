@@ -30,6 +30,7 @@
 #include <linux/amba/bus.h>
 #include <linux/amba/mmci.h>
 #include <pinctrl.h>
+#include <linux/reset.h>
 
 #include "mmci.h"
 
@@ -553,6 +554,12 @@ static int mci_reset(struct mci_host *mci, struct device_d *mci_dev)
 
 	mmci_set_opendrain(host, &pwr, true);
 
+	if (host->rst) {
+		reset_control_assert(host->rst);
+		udelay(2);
+		reset_control_deassert(host->rst);
+	}
+
 	host->ops->set_pwrreg(host, pwr);
 
 	return 0;
@@ -746,6 +753,16 @@ static int mmci_probe(struct amba_device *dev, const struct amba_id *id)
 
 	if (variant->init)
 		variant->init(host);
+
+	host->rst = reset_control_get(hw_dev, NULL);
+	if (IS_ERR(host->rst))
+		host->rst = NULL;
+
+	if (host->rst) {
+		reset_control_assert(host->rst);
+		udelay(2);
+		reset_control_deassert(host->rst);
+	}
 
 	pwrreg = plat->sigdir | variant->pwrreg_powerup;
 	host->ops->set_pwrreg(host, pwrreg);

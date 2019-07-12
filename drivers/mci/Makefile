@@ -13,4 +13,5 @@ obj-$(CONFIG_MCI_S3C)		+= s3c.o
 obj-$(CONFIG_MCI_TEGRA)		+= tegra-sdmmc.o
 obj-$(CONFIG_MCI_SPI)		+= mci_spi.o
 obj-$(CONFIG_MCI_DW)		+= dw_mmc.o
-obj-$(CONFIG_MCI_MMCI)		+= mmci.o mmci_stm32_sdmmc.o
+obj-$(CONFIG_MCI_MMCI)		+= mmci.o
+obj-$(CONFIG_MCI_MMCI_SDMMC)	+= mmci_stm32_sdmmc.o
