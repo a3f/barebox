@@ -118,7 +118,6 @@ struct eqos_mac_regs {
 #define EQOS_MAC_MDIO_ADDRESS_GOC_READ			3
 #define EQOS_MAC_MDIO_ADDRESS_GOC_WRITE			1
 #define EQOS_MAC_MDIO_ADDRESS_C45E			BIT(1)
-#define EQOS_MAC_MDIO_ADDRESS_GB			BIT(0)
 
 #define EQOS_MTL_REGS_BASE 0xd00
 struct eqos_mtl_regs {
@@ -297,7 +296,7 @@ static int eqos_mdio_wait_idle(struct eqos_priv *eqos)
 {
 	u32 idle;
 	return readl_poll_timeout(&eqos->mac_regs->mdio_address, idle,
-				  !(idle & EQOS_MAC_MDIO_ADDRESS_GB),
+				  !(idle & MII_BUSY),
 				  10000);
 }
 
@@ -323,7 +322,7 @@ static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 		 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
 		(EQOS_MAC_MDIO_ADDRESS_GOC_READ <<
 		 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT) |
-		EQOS_MAC_MDIO_ADDRESS_GB;
+		MII_BUSY;
 	writel(val, &eqos->mac_regs->mdio_address);
 
 	udelay(eqos->config->mdio_wait);
@@ -364,7 +363,7 @@ static int eqos_mdio_write(struct mii_bus *bus, int mdio_addr,
 		 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
 		(EQOS_MAC_MDIO_ADDRESS_GOC_WRITE <<
 		 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT) |
-		EQOS_MAC_MDIO_ADDRESS_GB;
+		MII_BUSY;
 	writel(val, &eqos->mac_regs->mdio_address);
 
 	udelay(eqos->config->mdio_wait);
