@@ -43,6 +43,11 @@ static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	u32 miiaddr;
 
+	if (dwc_ether_mii_wait_idle(priv) == -ETIMEDOUT) {
+		dev_err(&priv->netdev.dev, "MDIO timeout\n");
+		return -EIO;
+	}
+
 	miiaddr = ((addr << MIIADDRSHIFT) & MII_ADDRMSK) |
 		  ((reg << MIIREGSHIFT) & MII_REGMSK);
 
@@ -61,6 +66,11 @@ static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 	struct dw_eth_dev *priv = dev->priv;
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	u32 miiaddr;
+
+	if (dwc_ether_mii_wait_idle(priv) == -ETIMEDOUT) {
+		dev_err(&priv->netdev.dev, "MDIO timeout\n");
+		return -EIO;
+	}
 
 	writel(val, &mac_p->miidata);
 	miiaddr = ((addr << MIIADDRSHIFT) & MII_ADDRMSK) |
