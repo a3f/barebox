@@ -69,8 +69,8 @@ struct eqos_mac_regs {
 	uint32_t mdio_address;				/* 0x200 */
 	uint32_t mdio_data;				/* 0x204 */
 	uint32_t unused_208[(0x300 - 0x208) / 4];	/* 0x208 */
-	uint32_t address0_high;				/* 0x300 */
-	uint32_t address0_low;				/* 0x304 */
+	uint32_t macaddr0hi;				/* 0x300 */
+	uint32_t macaddr0lo;				/* 0x304 */
 };
 
 #define EQOS_MAC_CONFIGURATION_GPSLCE			BIT(23)
@@ -264,7 +264,7 @@ struct eqos_ops {
 };
 
 struct eqos_priv {
-	struct eth_device edev;
+	struct eth_device netdev;
 	struct device_d *dev;
 	struct mii_bus miibus;
 	const struct eqos_config *config;
@@ -289,8 +289,8 @@ struct eqos_priv {
 	int eth_clk_sel_reg;
 	int eth_ref_clk_sel_reg;
 
-	u32 address0_high;
-	u32 address0_low;
+	u32 macaddr0hi;
+	u32 macaddr0lo;
 };
 
 static int eqos_mdio_wait_idle(struct eqos_priv *eqos)
@@ -298,7 +298,7 @@ static int eqos_mdio_wait_idle(struct eqos_priv *eqos)
 	u32 idle;
 	return readl_poll_timeout(&eqos->mac_regs->mdio_address, idle,
 				  !(idle & EQOS_MAC_MDIO_ADDRESS_GB),
-				  100000);
+				  10000);
 }
 
 static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
@@ -675,30 +675,30 @@ static int eqos_set_hwaddr(struct eth_device *edev, const unsigned char *mac)
 	 */
 
 	/* Update the MAC address */
-	eqos->address0_high = (mac[5] << 8) | mac[4];
-	eqos->address0_low = (mac[3] << 24) | (mac[2] << 16) |
+	eqos->macaddr0hi = (mac[5] << 8) | mac[4];
+	eqos->macaddr0lo = (mac[3] << 24) | (mac[2] << 16) |
 		(mac[1] << 8) | mac[0];
 
 	return 0;
 }
 
-static int dwmac4_dma_reset(void __iomem *ioaddr)
+static int dwmac4_dma_reset(struct eqos_priv *eqos)
 {
-	u32 value = readl(ioaddr + DW_DMA_BASE_OFFSET);
-	int limit;
+	void __iomem *dma = eqos->regs + DW_DMA_BASE_OFFSET;
+	u32 value = readl(dma);
+	u64 start;
 
 	/* DMA SW reset */
 	value |= DMAMAC_SRST;
-	writel(value, ioaddr + DW_DMA_BASE_OFFSET);
-	limit = 10;
-	while (limit--) {
-		if (!(readl(ioaddr + DW_DMA_BASE_OFFSET) & DMAMAC_SRST))
-			break;
-		mdelay(10);
-	}
+	writel(value, dma);
 
-	if (limit < 0)
-		return -EBUSY;
+	start = get_time_ns();
+	while (readl(dma) & DMAMAC_SRST) {
+		if (is_timeout(start, 10 * MSECOND)) {
+			dev_err(&eqos->netdev.dev, "MAC reset timeout\n");
+			return -EBUSY;
+		}
+	}
 
 	return 0;
 }
@@ -715,7 +715,7 @@ static int eqos_start(struct eth_device *edev)
 
 	eqos->tx_desc_idx = eqos->rx_desc_idx = 0;
 
-	dwmac4_dma_reset(eqos->regs);
+	dwmac4_dma_reset(eqos);
 
 	ret = clk_bulk_enable(eqos->num_clks, eqos->clks);
 	if (ret < 0) {
@@ -741,8 +741,8 @@ static int eqos_start(struct eth_device *edev)
 
 	udelay(10);
 
-	writel(eqos->address0_high, &eqos->mac_regs->address0_high);
-	writel(eqos->address0_low, &eqos->mac_regs->address0_low);
+	writel(eqos->macaddr0hi, &eqos->mac_regs->macaddr0hi);
+	writel(eqos->macaddr0lo, &eqos->mac_regs->macaddr0lo);
 
 	ret = readl_poll_timeout(&eqos->dma_regs->mode, mode_set,
 				 !(mode_set & EQOS_DMA_MODE_SWR),
@@ -1298,7 +1298,7 @@ static int eqos_probe(struct device_d *dev)
 		return ret;
 	}
 
-	edev = &eqos->edev;
+	edev = &eqos->netdev;
 	edev->priv = eqos;
 
 	edev->parent = dev;
