@@ -19,6 +19,8 @@
 #include <linux/iopoll.h>
 #include <mfd/syscon.h>
 
+#include "designware.h"
+
 #define SYSCFG_PMCR_ETH_CLK_SEL		BIT(16)
 #define SYSCFG_PMCR_ETH_REF_CLK_SEL	BIT(17)
 
@@ -44,7 +46,6 @@
 
 /* Core registers */
 
-#define EQOS_MAC_REGS_BASE 0x000
 struct eqos_mac_regs {
 	uint32_t configuration;				/* 0x000 */
 	uint32_t ext_configuration;			/* 0x004 */
@@ -119,8 +120,6 @@ struct eqos_mac_regs {
 #define EQOS_MAC_MDIO_ADDRESS_C45E			BIT(1)
 #define EQOS_MAC_MDIO_ADDRESS_GB			BIT(0)
 
-#define EQOS_MAC_MDIO_DATA_GD_MASK			0xffff
-
 #define EQOS_MTL_REGS_BASE 0xd00
 struct eqos_mtl_regs {
 	uint32_t txq0_operation_mode;			/* 0xd00 */
@@ -160,7 +159,6 @@ struct eqos_mtl_regs {
 #define EQOS_MTL_RXQ0_DEBUG_RXQSTS_SHIFT		4
 #define EQOS_MTL_RXQ0_DEBUG_RXQSTS_MASK			3
 
-#define EQOS_DMA_REGS_BASE 0x1000
 struct eqos_dma_regs {
 	uint32_t mode;					/* 0x1000 */
 	uint32_t sysbus_mode;				/* 0x1004 */
@@ -337,7 +335,7 @@ static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 	}
 
 	val = readl(&eqos->mac_regs->mdio_data);
-	val &= EQOS_MAC_MDIO_DATA_GD_MASK;
+	val &= 0xffff;
 
 	return val;
 }
@@ -684,20 +682,17 @@ static int eqos_set_hwaddr(struct eth_device *edev, const unsigned char *mac)
 	return 0;
 }
 
-#define DMA_BUS_MODE_SFT_RESET		BIT(0)
-#define DMA_BUS_MODE			0x00001000
-
 static int dwmac4_dma_reset(void __iomem *ioaddr)
 {
-	u32 value = readl(ioaddr + DMA_BUS_MODE);
+	u32 value = readl(ioaddr + DW_DMA_BASE_OFFSET);
 	int limit;
 
 	/* DMA SW reset */
-	value |= DMA_BUS_MODE_SFT_RESET;
-	writel(value, ioaddr + DMA_BUS_MODE);
+	value |= DMAMAC_SRST;
+	writel(value, ioaddr + DW_DMA_BASE_OFFSET);
 	limit = 10;
 	while (limit--) {
-		if (!(readl(ioaddr + DMA_BUS_MODE) & DMA_BUS_MODE_SFT_RESET))
+		if (!(readl(ioaddr + DW_DMA_BASE_OFFSET) & DMAMAC_SRST))
 			break;
 		mdelay(10);
 	}
@@ -1280,9 +1275,9 @@ static int eqos_probe(struct device_d *dev)
 		return PTR_ERR(iores);
 	eqos->regs = IOMEM(iores->start);
 
-	eqos->mac_regs = IOMEM(eqos->regs + EQOS_MAC_REGS_BASE);
+	eqos->mac_regs = IOMEM(eqos->regs);
 	eqos->mtl_regs = IOMEM(eqos->regs + EQOS_MTL_REGS_BASE);
-	eqos->dma_regs = IOMEM(eqos->regs + EQOS_DMA_REGS_BASE);
+	eqos->dma_regs = IOMEM(eqos->regs + DW_DMA_BASE_OFFSET);
 	eqos->tegra186_regs = IOMEM(eqos->regs + EQOS_TEGRA186_REGS_BASE);
 
 	ret = of_get_phy_mode(dev->device_node);
