@@ -17,6 +17,7 @@
 #include <platform_data/eth-designware.h>
 #include <linux/phy.h>
 #include <linux/err.h>
+#include <linux/iopoll.h>
 #include "designware.h"
 
 /* Speed specific definitions */
@@ -28,26 +29,32 @@
 #define HALF_DUPLEX		1
 #define FULL_DUPLEX		2
 
+static int dwc_ether_mii_wait_idle(struct dw_eth_dev *priv)
+{
+	u32 idle;
+	return readl_poll_timeout(&priv->mac_regs_p->miiaddr, idle,
+				  !(idle & MII_BUSY),
+				  10000);
+}
 
 static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 {
 	struct dw_eth_dev *priv = dev->priv;
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
-	u64 start;
 	u32 miiaddr;
+	int ret;
 
 	miiaddr = ((addr << MIIADDRSHIFT) & MII_ADDRMSK) |
 		  ((reg << MIIREGSHIFT) & MII_REGMSK);
 
 	writel(miiaddr | MII_CLKRANGE_150_250M | MII_BUSY, &mac_p->miiaddr);
 
-	start = get_time_ns();
-	while (readl(&mac_p->miiaddr) & MII_BUSY) {
-		if (is_timeout(start, 10 * MSECOND)) {
-			dev_err(&priv->netdev.dev, "MDIO timeout\n");
-			return -EIO;
-		}
+	ret = dwc_ether_mii_wait_idle(priv);
+	if (ret == -ETIMEDOUT) {
+		dev_err(&priv->netdev.dev, "MDIO timeout\n");
+		return -EIO;
 	}
+
 	return readl(&mac_p->miidata) & 0xffff;
 }
 
@@ -55,8 +62,8 @@ static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 {
 	struct dw_eth_dev *priv = dev->priv;
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
-	u64 start;
 	u32 miiaddr;
+	int ret;
 
 	writel(val, &mac_p->miidata);
 	miiaddr = ((addr << MIIADDRSHIFT) & MII_ADDRMSK) |
@@ -64,12 +71,10 @@ static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 
 	writel(miiaddr | MII_CLKRANGE_150_250M | MII_BUSY, &mac_p->miiaddr);
 
-	start = get_time_ns();
-	while (readl(&mac_p->miiaddr) & MII_BUSY) {
-		if (is_timeout(start, 10 * MSECOND)) {
-			dev_err(&priv->netdev.dev, "MDIO timeout\n");
-			return -EIO;
-		}
+	ret = dwc_ether_mii_wait_idle(priv);
+	if (ret == -ETIMEDOUT) {
+		dev_err(&priv->netdev.dev, "MDIO timeout\n");
+		return -EIO;
 	}
 
 	/* Needed as a fix for ST-Phy */
