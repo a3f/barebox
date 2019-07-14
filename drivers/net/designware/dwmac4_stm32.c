@@ -52,23 +52,6 @@
 #define SYSCFG_MP1_ETH_MASK		GENMASK(23, 16)
 #define SYSCFG_PMCCLRR_OFFSET		0x40
 
-struct eqos_config {
-	int mdio_wait;
-	int config_mac;
-	int config_mac_mdio;
-	struct eqos_ops *ops;
-};
-
-struct dw_eth_dev;
-struct eqos_ops {
-	int (*probe_resources)(struct device_d *);
-	void (*remove_resources)(struct device_d *);
-	int (*reset)(struct dw_eth_dev *, int reset);
-	int (*clks_set_rate)(struct dw_eth_dev *);
-	int (*calibrate_link)(struct dw_eth_dev *, unsigned speed);
-	unsigned long (*get_tick_clk_rate)(struct dw_eth_dev *);
-};
-
 enum { CLK_STMMACETH, CLK_MAX_RX, CLK_MAX_TX, CLK_SYSCFG,  };
 static const struct clk_bulk_data stm32_clks[] = {
 	[CLK_STMMACETH] = { .id = "stmmaceth" },
@@ -130,12 +113,16 @@ static void eqos_set_mode_stm32(struct dw_eth_dev *eqos)
 	return;
 }
 
-static int eqos_probe_resources_stm32(struct device_d *dev)
+static int eqos_init_stm32(struct device_d *dev)
 {
 	struct dw_eth_dev *eqos = dev->priv;
 	struct device_node *np = dev->device_node;
 	struct clk_bulk_data *eth_ck;
 	int ret;
+
+	ret = eqos_init(eqos);
+	if (ret)
+		return ret;
 
 	/* Gigabit Ethernet 125MHz clock selection. */
 	eqos->eth_clk_sel_reg = of_property_read_bool(np, "st,eth-clk-sel");
@@ -191,8 +178,9 @@ static struct dw_eth_ops dwmac4_ops = {
 	.halt = eqos_stop,
 	.send = eqos_send,
 	.rx = eqos_recv,
-	.init = eqos_init,
+	.init = eqos_init_stm32,
 	.adjust_link = eqos_adjust_link,
+	.get_tick_clk_rate = eqos_get_tick_clk_rate_stm32,
 
 	.enh_desc = 1, /* FIXME */
 	.clk_csr_shift = 8,
@@ -214,16 +202,10 @@ static void eqos_remove_stm32(struct device_d *dev)
 	dwmac_drv_remove(dev);
 }
 
-static struct eqos_ops eqos_stm32_ops = {
-	.probe_resources = eqos_probe_resources_stm32,
-	.get_tick_clk_rate = eqos_get_tick_clk_rate_stm32,
-};
-
 static const struct eqos_config eqos_stm32_config = {
 	.mdio_wait = 10000,
 	.config_mac = EQOS_MAC_RXQ_CTRL0_RXQ0EN_ENABLED_AV,
 	.config_mac_mdio = EQOS_MAC_MDIO_ADDRESS_CR_250_300,
-	.ops = &eqos_stm32_ops
 };
 
 static const struct of_device_id eqos_ids[] = {

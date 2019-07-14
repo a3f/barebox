@@ -57,21 +57,6 @@ struct eqos_tegra186_regs {
 
 #define EQOS_AUTO_CAL_STATUS_ACTIVE			BIT(31)
 
-struct eqos_config {
-	int mdio_wait;
-	int config_mac;
-	int config_mac_mdio;
-	struct eqos_ops *ops;
-};
-
-struct dw_eth_dev;
-struct eqos_ops { // FIXME get rid of?
-	int (*probe_resources)(struct device_d *);
-	void (*remove_resources)(struct device_d *);
-	int (*calibrate_link)(struct dw_eth_dev *, unsigned speed);
-	unsigned long (*get_tick_clk_rate)(struct dw_eth_dev *);
-};
-
 enum { CLK_SLAVE_BUS, CLK_MASTER_BUS, CLK_RX, CLK_PTP_REF, CLK_TX };
 static const struct clk_bulk_data tegra186_clks[] = {
 	[CLK_SLAVE_BUS]  = { .id = "slave_bus" },
@@ -242,11 +227,14 @@ static int eqos_set_ethaddr_tegra186(struct eth_device *edev, const unsigned cha
 	return eqos_set_ethaddr(edev, mac);
 }
 
-static int eqos_probe_resources_tegra186(struct device_d *dev)
+static int eqos_init_tegra186(struct dw_eth_dev *eqos)
 {
-	struct dw_eth_dev *eqos = dev->priv;
+	struct device_d *dev = eqos->netdev.parent;
 	int phy_reset;
 	int ret;
+
+	eqos->tegra186_regs = IOMEM(eqos->regs + EQOS_TEGRA186_REGS_BASE);
+	eqos->defer_reg_access = true;
 
 	eqos->reset_ctl = reset_control_get(dev, "eqos");
 	if (IS_ERR(eqos->reset_ctl)) {
@@ -269,30 +257,20 @@ static int eqos_probe_resources_tegra186(struct device_d *dev)
 	ret = clk_bulk_get(dev, eqos->num_clks, eqos->clks);
 	if (ret) {
 		dev_err(dev, "Failed to get clks: %s\n", strerror(-ret));
-		return ret;
+		goto release_gpio;
 	}
+
+	ret = eqos_init(eqos);
+	if (ret)
+		goto release_gpio;
 
 	return 0;
 
 release_res:
 	reset_control_put(eqos->reset_ctl);
-	return ret;
-}
-
-static void eqos_remove_resources_tegra186(struct device_d *dev)
-{
-	struct dw_eth_dev *eqos = dev->priv;
-
+release_gpio:
 	gpio_free(eqos->phy_reset_gpio);
-	reset_control_put(eqos->reset_ctl);
-}
-
-static int eqos_init_tegra186(struct dw_eth_dev *eqos)
-{
-	eqos->tegra186_regs = IOMEM(eqos->regs + EQOS_TEGRA186_REGS_BASE);
-	eqos->defer_reg_access = true;
-
-	return eqos_init(eqos);
+	return ret;
 }
 
 static int eqos_start_tegra186(struct eth_device *edev)
@@ -311,6 +289,20 @@ static void eqos_stop_tegra186(struct eth_device *edev)
 	eqos_stop(edev);
 }
 
+static void eqos_adjust_link_tegra186(struct eth_device *edev)
+{
+	struct dw_eth_dev *eqos = edev->priv;
+	unsigned speed = edev->phydev->speed;
+	int ret;
+
+	eqos_adjust_link(edev);
+
+	ret = eqos_calibrate_link_tegra186(eqos, speed);
+	if (ret < 0) {
+		pr_err("eqos_calibrate_link_tegra186() failed: %d\n", ret);
+		return;
+	}
+}
 
 static struct dw_eth_ops dwmac4_ops = {
 	.get_ethaddr = eqos_get_ethaddr,
@@ -320,9 +312,10 @@ static struct dw_eth_ops dwmac4_ops = {
 	.send = eqos_send,
 	.rx = eqos_recv,
 	.init = eqos_init_tegra186,
-	.adjust_link = eqos_adjust_link,
+	.adjust_link = eqos_adjust_link_tegra186,
 	.reset = eqos_reset_tegra186,
 	.clks_set_rate = eqos_clks_set_rate_tegra186,
+	.get_tick_clk_rate = eqos_get_tick_clk_rate_tegra186,
 
 	.enh_desc = 1, /* FIXME */
 	.clk_csr_shift = 8,
@@ -338,24 +331,21 @@ static int eqos_probe_tegra186(struct device_d *dev)
 static void eqos_remove_tegra186(struct device_d *dev)
 {
 	struct dw_eth_dev *eqos = dev->priv;
+
 	mdiobus_unregister(&eqos->miibus);
+
+	gpio_free(eqos->phy_reset_gpio);
+	reset_control_put(eqos->reset_ctl);
+
 	eqos_remove_resources(dev);
 
 	dwmac_drv_remove(dev);
 }
 
-static struct eqos_ops eqos_tegra186_ops = {
-	.probe_resources = eqos_probe_resources_tegra186,
-	.remove_resources = eqos_remove_resources_tegra186,
-	.calibrate_link = eqos_calibrate_link_tegra186,
-	.get_tick_clk_rate = eqos_get_tick_clk_rate_tegra186
-};
-
 static const struct eqos_config eqos_tegra186_config = {
 	.mdio_wait = 10,
 	.config_mac = EQOS_MAC_RXQ_CTRL0_RXQ0EN_ENABLED_DCB,
 	.config_mac_mdio = EQOS_MAC_MDIO_ADDRESS_CR_20_35,
-	.ops = &eqos_tegra186_ops
 };
 
 static const struct of_device_id eqos_ids[] = {
