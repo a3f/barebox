@@ -60,45 +60,7 @@ config DRIVER_NET_DAVINCI_EMAC
 	depends on ARCH_OMAP3
 	select PHYLIB
 
-config DRIVER_NET_DESIGNWARE
-	bool "Designware Universal MAC ethernet platform support"
-	depends on HAS_DMA
-	select PHYLIB
-	help
-	  This option enables support for the Synopsys
-	  Designware Core Univesal MAC 10M/100M/1G ethernet IP.
-
-if DRIVER_NET_DESIGNWARE
-
-config DRIVER_NET_DESIGNWARE_GENERIC
-	bool "Designware Universal MAC ethernet generic driver"
-	help
-	  This option enables support for the Synopsys
-	  Designware Core Univesal MAC 10M/100M/1G ethernet IP on SoCFPGA.
-
-config DRIVER_NET_DESIGNWARE_SOCFPGA
-	bool "Designware Universal MAC ethernet driver for SoCFPGA platforms"
-	depends on ARCH_SOCFPGA
-	select MFD_SYSCON
-	select RESET_CONTROLLER
-	help
-	  This option enables support for the Synopsys
-	  Designware Core Univesal MAC 10M/100M/1G ethernet IP on SoCFPGA.
-
-config DRIVER_NET_DESIGNWARE_QOS
-	bool "Designware Ethernet QOS driver for STM32MP"
-	help
-	  This option enables support for the Synopsys Designware Ethernet QOS
-	  IP on STM32MP family of CPUs.
-
-config DRIVER_NET_DESIGNWARE_TEGRA186
-	bool "Designware Ethernet QOS driver for Tegra186"
-	select DRIVER_NET_DESIGNWARE_QOS
-	help
-	  This option enables support for the Synopsys Designware Ethernet QOS
-	  IP on Tegra186 family of CPUs.
-
-endif
+source "drivers/net/designware/Kconfig"
 
 config DRIVER_NET_DM9K
 	bool "Davicom dm9k[E|A|B] ethernet driver"

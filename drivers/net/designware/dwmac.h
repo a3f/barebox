@@ -95,4 +95,9 @@ struct dw_eth_dev {
 struct dw_eth_dev *dwmac_drv_probe(struct device_d *dev, struct dw_eth_ops *ops);
 void dwmac_drv_remove(struct device_d *dev);
 
+#define DMAMAC_SRST		(1 << 0)
+
+#define DW_DMA_BASE_OFFSET	(0x1000)
+
+
 #endif

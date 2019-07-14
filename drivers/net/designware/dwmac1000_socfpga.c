@@ -16,7 +16,7 @@
 #include <linux/reset.h>
 #include <mach/cyclone5-system-manager.h>
 #include <mfd/syscon.h>
-#include "designware.h"
+#include "dwmac1000.h"
 
 #define SYSMGR_EMACGRP_CTRL_PTP_REF_CLK_MASK 0x00000010
 
@@ -124,7 +124,7 @@ static int socfpga_dwc_ether_probe(struct device_d *dev)
 
 	dwc_dev = xzalloc(sizeof(*dwc_dev));
 
-	priv = dwc_drv_probe(dev, true);
+	priv = dwc_drv_probe(dev);
 	if (IS_ERR(priv))
 		return PTR_ERR(priv);
 

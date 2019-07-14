@@ -10,19 +10,11 @@
 
 #include <common.h>
 #include <init.h>
-#include "designware.h"
-
-struct dw_eth_drvdata {
-	bool enh_desc;
-};
-
-static struct dw_eth_drvdata dwmac_370a_drvdata = {
-	.enh_desc = 1,
-};
+#include "dwmac1000.h"
 
 static int dwc_ether_probe(struct device_d *dev)
 {
-	struct dw_eth_drvdata *drvdata;
+	struct dw_eth_ops *drvdata;
 	struct dw_eth_dev *dwc;
 	int ret;
 
@@ -30,7 +22,7 @@ static int dwc_ether_probe(struct device_d *dev)
 	if (ret)
 		return ret;
 
-	dwc = dwc_drv_probe(dev, drvdata->enh_desc);
+	dwc = dwc_drv_probe(dev);
 	if (IS_ERR(dwc))
 		return PTR_ERR(dwc);
 
@@ -38,15 +30,9 @@ static int dwc_ether_probe(struct device_d *dev)
 }
 
 static __maybe_unused struct of_device_id dwc_ether_compatible[] = {
-	{
-		.compatible = "snps,dwmac-3.70a",
-		.data = &dwmac_370a_drvdata,
-	}, {
-		.compatible = "snps,dwmac-3.72a",
-		.data = &dwmac_370a_drvdata,
-	}, {
-		/* sentinel */
-	}
+	{ .compatible = "snps,dwmac-3.70a", },
+	{ .compatible = "snps,dwmac-3.72a", },
+	{ /* sentinel */ }
 };
 
 static struct driver_d dwc_ether_driver = {

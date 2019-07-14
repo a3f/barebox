@@ -77,8 +77,6 @@ struct eth_dma_regs {
 	u32 currhostrxbuffaddr;	/* 0x54 */
 };
 
-#define DW_DMA_BASE_OFFSET	(0x1000)
-
 /* Bus mode register definitions */
 #define FIXEDBURST		(1 << 16)
 #define PRIORXTX_41		(3 << 14)

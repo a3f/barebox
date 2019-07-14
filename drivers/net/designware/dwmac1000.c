@@ -19,7 +19,7 @@
 #include <linux/err.h>
 #include <linux/iopoll.h>
 
-#include "designware.h"
+#include "dwmac1000.h"
 #include "dwmac.h"
 
 /* Speed specific definitions */
