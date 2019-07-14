@@ -54,7 +54,7 @@ static int dwmac_start(struct eth_device *edev)
 	if (priv->ops->clks_set_rate) {
 		ret = priv->ops->clks_set_rate(priv);
 		if (ret < 0) {
-			pr_err("eqos_set_rate_clks() failed: %s\n", strerror(-ret));
+			pr_err("clks_set_rate() failed: %s\n", strerror(-ret));
 			goto err;
 		}
 	}
@@ -62,7 +62,7 @@ static int dwmac_start(struct eth_device *edev)
 	if (priv->ops->reset) {
 		ret = priv->ops->reset(priv, 0);
 		if (ret < 0) {
-			pr_err("eqos_reset(0) failed: %s\n", strerror(-ret));
+			pr_err("reset(0) failed: %s\n", strerror(-ret));
 			goto err_stop_clks;
 		}
 	}
