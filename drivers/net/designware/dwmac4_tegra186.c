@@ -82,7 +82,7 @@ static int eqos_reset_tegra186(struct dw_eth_dev *eqos, int reset)
 	int ret;
 
 	if (reset > 0) {
-		reset_control_assert(eqos->reset_ctl);
+		reset_control_assert(eqos->rst);
 		gpio_set_value(eqos->phy_reset_gpio, 1);
 		return 0;
 	}
@@ -93,7 +93,7 @@ static int eqos_reset_tegra186(struct dw_eth_dev *eqos, int reset)
 
 	gpio_set_value(eqos->phy_reset_gpio, 0);
 
-	ret = reset_control_assert(eqos->reset_ctl);
+	ret = reset_control_assert(eqos->rst);
 	if (ret < 0) {
 		pr_err("reset_assert() failed: %s\n", strerror(-ret));
 		return ret;
@@ -101,7 +101,7 @@ static int eqos_reset_tegra186(struct dw_eth_dev *eqos, int reset)
 
 	udelay(2);
 
-	ret = reset_control_deassert(eqos->reset_ctl);
+	ret = reset_control_deassert(eqos->rst);
 	if (ret < 0) {
 		pr_err("reset_deassert() failed: %s\n", strerror(-ret));
 		return ret;
@@ -236,9 +236,9 @@ static int eqos_init_tegra186(struct dw_eth_dev *eqos)
 	eqos->tegra186_regs = IOMEM(eqos->regs + EQOS_TEGRA186_REGS_BASE);
 	eqos->defer_reg_access = true;
 
-	eqos->reset_ctl = reset_control_get(dev, "eqos");
-	if (IS_ERR(eqos->reset_ctl)) {
-		ret = PTR_ERR(eqos->reset_ctl);
+	eqos->rst = reset_control_get(dev, "eqos");
+	if (IS_ERR(eqos->rst)) {
+		ret = PTR_ERR(eqos->rst);
 		pr_err("reset_get_by_name(rst) failed: %s\n", strerror(-ret));
 		return ret;
 	}
@@ -267,7 +267,7 @@ static int eqos_init_tegra186(struct dw_eth_dev *eqos)
 	return 0;
 
 release_res:
-	reset_control_put(eqos->reset_ctl);
+	reset_control_put(eqos->rst);
 release_gpio:
 	gpio_free(eqos->phy_reset_gpio);
 	return ret;
@@ -335,7 +335,7 @@ static void eqos_remove_tegra186(struct device_d *dev)
 	mdiobus_unregister(&eqos->miibus);
 
 	gpio_free(eqos->phy_reset_gpio);
-	reset_control_put(eqos->reset_ctl);
+	reset_control_put(eqos->rst);
 
 	eqos_remove_resources(dev);
 
