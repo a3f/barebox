@@ -85,13 +85,13 @@ config DRIVER_NET_DESIGNWARE_SOCFPGA
 	  This option enables support for the Synopsys
 	  Designware Core Univesal MAC 10M/100M/1G ethernet IP on SoCFPGA.
 
-endif
-
 config DRIVER_NET_DESIGNWARE_QOS
 	bool "Synopsys Designware Ethernet QOS IP block driver"
 	help
 	  This option enables support for the Synopsys Designware Ethernet QOS
 	  IP on STM32MP and Tegra family of CPUs.
+
+endif
 
 config DRIVER_NET_DM9K
 	bool "Davicom dm9k[E|A|B] ethernet driver"
