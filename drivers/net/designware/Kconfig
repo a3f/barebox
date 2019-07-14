@@ -1,0 +1,50 @@
+config DRIVER_NET_DESIGNWARE
+	bool "Designware Universal MAC ethernet platform support"
+	depends on HAS_DMA
+	select PHYLIB
+	help
+	  This option enables support for the Synopsys
+	  Designware Core Univesal MAC 10M/100M/1G ethernet IP.
+
+if DRIVER_NET_DESIGNWARE
+
+config DRIVER_NET_DESIGNWARE_DWMAC1000
+	bool
+
+config DRIVER_NET_DESIGNWARE_DWMAC4
+	bool
+
+config DRIVER_NET_DESIGNWARE_GENERIC
+	bool "Designware Universal MAC ethernet generic driver"
+	select DRIVER_NET_DESIGNWARE_DWMAC1000
+	help
+	  This option enables support for the Synopsys
+	  Designware Core Univesal MAC 10M/100M/1G ethernet IP on SoCFPGA.
+
+config DRIVER_NET_DESIGNWARE_SOCFPGA
+	bool "Designware Universal MAC ethernet driver for SoCFPGA platforms"
+	depends on ARCH_SOCFPGA
+	select MFD_SYSCON
+	select RESET_CONTROLLER
+	select DRIVER_NET_DESIGNWARE_DWMAC1000
+	help
+	  This option enables support for the Synopsys
+	  Designware Core Univesal MAC 10M/100M/1G ethernet IP on SoCFPGA.
+
+config DRIVER_NET_DESIGNWARE_STM32
+	bool "Designware Ethernet QOS driver for STM32"
+	select MFD_SYSCON
+	select DRIVER_NET_DESIGNWARE_DWMAC4
+	help
+	  This option enables support for the Synopsys Designware Ethernet QOS
+	  IP on STM32MP family of CPUs.
+
+config DRIVER_NET_DESIGNWARE_TEGRA186
+	bool "Designware Ethernet QOS driver for Tegra186"
+	select RESET_CONTROLLER
+	select DRIVER_NET_DESIGNWARE_DWMAC4
+	help
+	  This option enables support for the Synopsys Designware Ethernet QOS
+	  IP on Tegra186 family of CPUs.
+
+endif

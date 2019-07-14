@@ -18,8 +18,8 @@
 #include <linux/reset.h>
 #include <linux/iopoll.h>
 #include <mfd/syscon.h>
+#include <linux/mii.h>
 
-#include "designware.h"
 #include "dwmac.h"
 #include "dwmac4.h"
 

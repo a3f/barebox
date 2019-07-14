@@ -19,8 +19,8 @@
 #include <linux/err.h>
 #include <linux/iopoll.h>
 #include <linux/clk.h>
+#include <linux/mii.h>
 
-#include "designware.h"
 #include "dwmac.h"
 
 /* Get PHY out of power saving mode.  If this is needed elsewhere then

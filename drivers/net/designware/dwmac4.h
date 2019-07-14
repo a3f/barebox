@@ -17,4 +17,6 @@ void eqos_adjust_link(struct eth_device *edev);
 
 void eqos_remove_resources(struct device_d *dev); // FIXME removable?
 
+#define MII_BUSY		(1 << 0)
+
 #endif
