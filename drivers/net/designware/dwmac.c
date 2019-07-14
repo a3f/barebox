@@ -22,6 +22,103 @@
 #include <linux/mii.h>
 
 #include "dwmac.h"
+#include "dwmac4.h"
+#include "dwmac1000.h"
+
+static int dwmac_mdio_wait_idle(struct dw_eth_dev *priv)
+{
+	u32 idle;
+	return readl_poll_timeout(priv->regs + priv->ops->mii->addr, idle,
+				  !(idle & MII_BUSY),
+				  10000);
+}
+
+static int dwmac_mdio_read(struct mii_bus *bus, int mdio_addr,
+			  int mdio_reg)
+{
+	struct dw_eth_dev *priv = bus->priv;
+	u32 miiaddr = 0;
+	int ret;
+
+	ret = dwmac_mdio_wait_idle(priv);
+	if (ret) {
+		pr_err("MDIO not idle at entry\n");
+		return ret;
+	}
+
+	if (priv->ops->has_gmac4) {
+		miiaddr = readl(priv->regs + priv->ops->mii->addr);
+		miiaddr &= EQOS_MAC_MDIO_ADDRESS_SKAP |
+			EQOS_MAC_MDIO_ADDRESS_C45E;
+		miiaddr |= EQOS_MAC_MDIO_ADDRESS_GOC_READ <<
+			EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT;
+	}
+
+	miiaddr |= (priv->ops->clk_csr << priv->ops->mii->clk_csr_shift) &
+		priv->ops->mii->clk_csr_mask;
+
+	miiaddr |= ((mdio_addr << priv->ops->mii->addr_shift) & priv->ops->mii->addr_mask) |
+		((mdio_reg << priv->ops->mii->reg_shift) & priv->ops->mii->reg_mask);
+	miiaddr |= MII_BUSY;
+
+	writel(miiaddr, priv->regs + priv->ops->mii->addr);
+
+	udelay(priv->ops->mdio_wait);
+
+	ret = dwmac_mdio_wait_idle(priv);
+	if (ret) {
+		pr_err("MDIO read didn't complete\n");
+		return ret;
+	}
+
+	return readl(priv->regs + priv->ops->mii->data) & 0xffff;
+}
+
+static int dwmac_mdio_write(struct mii_bus *bus, int mdio_addr,
+			   int mdio_reg, u16 val)
+{
+	struct dw_eth_dev *priv = bus->priv;
+	u32 miiaddr = 0;
+	int ret;
+
+	ret = dwmac_mdio_wait_idle(priv);
+	if (ret) {
+		pr_err("MDIO not idle at entry\n");
+		return ret;
+	}
+
+	if (priv->ops->has_gmac4) {
+		miiaddr = readl(priv->regs + priv->ops->mii->addr);
+		miiaddr &= EQOS_MAC_MDIO_ADDRESS_SKAP |
+			EQOS_MAC_MDIO_ADDRESS_C45E;
+		miiaddr |= EQOS_MAC_MDIO_ADDRESS_GOC_WRITE <<
+			 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT;
+	} else {
+		miiaddr = MII_WRITE;
+	}
+
+	miiaddr |= (priv->ops->clk_csr << priv->ops->mii->clk_csr_shift) &
+		priv->ops->mii->clk_csr_mask;
+
+	miiaddr |= ((mdio_addr << priv->ops->mii->addr_shift) & priv->ops->mii->addr_mask) |
+		((mdio_reg << priv->ops->mii->reg_shift) & priv->ops->mii->reg_mask);
+	miiaddr |= MII_BUSY;
+
+	writel(val, priv->regs + priv->ops->mii->data);
+	writel(miiaddr, priv->regs + priv->ops->mii->addr);
+
+	udelay(priv->ops->mdio_wait);
+
+	ret = dwmac_mdio_wait_idle(priv);
+	if (ret) {
+		pr_err("MDIO read didn't complete\n");
+		return ret;
+	}
+
+	/* Needed as a fix for ST-Phy */
+	dwmac_mdio_read(bus, mdio_addr, mdio_reg);
+	return 0;
+}
 
 /* Get PHY out of power saving mode.  If this is needed elsewhere then
  * consider making it part of phy-core and adding a resume method to
@@ -121,6 +218,8 @@ static int dwmac_probe_dt(struct device_d *dev, struct dw_eth_dev *priv)
 struct dw_eth_dev *dwmac_drv_probe(struct device_d *dev, struct dw_eth_ops *ops)
 {
 	struct dwc_ether_platform_data *pdata = dev->platform_data;
+	struct mii_bus *miibus;
+	struct device_node *mdiobus;
 	struct resource *iores;
 	struct dw_eth_dev *priv;
 	struct eth_device *edev;
@@ -159,10 +258,22 @@ struct dw_eth_dev *dwmac_drv_probe(struct device_d *dev, struct dw_eth_ops *ops)
 	edev->get_ethaddr = ops->get_ethaddr;
 	edev->set_ethaddr = ops->set_ethaddr;
 
+	miibus = &priv->miibus;
+	priv->phy_addr = -1;
+	mdiobus = of_get_child_by_name(dev->device_node, "mdio");
+	if (mdiobus)
+		miibus->dev.device_node = mdiobus;
+
+	miibus->parent = edev->parent;
+	miibus->read = dwmac_mdio_read;
+	miibus->write = dwmac_mdio_write;
+	miibus->priv = priv;
+
 	ret = ops->init(priv);
 	if (ret)
 		return ERR_PTR(ret);
 
+	mdiobus_register(miibus);
 	eth_register(edev);
 
 	return priv;

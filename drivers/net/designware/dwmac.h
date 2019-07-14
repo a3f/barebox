@@ -6,6 +6,17 @@
 #ifndef __DESIGNWARE_DWMAC_H
 #define __DESIGNWARE_DWMAC_H
 
+struct mii_regs {
+	unsigned int addr;		 /* MII Address */
+	unsigned int data;		 /* MII Data */
+	unsigned int addr_shift;	/* MII address shift */
+	unsigned int reg_shift;		/* MII reg shift */
+	unsigned int addr_mask;		/* MII address mask */
+	unsigned int reg_mask;		/* MII reg mask */
+	unsigned int clk_csr_shift;
+	unsigned int clk_csr_mask;
+};
+
 struct dw_eth_dev;
 
 struct dw_eth_ops {
@@ -22,12 +33,11 @@ struct dw_eth_ops {
 	unsigned long (*get_tick_clk_rate)(struct dw_eth_dev *);
 
 	bool enh_desc;
-	u32 clk_csr_shift;
 	int mdio_wait;
-	int config_mac_mdio;
 	int has_gmac4;
+	struct mii_regs *mii;
+	unsigned clk_csr;
 };
-
 
 struct eth_mac_regs;
 struct eqos_mac_regs;
@@ -95,6 +105,10 @@ struct dw_eth_dev {
 
 	struct dw_eth_ops *ops;
 	bool defer_reg_access;
+	unsigned mii_addr_shift;
+	unsigned mii_addr_mask;
+	unsigned mii_reg_shift;
+	unsigned mii_reg_mask;
 };
 
 
@@ -104,6 +118,5 @@ void dwmac_drv_remove(struct device_d *dev);
 #define DMAMAC_SRST		(1 << 0)
 
 #define DW_DMA_BASE_OFFSET	(0x1000)
-
 
 #endif

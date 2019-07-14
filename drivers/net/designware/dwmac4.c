@@ -82,14 +82,6 @@ struct eqos_mac_regs {
 
 #define EQOS_MAC_MIIADDRSHIFT				21
 #define EQOS_MAC_MIIREGSHIFT				16
-#define EQOS_MAC_MDIO_ADDRESS_CR_SHIFT			8
-#define EQOS_MAC_MDIO_ADDRESS_CR_20_35			2
-#define EQOS_MAC_MDIO_ADDRESS_CR_250_300		5
-#define EQOS_MAC_MDIO_ADDRESS_SKAP			BIT(4)
-#define EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT			2
-#define EQOS_MAC_MDIO_ADDRESS_GOC_READ			3
-#define EQOS_MAC_MDIO_ADDRESS_GOC_WRITE			1
-#define EQOS_MAC_MDIO_ADDRESS_C45E			BIT(1)
 
 #define EQOS_MTL_REGS_BASE 0xd00
 struct eqos_mtl_regs {
@@ -200,94 +192,6 @@ struct eqos_desc {
 #define EQOS_DESC3_FD		BIT(29)
 #define EQOS_DESC3_LD		BIT(28)
 #define EQOS_DESC3_BUF1V	BIT(24)
-
-static int eqos_mdio_wait_idle(struct dw_eth_dev *eqos)
-{
-	u32 idle;
-	return readl_poll_timeout(&eqos->mac_regs->mdio_address, idle,
-				  !(idle & MII_BUSY),
-				  10000);
-}
-
-static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
-			  int mdio_reg)
-{
-	struct dw_eth_dev *eqos = bus->priv;
-	u32 val = 0;
-	int ret;
-
-	ret = eqos_mdio_wait_idle(eqos);
-	if (ret) {
-		pr_err("MDIO not idle at entry\n");
-		return ret;
-	}
-
-	if (eqos->ops->has_gmac4) {
-		val = readl(&eqos->mac_regs->mdio_address);
-		val &= EQOS_MAC_MDIO_ADDRESS_SKAP |
-			EQOS_MAC_MDIO_ADDRESS_C45E;
-		val |= (mdio_addr << EQOS_MAC_MIIADDRSHIFT) |
-			(mdio_reg << EQOS_MAC_MIIREGSHIFT);
-		val |= (eqos->ops->config_mac_mdio <<
-			 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
-			(EQOS_MAC_MDIO_ADDRESS_GOC_READ <<
-			 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT);
-	}
-
-	val |= MII_BUSY;
-	writel(val, &eqos->mac_regs->mdio_address);
-
-	udelay(eqos->ops->mdio_wait);
-
-	ret = eqos_mdio_wait_idle(eqos);
-	if (ret) {
-		pr_err("MDIO read didn't complete\n");
-		return ret;
-	}
-
-	return readl(&eqos->mac_regs->mdio_data) & 0xffff;
-}
-
-static int eqos_mdio_write(struct mii_bus *bus, int mdio_addr,
-			   int mdio_reg, u16 mdio_val)
-{
-	struct dw_eth_dev *eqos = bus->priv;
-	u32 val = 0;
-	int ret;
-
-	ret = eqos_mdio_wait_idle(eqos);
-	if (ret) {
-		pr_err("MDIO not idle at entry\n");
-		return ret;
-	}
-
-	writel(mdio_val, &eqos->mac_regs->mdio_data);
-
-	if (eqos->ops->has_gmac4) {
-		val = readl(&eqos->mac_regs->mdio_address);
-		val &= EQOS_MAC_MDIO_ADDRESS_SKAP |
-			EQOS_MAC_MDIO_ADDRESS_C45E;
-		val |= (mdio_addr << EQOS_MAC_MIIADDRSHIFT) |
-			(mdio_reg << EQOS_MAC_MIIREGSHIFT) |
-			(eqos->ops->config_mac_mdio <<
-			 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
-			(EQOS_MAC_MDIO_ADDRESS_GOC_WRITE <<
-			 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT);
-	}
-
-	val |= MII_BUSY;
-	writel(val, &eqos->mac_regs->mdio_address);
-
-	udelay(eqos->ops->mdio_wait);
-
-	ret = eqos_mdio_wait_idle(eqos);
-	if (ret) {
-		pr_err("MDIO read didn't complete\n");
-		return ret;
-	}
-
-	return 0;
-}
 
 static void eqos_set_full_duplex(struct dw_eth_dev *eqos)
 {
@@ -822,8 +726,6 @@ int eqos_init(struct dw_eth_dev *eqos)
 {
 	struct eth_device *edev = &eqos->netdev;
 	struct device_d *dev = edev->parent;
-	struct mii_bus *miibus = &eqos->miibus;
-	struct device_node *mdiobus;
 	int ret;
 
 	if (mac_reset(eqos) < 0)
@@ -841,22 +743,6 @@ int eqos_init(struct dw_eth_dev *eqos)
 		return ret;
 	}
 
-	eqos->phy_addr = -1;
-	mdiobus = of_get_child_by_name(dev->device_node, "mdio");
-	if (mdiobus)
-		miibus->dev.device_node = mdiobus;
-
-	miibus->parent = dev;
-	miibus->read = eqos_mdio_read;
-	miibus->write = eqos_mdio_write;
-	miibus->priv = eqos;
-
-	mdiobus_register(&eqos->miibus);
-	if (ret < 0) {
-		pr_err("mdiobus_register() failed: %s\n", strerror(-ret));
-		goto err_remove_resources;
-	}
-
 	return 0;
 
 err_remove_resources:
@@ -864,3 +750,14 @@ err_remove_resources:
 
 	return ret;
 }
+
+const struct mii_regs dwmac4_mii_regs = {
+	.addr = offsetof(struct eqos_mac_regs, mdio_address),
+	.data = offsetof(struct eqos_mac_regs, mdio_data),
+	.addr_shift = 21,
+	.addr_mask = GENMASK(25, 21),
+	.reg_shift = 16,
+	.reg_mask = GENMASK(20, 16),
+	.clk_csr_shift = 8,
+	.clk_csr_mask = GENMASK(11, 8),
+};

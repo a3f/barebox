@@ -39,4 +39,14 @@ struct eqos_config {
 	int config_mac;
 };
 
+#define EQOS_MAC_MDIO_ADDRESS_CR_20_35			2
+#define EQOS_MAC_MDIO_ADDRESS_CR_250_300		5
+#define EQOS_MAC_MDIO_ADDRESS_SKAP			BIT(4)
+#define EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT			2
+#define EQOS_MAC_MDIO_ADDRESS_GOC_READ			3
+#define EQOS_MAC_MDIO_ADDRESS_GOC_WRITE			1
+#define EQOS_MAC_MDIO_ADDRESS_C45E			BIT(1)
+
+extern const struct mii_regs dwmac4_mii_regs;
+
 #endif
