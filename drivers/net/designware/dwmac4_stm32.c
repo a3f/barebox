@@ -510,23 +510,6 @@ static int mac_reset(struct dw_eth_dev *eqos)
 	return 0;
 }
 
-/* Get PHY out of power saving mode.  If this is needed elsewhere then
- * consider making it part of phy-core and adding a resume method to
- * the phy device ops.  */
-static int phy_resume(struct phy_device *phydev)
-{
-	int bmcr;
-
-	bmcr = phy_read(phydev, MII_BMCR);
-	if (bmcr < 0)
-		return bmcr;
-	if (bmcr & BMCR_PDOWN) {
-		bmcr &= ~BMCR_PDOWN;
-		return phy_write(phydev, MII_BMCR, bmcr);
-	}
-	return 0;
-}
-
 static int eqos_ether_init(struct eth_device *edev)
 {
 	struct dw_eth_dev *priv = edev->priv;
