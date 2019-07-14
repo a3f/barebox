@@ -411,6 +411,7 @@ static int dwc_drv_init(struct dw_eth_dev *priv)
 {
 	struct eth_device *edev = &priv->netdev;
 	struct mii_bus *miibus = &priv->miibus;
+	struct device_node *mdiobus;
 
 	dwc_version(edev->parent, readl(&priv->mac_regs_p->version));
 
@@ -422,6 +423,11 @@ static int dwc_drv_init(struct dw_eth_dev *priv)
 		DMA_ADDRESS_BROKEN);
 	priv->txbuffs = dma_alloc(TX_TOTAL_BUFSIZE);
 	priv->rxbuffs = dma_alloc(RX_TOTAL_BUFSIZE);
+
+	priv->phy_addr = -1;
+	mdiobus = of_get_child_by_name(dev->device_node, "mdio");
+	if (mdiobus)
+		miibus->dev.device_node = mdiobus;
 
 	miibus->parent = edev->parent;
 	miibus->read = dwc_ether_mii_read;
