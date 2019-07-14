@@ -20,6 +20,7 @@
 #include <mfd/syscon.h>
 
 #include "designware.h"
+#include "dwmac.h"
 
 #define SYSCFG_PMCR_ETH_CLK_SEL		BIT(16)
 #define SYSCFG_PMCR_ETH_REF_CLK_SEL	BIT(17)
@@ -108,8 +109,8 @@ struct eqos_mac_regs {
 #define EQOS_MAC_HW_FEATURE1_RXFIFOSIZE_SHIFT		0
 #define EQOS_MAC_HW_FEATURE1_RXFIFOSIZE_MASK		0x1f
 
-#define EQOS_MAC_MDIO_ADDRESS_PA_SHIFT			21
-#define EQOS_MAC_MDIO_ADDRESS_RDA_SHIFT			16
+#define EQOS_MAC_MIIADDRSHIFT				21
+#define EQOS_MAC_MIIREGSHIFT				16
 #define EQOS_MAC_MDIO_ADDRESS_CR_SHIFT			8
 #define EQOS_MAC_MDIO_ADDRESS_CR_20_35			2
 #define EQOS_MAC_MDIO_ADDRESS_CR_250_300		5
@@ -252,47 +253,17 @@ struct eqos_config {
 	struct eqos_ops *ops;
 };
 
-struct eqos_priv;
+struct dw_eth_dev;
 struct eqos_ops {
 	int (*probe_resources)(struct device_d *);
 	void (*remove_resources)(struct device_d *);
-	int (*reset)(struct eqos_priv *, int reset);
-	int (*clks_set_rate)(struct eqos_priv *);
-	int (*calibrate_link)(struct eqos_priv *, unsigned speed);
-	unsigned long (*get_tick_clk_rate)(struct eqos_priv *);
+	int (*reset)(struct dw_eth_dev *, int reset);
+	int (*clks_set_rate)(struct dw_eth_dev *);
+	int (*calibrate_link)(struct dw_eth_dev *, unsigned speed);
+	unsigned long (*get_tick_clk_rate)(struct dw_eth_dev *);
 };
 
-struct eqos_priv {
-	struct eth_device netdev;
-	struct device_d *dev;
-	struct mii_bus miibus;
-	const struct eqos_config *config;
-	void __iomem *regs;
-	struct eqos_mac_regs *mac_regs;
-	struct eqos_mtl_regs *mtl_regs;
-	struct eqos_dma_regs *dma_regs;
-	struct eqos_tegra186_regs *tegra186_regs;
-	struct reset_control *reset_ctl;
-	struct regmap *regmap;
-	u32 mode_reg;
-	int phy_reset_gpio;
-	unsigned phy_interface;
-	int phy_addr;
-	void *descs;
-	struct eqos_desc *tx_descs;
-	struct eqos_desc *rx_descs;
-	int tx_desc_idx, rx_desc_idx;
-	bool started;
-	struct clk_bulk_data *clks;
-	int num_clks;
-	int eth_clk_sel_reg;
-	int eth_ref_clk_sel_reg;
-
-	u32 macaddr0hi;
-	u32 macaddr0lo;
-};
-
-static int eqos_mdio_wait_idle(struct eqos_priv *eqos)
+static int eqos_mdio_wait_idle(struct dw_eth_dev *eqos)
 {
 	u32 idle;
 	return readl_poll_timeout(&eqos->mac_regs->mdio_address, idle,
@@ -303,7 +274,7 @@ static int eqos_mdio_wait_idle(struct eqos_priv *eqos)
 static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 			  int mdio_reg)
 {
-	struct eqos_priv *eqos = bus->priv;
+	struct dw_eth_dev *eqos = bus->priv;
 	u32 val;
 	int ret;
 
@@ -316,9 +287,9 @@ static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 	val = readl(&eqos->mac_regs->mdio_address);
 	val &= EQOS_MAC_MDIO_ADDRESS_SKAP |
 		EQOS_MAC_MDIO_ADDRESS_C45E;
-	val |= (mdio_addr << EQOS_MAC_MDIO_ADDRESS_PA_SHIFT) |
-		(mdio_reg << EQOS_MAC_MDIO_ADDRESS_RDA_SHIFT) |
-		(eqos->config->config_mac_mdio <<
+	val |= (mdio_addr << EQOS_MAC_MIIADDRSHIFT) |
+		(mdio_reg << EQOS_MAC_MIIREGSHIFT);
+	val |= (eqos->config->config_mac_mdio <<
 		 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
 		(EQOS_MAC_MDIO_ADDRESS_GOC_READ <<
 		 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT) |
@@ -342,7 +313,7 @@ static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 static int eqos_mdio_write(struct mii_bus *bus, int mdio_addr,
 			   int mdio_reg, u16 mdio_val)
 {
-	struct eqos_priv *eqos = bus->priv;
+	struct dw_eth_dev *eqos = bus->priv;
 	u32 val;
 	int ret;
 
@@ -357,8 +328,8 @@ static int eqos_mdio_write(struct mii_bus *bus, int mdio_addr,
 	val = readl(&eqos->mac_regs->mdio_address);
 	val &= EQOS_MAC_MDIO_ADDRESS_SKAP |
 		EQOS_MAC_MDIO_ADDRESS_C45E;
-	val |= (mdio_addr << EQOS_MAC_MDIO_ADDRESS_PA_SHIFT) |
-		(mdio_reg << EQOS_MAC_MDIO_ADDRESS_RDA_SHIFT) |
+	val |= (mdio_addr << EQOS_MAC_MIIADDRSHIFT) |
+		(mdio_reg << EQOS_MAC_MIIREGSHIFT) |
 		(eqos->config->config_mac_mdio <<
 		 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
 		(EQOS_MAC_MDIO_ADDRESS_GOC_WRITE <<
@@ -386,7 +357,7 @@ static const struct clk_bulk_data tegra186_clks[] = {
 	[CLK_TX]         = { .id = "tx" },
 };
 
-static int eqos_clks_set_rate_tegra186(struct eqos_priv *eqos)
+static int eqos_clks_set_rate_tegra186(struct dw_eth_dev *eqos)
 {
 	int ret;
 
@@ -405,7 +376,7 @@ static const struct clk_bulk_data stm32_clks[] = {
 	[CLK_SYSCFG]    = { .id = "syscfg-clk" },
 };
 
-static int eqos_reset_tegra186(struct eqos_priv *eqos, int reset)
+static int eqos_reset_tegra186(struct dw_eth_dev *eqos, int reset)
 {
 	int ret;
 
@@ -438,7 +409,7 @@ static int eqos_reset_tegra186(struct eqos_priv *eqos, int reset)
 	return 0;
 }
 
-static int eqos_calibrate_pads_tegra186(struct eqos_priv *eqos)
+static int eqos_calibrate_pads_tegra186(struct dw_eth_dev *eqos)
 {
 	u32 active;
 	int ret;
@@ -474,7 +445,7 @@ failed:
 	return ret;
 }
 
-static int eqos_calibrate_link_tegra186(struct eqos_priv *eqos, unsigned speed)
+static int eqos_calibrate_link_tegra186(struct dw_eth_dev *eqos, unsigned speed)
 {
 	int ret = 0;
 	unsigned long rate;
@@ -515,22 +486,22 @@ static int eqos_calibrate_link_tegra186(struct eqos_priv *eqos, unsigned speed)
 	return 0;
 }
 
-static unsigned long eqos_get_tick_clk_rate_tegra186(struct eqos_priv *eqos)
+static unsigned long eqos_get_tick_clk_rate_tegra186(struct dw_eth_dev *eqos)
 {
 	return clk_get_rate(eqos->clks[CLK_SLAVE_BUS].clk);
 }
 
-static unsigned long eqos_get_tick_clk_rate_stm32(struct eqos_priv *eqos)
+static unsigned long eqos_get_tick_clk_rate_stm32(struct dw_eth_dev *eqos)
 {
 	return clk_get_rate(eqos->clks[CLK_STMMACETH].clk);
 }
 
-static void eqos_set_full_duplex(struct eqos_priv *eqos)
+static void eqos_set_full_duplex(struct dw_eth_dev *eqos)
 {
 	setbits_le32(&eqos->mac_regs->configuration, EQOS_MAC_CONFIGURATION_DM);
 }
 
-static void eqos_set_half_duplex(struct eqos_priv *eqos)
+static void eqos_set_half_duplex(struct dw_eth_dev *eqos)
 {
 	clrbits_le32(&eqos->mac_regs->configuration, EQOS_MAC_CONFIGURATION_DM);
 
@@ -539,7 +510,7 @@ static void eqos_set_half_duplex(struct eqos_priv *eqos)
 		     EQOS_MTL_TXQ0_OPERATION_MODE_FTQ);
 }
 
-static int eqos_set_mode_stm32(struct eqos_priv *eqos)
+static int eqos_set_mode_stm32(struct dw_eth_dev *eqos)
 {
 	u32 val, reg = eqos->mode_reg;
 	int ret;
@@ -587,19 +558,19 @@ static int eqos_set_mode_stm32(struct eqos_priv *eqos)
 				  GENMASK(23, 16), val); // BIT(32) for MCU..
 }
 
-static void eqos_set_gmii_speed(struct eqos_priv *eqos)
+static void eqos_set_gmii_speed(struct dw_eth_dev *eqos)
 {
 	clrbits_le32(&eqos->mac_regs->configuration,
 		     EQOS_MAC_CONFIGURATION_PS | EQOS_MAC_CONFIGURATION_FES);
 }
 
-static void eqos_set_mii_speed_100(struct eqos_priv *eqos)
+static void eqos_set_mii_speed_100(struct dw_eth_dev *eqos)
 {
 	setbits_le32(&eqos->mac_regs->configuration,
 		     EQOS_MAC_CONFIGURATION_PS | EQOS_MAC_CONFIGURATION_FES);
 }
 
-static void eqos_set_mii_speed_10(struct eqos_priv *eqos)
+static void eqos_set_mii_speed_10(struct dw_eth_dev *eqos)
 {
 	clrsetbits_le32(&eqos->mac_regs->configuration,
 			EQOS_MAC_CONFIGURATION_FES, EQOS_MAC_CONFIGURATION_PS);
@@ -607,7 +578,7 @@ static void eqos_set_mii_speed_10(struct eqos_priv *eqos)
 
 static void eqos_adjust_link(struct eth_device *edev)
 {
-	struct eqos_priv *eqos = edev->priv;
+	struct dw_eth_dev *eqos = edev->priv;
 	unsigned speed = edev->phydev->speed;
 	int ret;
 
@@ -641,14 +612,14 @@ static void eqos_adjust_link(struct eth_device *edev)
 	}
 }
 
-static int eqos_get_hwaddr(struct eth_device *dev, unsigned char *mac)
+static int eqos_get_ethaddr(struct eth_device *dev, unsigned char *mac)
 {
 	return -1;
 }
 
-static int eqos_set_hwaddr(struct eth_device *edev, const unsigned char *mac)
+static int eqos_set_ethaddr(struct eth_device *edev, const unsigned char *mac)
 {
-	struct eqos_priv *eqos = edev->priv;
+	struct dw_eth_dev *eqos = edev->priv;
 
 	/*
 	 * This function may be called before start() or after stop(). At that
@@ -681,9 +652,9 @@ static int eqos_set_hwaddr(struct eth_device *edev, const unsigned char *mac)
 	return 0;
 }
 
-static int dwmac4_dma_reset(struct eqos_priv *eqos)
+static int dwmac4_dma_reset(struct dw_eth_dev *eqos)
 {
-	void __iomem *dma = eqos->regs + DW_DMA_BASE_OFFSET;
+	void __iomem *dma = eqos->dma_regs;
 	u32 value = readl(dma);
 	u64 start;
 
@@ -704,7 +675,7 @@ static int dwmac4_dma_reset(struct eqos_priv *eqos)
 
 static int eqos_start(struct eth_device *edev)
 {
-	struct eqos_priv *eqos = edev->priv;
+	struct dw_eth_dev *eqos = edev->priv;
 	int ret;
 	unsigned long rate;
 	u32 mode_set;
@@ -974,7 +945,7 @@ err:
 
 static void eqos_stop(struct eth_device *dev)
 {
-	struct eqos_priv *eqos = dev->priv;
+	struct dw_eth_dev *eqos = dev->priv;
 	int i;
 
 	if (!eqos->started)
@@ -1022,7 +993,7 @@ static void eqos_stop(struct eth_device *dev)
 
 static int eqos_send(struct eth_device *dev, void *packet, int length)
 {
-	struct eqos_priv *eqos = dev->priv;
+	struct dw_eth_dev *eqos = dev->priv;
 	struct eqos_desc *tx_desc;
 	dma_addr_t dma;
 	u32 des3;
@@ -1062,7 +1033,7 @@ static int eqos_send(struct eth_device *dev, void *packet, int length)
 
 static int eqos_recv(struct eth_device *edev)
 {
-	struct eqos_priv *eqos = edev->priv;
+	struct dw_eth_dev *eqos = edev->priv;
 	struct eqos_desc *rx_desc;
 	void *frame;
 	int length;
@@ -1098,7 +1069,7 @@ static int eqos_recv(struct eth_device *edev)
 	return 0;
 }
 
-static int eqos_init_resources(struct eqos_priv *eqos)
+static int eqos_init_resources(struct dw_eth_dev *eqos)
 {
 	int ret = -ENOMEM;
 	int i;
@@ -1144,7 +1115,7 @@ err:
 
 static void eqos_remove_resources(struct device_d *dev)
 {
-	struct eqos_priv *eqos = dev->priv;
+	struct dw_eth_dev *eqos = dev->priv;
 
 	if (eqos->config->ops->remove_resources)
 		eqos->config->ops->remove_resources(dev);
@@ -1157,7 +1128,7 @@ static void eqos_remove_resources(struct device_d *dev)
 
 static int eqos_probe_resources_tegra186(struct device_d *dev)
 {
-	struct eqos_priv *eqos = dev->priv;
+	struct dw_eth_dev *eqos = dev->priv;
 	int phy_reset;
 	int ret;
 
@@ -1194,7 +1165,7 @@ release_res:
 
 static int eqos_probe_resources_stm32(struct device_d *dev)
 {
-	struct eqos_priv *eqos = dev->priv;
+	struct dw_eth_dev *eqos = dev->priv;
 	struct device_node *np = dev->device_node;
 	struct clk_bulk_data *eth_ck;
 	int ret;
@@ -1247,43 +1218,32 @@ static int eqos_probe_resources_stm32(struct device_d *dev)
 
 static void eqos_remove_resources_tegra186(struct device_d *dev)
 {
-	struct eqos_priv *eqos = dev->priv;
+	struct dw_eth_dev *eqos = dev->priv;
 
 	gpio_free(eqos->phy_reset_gpio);
 	reset_control_put(eqos->reset_ctl);
 }
 
-static int eqos_probe(struct device_d *dev)
+static int eqos_init(struct dw_eth_dev *eqos)
 {
-	struct eqos_priv *eqos = dev->priv;
+	struct eth_device *edev = &eqos->netdev;
+	struct device_d *dev = &edev->dev;
+	struct mii_bus *miibus = &eqos->miibus;
 	struct device_node *mdiobus;
-	struct eth_device *edev;
-	struct resource *iores;
 	int ret;
-
-	eqos = xzalloc(sizeof(*eqos));
-
-	eqos->dev = dev;
-	dev->priv = eqos;
-	ret = dev_get_drvdata(dev, (const void **)&eqos->config);
-	if (ret)
-		return ret;
-
-	iores = dev_request_mem_resource(dev, 0);
-	if (IS_ERR(iores))
-		return PTR_ERR(iores);
-	eqos->regs = IOMEM(iores->start);
-
-	eqos->mac_regs = IOMEM(eqos->regs);
-	eqos->mtl_regs = IOMEM(eqos->regs + EQOS_MTL_REGS_BASE);
-	eqos->dma_regs = IOMEM(eqos->regs + DW_DMA_BASE_OFFSET);
-	eqos->tegra186_regs = IOMEM(eqos->regs + EQOS_TEGRA186_REGS_BASE);
 
 	ret = of_get_phy_mode(dev->device_node);
 	if (ret < 0)
 		eqos->phy_interface = PHY_INTERFACE_MODE_MII;
 	else
 		eqos->phy_interface = ret;
+
+	ret = dev_get_drvdata(dev, (const void **)&eqos->config);
+	if (ret)
+		return ret;
+
+	eqos->mtl_regs = IOMEM(eqos->regs + EQOS_MTL_REGS_BASE);
+	eqos->tegra186_regs = IOMEM(eqos->regs + EQOS_TEGRA186_REGS_BASE);
 
 	ret = eqos_init_resources(eqos);
 	if (ret < 0) {
@@ -1297,26 +1257,15 @@ static int eqos_probe(struct device_d *dev)
 		return ret;
 	}
 
-	edev = &eqos->netdev;
-	edev->priv = eqos;
-
-	edev->parent = dev;
-	edev->open = eqos_start;
-	edev->send = eqos_send;
-	edev->recv = eqos_recv;
-	edev->halt = eqos_stop;
-	edev->get_ethaddr = eqos_get_hwaddr;
-	edev->set_ethaddr = eqos_set_hwaddr;
-
 	eqos->phy_addr = -1;
 	mdiobus = of_get_child_by_name(dev->device_node, "mdio");
 	if (mdiobus)
 		eqos->miibus.dev.device_node = mdiobus;
 
-	eqos->miibus.parent = dev;
-	eqos->miibus.read = eqos_mdio_read;
-	eqos->miibus.write = eqos_mdio_write;
-	eqos->miibus.priv = eqos;
+	miibus->parent = dev;
+	miibus->read = eqos_mdio_read;
+	miibus->write = eqos_mdio_write;
+	miibus->priv = eqos;
 
 	mdiobus_register(&eqos->miibus);
 	if (ret < 0) {
@@ -1324,7 +1273,7 @@ static int eqos_probe(struct device_d *dev)
 		goto err_remove_resources;
 	}
 
-	return eth_register(edev);
+	return 0;
 
 err_remove_resources:
 	eqos_remove_resources(dev);
@@ -1332,11 +1281,33 @@ err_remove_resources:
 	return ret;
 }
 
+static struct dw_eth_ops dwmac4_ops = {
+	.get_ethaddr = eqos_get_ethaddr,
+	.set_ethaddr = eqos_set_ethaddr,
+	.start = eqos_start,
+	.halt = eqos_stop,
+	.send = eqos_send,
+	.rx = eqos_recv,
+	.init = eqos_init,
+
+	.enh_desc = 1, /* FIXME */
+	.clk_csr_shift = 8,
+};
+
+static int eqos_probe(struct device_d *dev)
+{
+	struct dw_eth_dev *dwc = dwmac_drv_probe(dev, &dwmac4_ops);
+
+	return PTR_ERR_OR_ZERO(dwc);
+}
+
 static void eqos_remove(struct device_d *dev)
 {
-	struct eqos_priv *eqos = dev->priv;
+	struct dw_eth_dev *eqos = dev->priv;
 	mdiobus_unregister(&eqos->miibus);
 	eqos_remove_resources(dev);
+
+	dwmac_drv_remove(dev);
 }
 
 static struct eqos_ops eqos_tegra186_ops = {
@@ -1368,15 +1339,9 @@ static const struct eqos_config eqos_stm32_config = {
 };
 
 static const struct of_device_id eqos_ids[] = {
-	{
-		.compatible = "nvidia,tegra186-eqos",
-		.data = &eqos_tegra186_config
-	},
-	{
-		.compatible = "st,stm32mp1-dwmac",
-		.data = &eqos_stm32_config
-	},
-	{ }
+	{ .compatible = "nvidia,tegra186-eqos", .data = &eqos_tegra186_config },
+	{ .compatible = "st,stm32mp1-dwmac", .data = &eqos_stm32_config },
+	{ /* sentinel */ }
 };
 
 static struct driver_d stm32_dwc_ether_driver = {
