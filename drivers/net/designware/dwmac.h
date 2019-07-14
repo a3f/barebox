@@ -19,6 +19,7 @@ struct dw_eth_ops {
 	int (*init)(struct dw_eth_dev *priv);
 	int (*reset)(struct dw_eth_dev *, int reset);
 	int (*clks_set_rate)(struct dw_eth_dev *);
+	unsigned long (*get_tick_clk_rate)(struct dw_eth_dev *);
 
 	bool enh_desc;
 	u32 clk_csr_shift;

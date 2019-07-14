@@ -201,23 +201,6 @@ struct eqos_desc {
 #define EQOS_DESC3_LD		BIT(28)
 #define EQOS_DESC3_BUF1V	BIT(24)
 
-struct eqos_config {
-	int mdio_wait;
-	int config_mac;
-	int config_mac_mdio;
-	struct eqos_ops *ops;
-};
-
-struct dw_eth_dev;
-struct eqos_ops {
-	int (*probe_resources)(struct device_d *);
-	void (*remove_resources)(struct device_d *);
-	int (*reset)(struct dw_eth_dev *, int reset);
-	int (*clks_set_rate)(struct dw_eth_dev *);
-	int (*calibrate_link)(struct dw_eth_dev *, unsigned speed);
-	unsigned long (*get_tick_clk_rate)(struct dw_eth_dev *);
-};
-
 static int eqos_mdio_wait_idle(struct dw_eth_dev *eqos)
 {
 	u32 idle;
@@ -339,7 +322,6 @@ void eqos_adjust_link(struct eth_device *edev)
 {
 	struct dw_eth_dev *eqos = edev->priv;
 	unsigned speed = edev->phydev->speed;
-	int ret;
 
 	if (edev->phydev->duplex)
 		eqos_set_full_duplex(eqos);
@@ -359,15 +341,6 @@ void eqos_adjust_link(struct eth_device *edev)
 	default:
 		pr_err("invalid speed %d\n", speed);
 		return;
-	}
-
-	if (eqos->config->ops->calibrate_link) {
-		ret = eqos->config->ops->calibrate_link(eqos, speed);
-		if (ret < 0) {
-			pr_err("eqos_calibrate_link() failed: %d\n",
-			       ret);
-			return;
-		}
 	}
 }
 
@@ -457,7 +430,7 @@ int eqos_start(struct eth_device *edev)
 		goto err_stop_resets;
 	}
 
-	rate = eqos->config->ops->get_tick_clk_rate(eqos);
+	rate = eqos->ops->get_tick_clk_rate(eqos);
 
 	val = (rate / 1000000) - 1;
 	writel(val, &eqos->mac_regs->us_tic_counter);
@@ -662,8 +635,8 @@ int eqos_start(struct eth_device *edev)
 	return 0;
 
 err_stop_resets:
-	if (eqos->config->ops->reset)
-		eqos->config->ops->reset(eqos, 1);
+	if (eqos->ops->reset)
+		eqos->ops->reset(eqos, 1);
 	pr_err("%s: failed with %s\n", __func__, strerror(-ret));
 	return ret;
 }
@@ -713,8 +686,8 @@ void eqos_stop(struct eth_device *edev)
 	clrbits_le32(&eqos->dma_regs->ch0_rx_control,
 		     EQOS_DMA_CH0_RX_CONTROL_SR);
 
-	if (eqos->config->ops->reset)
-		eqos->config->ops->reset(eqos, 1);
+	if (eqos->ops->reset)
+		eqos->ops->reset(eqos, 1);
 
 	clk_bulk_disable(eqos->num_clks, eqos->clks);
 }
@@ -847,9 +820,6 @@ void eqos_remove_resources(struct device_d *dev)
 {
 	struct dw_eth_dev *eqos = dev->priv;
 
-	if (eqos->config->ops->remove_resources)
-		eqos->config->ops->remove_resources(dev);
-
 	dma_free(phys_to_virt(eqos->rx_descs[0].des0));
 	dma_free_coherent(eqos->descs, 0, EQOS_DESCRIPTORS_SIZE);
 
@@ -867,7 +837,7 @@ int eqos_init(struct dw_eth_dev *eqos)
 	if (mac_reset(eqos) < 0)
 		return -1;
 
-	ret = dev_get_drvdata(dev, (const void **)&eqos->config);
+	ret = dev_get_drvdata(dev, (const void **)&eqos->config); // TODO remove
 	if (ret)
 		return ret;
 
@@ -876,12 +846,6 @@ int eqos_init(struct dw_eth_dev *eqos)
 	ret = eqos_init_resources(eqos);
 	if (ret < 0) {
 		pr_err("eqos_init_resources() failed: %s\n", strerror(-ret));
-		return ret;
-	}
-
-	ret = eqos->config->ops->probe_resources(dev);
-	if (ret < 0) {
-		pr_err("probe_resources() failed: %s\n", strerror(-ret));
 		return ret;
 	}
 
