@@ -31,68 +31,6 @@
 #define HALF_DUPLEX		1
 #define FULL_DUPLEX		2
 
-static int dwc_ether_mii_wait_idle(struct dw_eth_dev *priv)
-{
-	u32 idle;
-	return readl_poll_timeout(&priv->mac_regs_p->miiaddr, idle,
-				  !(idle & MII_BUSY),
-				  10000);
-}
-
-static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
-{
-	struct dw_eth_dev *priv = dev->priv;
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
-	u32 miiaddr;
-
-	miiaddr = ((addr << MIIADDRSHIFT) & MII_ADDRMSK) |
-		  ((reg << MIIREGSHIFT) & MII_REGMSK);
-
-	if (dwc_ether_mii_wait_idle(priv) == -ETIMEDOUT) {
-		dev_err(&priv->netdev.dev, "MDIO timeout\n");
-		return -EIO;
-	}
-
-	writel(miiaddr | MII_CLKRANGE_150_250M | MII_BUSY, &mac_p->miiaddr);
-
-	udelay(priv->ops->mdio_wait);
-
-	if (dwc_ether_mii_wait_idle(priv) == -ETIMEDOUT) {
-		dev_err(&priv->netdev.dev, "MDIO timeout\n");
-		return -EIO;
-	}
-
-	return readl(&mac_p->miidata) & 0xffff;
-}
-
-static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
-{
-	struct dw_eth_dev *priv = dev->priv;
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
-	u32 miiaddr;
-
-	miiaddr = ((addr << MIIADDRSHIFT) & MII_ADDRMSK) |
-		  ((reg << MIIREGSHIFT) & MII_REGMSK) | MII_WRITE;
-
-	if (dwc_ether_mii_wait_idle(priv) == -ETIMEDOUT) {
-		dev_err(&priv->netdev.dev, "MDIO timeout\n");
-		return -EIO;
-	}
-
-	writel(val, &mac_p->miidata);
-	writel(miiaddr | MII_CLKRANGE_150_250M | MII_BUSY, &mac_p->miiaddr);
-
-	if (dwc_ether_mii_wait_idle(priv) == -ETIMEDOUT) {
-		dev_err(&priv->netdev.dev, "MDIO timeout\n");
-		return -EIO;
-	}
-
-	/* Needed as a fix for ST-Phy */
-	dwc_ether_mii_read(dev, addr, reg);
-	return 0;
-}
-
-
 static int mac_reset(struct dw_eth_dev *priv)
 {
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
@@ -244,7 +182,6 @@ static int dwc_ether_open(struct eth_device *dev)
 	struct dw_eth_dev *priv = dev->priv;
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
-	int ret;
 
 	dwc_ether_init(dev);
 
@@ -410,8 +347,6 @@ static void dwc_version(struct device_d *dev, u32 hwid)
 static int dwc_drv_init(struct dw_eth_dev *priv)
 {
 	struct eth_device *edev = &priv->netdev;
-	struct mii_bus *miibus = &priv->miibus;
-	struct device_node *mdiobus;
 
 	dwc_version(edev->parent, readl(&priv->mac_regs_p->version));
 
@@ -424,18 +359,6 @@ static int dwc_drv_init(struct dw_eth_dev *priv)
 	priv->txbuffs = dma_alloc(TX_TOTAL_BUFSIZE);
 	priv->rxbuffs = dma_alloc(RX_TOTAL_BUFSIZE);
 
-	priv->phy_addr = -1;
-	mdiobus = of_get_child_by_name(dev->device_node, "mdio");
-	if (mdiobus)
-		miibus->dev.device_node = mdiobus;
-
-	miibus->parent = edev->parent;
-	miibus->read = dwc_ether_mii_read;
-	miibus->write = dwc_ether_mii_write;
-	miibus->priv = priv;
-
-	mdiobus_register(miibus);
-
 	return 0;
 }
 
@@ -446,6 +369,17 @@ void dwc_drv_remove(struct device_d *dev) // FIXME make private
 	dwc_ether_halt(edev);
 	dwmac_drv_remove(dev);
 }
+
+struct mii_regs dwmac1000_mii_regs = {
+	.addr = offsetof(struct eth_mac_regs, miiaddr),
+	.data = offsetof(struct eth_mac_regs, miidata),
+	.addr_shift = MIIADDRSHIFT,
+	.addr_mask = MII_ADDRMSK,
+	.reg_shift = MIIREGSHIFT,
+	.reg_mask = MII_REGMSK,
+	.clk_csr_shift = 2,
+	.clk_csr_mask = GENMASK(5, 2),
+};
 
 static struct dw_eth_ops dwmac1000_ops = {
 	.get_ethaddr = dwc_ether_get_ethaddr,
@@ -458,7 +392,8 @@ static struct dw_eth_ops dwmac1000_ops = {
 	.adjust_link = dwc_update_linkspeed,
 
 	.enh_desc = 1,
-	.clk_csr_shift = 0, /* FIXME defines, two in kernel */
+	.clk_csr = MII_CLKRANGE_150_250M,
+	.mii = &dwmac1000_mii_regs,
 };
 
 struct dw_eth_dev *dwc_drv_probe(struct device_d *dev)

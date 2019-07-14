@@ -317,11 +317,10 @@ static struct dw_eth_ops dwmac4_ops = {
 	.clks_set_rate = eqos_clks_set_rate_tegra186,
 	.get_tick_clk_rate = eqos_get_tick_clk_rate_tegra186,
 
-	.enh_desc = 1, /* FIXME */
 	.has_gmac4 = 1, /* FIXME */
-	.clk_csr_shift = 8,
 	.mdio_wait = 10,
-	.config_mac_mdio = EQOS_MAC_MDIO_ADDRESS_CR_20_35,
+	.mii = &dwmac4_mii_regs,
+	.clk_csr = EQOS_MAC_MDIO_ADDRESS_CR_20_35,
 };
 
 static int eqos_probe_tegra186(struct device_d *dev)

@@ -182,11 +182,10 @@ static struct dw_eth_ops dwmac4_ops = {
 	.adjust_link = eqos_adjust_link,
 	.get_tick_clk_rate = eqos_get_tick_clk_rate_stm32,
 
-	.mdio_wait = 10000,
-	.enh_desc = 1, /* FIXME */
 	.has_gmac4 = 1, /* FIXME */
-	.clk_csr_shift = 8,
-	.config_mac_mdio = EQOS_MAC_MDIO_ADDRESS_CR_250_300,
+	.mdio_wait = 10000,
+	.mii = &dwmac4_mii_regs,
+	.clk_csr = EQOS_MAC_MDIO_ADDRESS_CR_250_300,
 };
 
 static int eqos_probe_stm32(struct device_d *dev)
