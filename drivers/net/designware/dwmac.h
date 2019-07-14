@@ -37,8 +37,8 @@ struct eqos_tegra186_regs;
 struct reset_control;
 struct regmap;
 struct eqos_desc;
-struct eqos_desc;
 struct clk_bulk_data;
+struct dmamacdescr;
 
 struct dw_eth_dev {
 	struct eth_device netdev;
@@ -49,8 +49,15 @@ struct dw_eth_dev {
 	u32 tx_currdescnum;
 	u32 rx_currdescnum;
 
-	struct dmamacdescr *tx_mac_descrtable;
-	struct dmamacdescr *rx_mac_descrtable;
+	union {
+		struct dmamacdescr *tx_mac_descrtable;
+		struct eqos_desc *tx_descs;
+	};
+
+	union {
+		struct dmamacdescr *rx_mac_descrtable;
+		struct eqos_desc *rx_descs;
+	};
 
 	u8 *txbuffs;
 	u8 *rxbuffs;
@@ -73,15 +80,11 @@ struct dw_eth_dev {
 
 	const struct eqos_config *config;
 	struct eqos_tegra186_regs *tegra186_regs;
-	struct reset_control *reset_ctl;
 	struct regmap *regmap;
 	u32 mode_reg;
 	int phy_reset_gpio;
 	unsigned phy_interface;
 	void *descs;
-	struct eqos_desc *tx_descs;
-	struct eqos_desc *rx_descs;
-	int tx_desc_idx, rx_desc_idx;
 	bool started;
 	struct clk_bulk_data *clks;
 	int num_clks;

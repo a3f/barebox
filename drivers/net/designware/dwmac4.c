@@ -416,7 +416,7 @@ int eqos_start(struct eth_device *edev)
 	int i;
 	unsigned long last_rx_desc;
 
-	eqos->tx_desc_idx = eqos->rx_desc_idx = 0;
+	eqos->tx_currdescnum = eqos->rx_currdescnum = 0;
 
 	ret = eqos_ether_init(edev);
 	if (ret)
@@ -701,9 +701,9 @@ int eqos_send(struct eth_device *edev, void *packet, int length)
 	u32 des3;
 	int ret;
 
-	tx_desc = &eqos->tx_descs[eqos->tx_desc_idx];
-	eqos->tx_desc_idx++;
-	eqos->tx_desc_idx %= EQOS_DESCRIPTORS_TX;
+	tx_desc = &eqos->tx_descs[eqos->tx_currdescnum];
+	eqos->tx_currdescnum++;
+	eqos->tx_currdescnum %= EQOS_DESCRIPTORS_TX;
 
 	dma = dma_map_single(dev, packet, length, DMA_TO_DEVICE);
 	if (dma_mapping_error(dev, dma))
@@ -740,7 +740,7 @@ int eqos_recv(struct eth_device *edev)
 	void *frame;
 	int length;
 
-	rx_desc = &eqos->rx_descs[eqos->rx_desc_idx];
+	rx_desc = &eqos->rx_descs[eqos->rx_currdescnum];
 	if (readl(&rx_desc->des3) & EQOS_DESC3_OWN)
 		return 0;
 
@@ -765,8 +765,8 @@ int eqos_recv(struct eth_device *edev)
 
 	writel((ulong)rx_desc, &eqos->dma_regs->ch0_rxdesc_tail_pointer);
 
-	eqos->rx_desc_idx++;
-	eqos->rx_desc_idx %= EQOS_DESCRIPTORS_RX;
+	eqos->rx_currdescnum++;
+	eqos->rx_currdescnum %= EQOS_DESCRIPTORS_RX;
 
 	return 0;
 }
@@ -775,15 +775,16 @@ static int eqos_init_resources(struct dw_eth_dev *eqos)
 {
 	int ret = -ENOMEM;
 	struct device_d *dev = eqos->netdev.parent;
+	void *descs;
 	int i;
 	void *p;
 
-	eqos->descs = dma_alloc_coherent(EQOS_DESCRIPTORS_SIZE, DMA_ADDRESS_BROKEN);
-	if (!eqos->descs) {
+	descs = dma_alloc_coherent(EQOS_DESCRIPTORS_SIZE, DMA_ADDRESS_BROKEN);
+	if (!descs) {
 		pr_debug("%s: eqos_alloc_descs() failed\n", __func__);
 		goto err;
 	}
-	eqos->tx_descs = (struct eqos_desc *)eqos->descs;
+	eqos->tx_descs = (struct eqos_desc *)descs;
 	eqos->rx_descs = (eqos->tx_descs + EQOS_DESCRIPTORS_TX);
 
 	p = dma_alloc(EQOS_DESCRIPTORS_RX * EQOS_MAX_PACKET_SIZE);
@@ -810,7 +811,7 @@ static int eqos_init_resources(struct dw_eth_dev *eqos)
 err_free_rx_bufs:
 	dma_free(phys_to_virt(eqos->rx_descs[0].des0));
 err_free_desc:
-	dma_free_coherent(eqos->descs, 0, EQOS_DESCRIPTORS_SIZE);
+	dma_free_coherent(descs, 0, EQOS_DESCRIPTORS_SIZE);
 err:
 
 	return ret;
@@ -821,7 +822,7 @@ void eqos_remove_resources(struct device_d *dev)
 	struct dw_eth_dev *eqos = dev->priv;
 
 	dma_free(phys_to_virt(eqos->rx_descs[0].des0));
-	dma_free_coherent(eqos->descs, 0, EQOS_DESCRIPTORS_SIZE);
+	dma_free_coherent(eqos->tx_descs, 0, EQOS_DESCRIPTORS_SIZE);
 
 	clk_bulk_put(eqos->num_clks, eqos->clks);
 }
