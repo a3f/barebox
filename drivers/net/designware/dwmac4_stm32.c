@@ -182,8 +182,11 @@ static struct dw_eth_ops dwmac4_ops = {
 	.adjust_link = eqos_adjust_link,
 	.get_tick_clk_rate = eqos_get_tick_clk_rate_stm32,
 
+	.mdio_wait = 10000,
 	.enh_desc = 1, /* FIXME */
+	.has_gmac4 = 1, /* FIXME */
 	.clk_csr_shift = 8,
+	.config_mac_mdio = EQOS_MAC_MDIO_ADDRESS_CR_250_300,
 };
 
 static int eqos_probe_stm32(struct device_d *dev)
@@ -203,9 +206,7 @@ static void eqos_remove_stm32(struct device_d *dev)
 }
 
 static const struct eqos_config eqos_stm32_config = {
-	.mdio_wait = 10000,
 	.config_mac = EQOS_MAC_RXQ_CTRL0_RXQ0EN_ENABLED_AV,
-	.config_mac_mdio = EQOS_MAC_MDIO_ADDRESS_CR_250_300,
 };
 
 static const struct of_device_id eqos_ids[] = {
