@@ -42,7 +42,6 @@ static int phy_resume(struct phy_device *phydev)
 static int dwmac_start(struct eth_device *edev)
 {
 	struct dw_eth_dev *priv = edev->priv;
-#if 0
 	int ret;
 
 	ret = phy_device_connect(edev, &priv->miibus, priv->phy_addr,

@@ -237,23 +237,6 @@ static void dwc_update_linkspeed(struct eth_device *edev)
 	writel(conf, &mac_p->conf);
 }
 
-/* Get PHY out of power saving mode.  If this is needed elsewhere then
- * consider making it part of phy-core and adding a resume method to
- * the phy device ops.  */
-static int phy_resume(struct phy_device *phydev)
-{
-	int bmcr;
-
-	bmcr = phy_read(phydev, MII_BMCR);
-	if (bmcr < 0)
-		return bmcr;
-	if (bmcr & BMCR_PDOWN) {
-		bmcr &= ~BMCR_PDOWN;
-		return phy_write(phydev, MII_BMCR, bmcr);
-	}
-	return 0;
-}
-
 static int dwc_ether_open(struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
@@ -263,13 +246,6 @@ static int dwc_ether_open(struct eth_device *dev)
 
 	ret = phy_device_connect(dev, &priv->miibus, priv->phy_addr,
 				 priv->ops->adjust_link, 0, priv->interface);
-	if (ret)
-		return ret;
-
-	/* Before we reset the mac, we must insure the PHY is not powered down
-	 * as the dw controller needs all clock domains to be running, including
-	 * the PHY clock, to come out of a mac reset.  */
-	ret = phy_resume(dev->phydev);
 	if (ret)
 		return ret;
 
