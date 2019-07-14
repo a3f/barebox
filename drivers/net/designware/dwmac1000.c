@@ -244,11 +244,6 @@ static int dwc_ether_open(struct eth_device *dev)
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 	int ret;
 
-	ret = phy_device_connect(dev, &priv->miibus, priv->phy_addr,
-				 priv->ops->adjust_link, 0, priv->interface);
-	if (ret)
-		return ret;
-
 	dwc_ether_init(dev);
 
 	descs_init(dev);
@@ -372,7 +367,7 @@ static int dwc_ether_rx(struct eth_device *dev)
 	return ret;
 }
 
-static void dwc_ether_halt (struct eth_device *dev)
+static void dwc_ether_halt(struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
 
