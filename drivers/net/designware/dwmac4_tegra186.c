@@ -22,21 +22,6 @@
 #include "dwmac.h"
 #include "dwmac4.h"
 
-#define EQOS_MAC_RXQ_CTRL0_RXQ0EN_SHIFT			0
-#define EQOS_MAC_RXQ_CTRL0_RXQ0EN_MASK			3
-#define EQOS_MAC_RXQ_CTRL0_RXQ0EN_NOT_ENABLED		0
-#define EQOS_MAC_RXQ_CTRL0_RXQ0EN_ENABLED_DCB		2
-#define EQOS_MAC_RXQ_CTRL0_RXQ0EN_ENABLED_AV		1
-
-#define EQOS_MAC_MDIO_ADDRESS_CR_SHIFT			8
-#define EQOS_MAC_MDIO_ADDRESS_CR_20_35			2
-#define EQOS_MAC_MDIO_ADDRESS_CR_250_300		5
-#define EQOS_MAC_MDIO_ADDRESS_SKAP			BIT(4)
-#define EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT			2
-#define EQOS_MAC_MDIO_ADDRESS_GOC_READ			3
-#define EQOS_MAC_MDIO_ADDRESS_GOC_WRITE			1
-#define EQOS_MAC_MDIO_ADDRESS_C45E			BIT(1)
-
 struct eqos_dma_regs {
 	uint32_t mode;					/* 0x1000 */
 	uint32_t sysbus_mode;				/* 0x1004 */
@@ -56,28 +41,6 @@ struct eqos_dma_regs {
 	uint32_t ch0_rxdesc_ring_length;		/* 0x1130 */
 };
 
-#define EQOS_DMA_MODE_SWR				BIT(0)
-
-#define EQOS_DMA_SYSBUS_MODE_RD_OSR_LMT_SHIFT		16
-#define EQOS_DMA_SYSBUS_MODE_RD_OSR_LMT_MASK		0xf
-#define EQOS_DMA_SYSBUS_MODE_EAME			BIT(11)
-#define EQOS_DMA_SYSBUS_MODE_BLEN16			BIT(3)
-#define EQOS_DMA_SYSBUS_MODE_BLEN8			BIT(2)
-#define EQOS_DMA_SYSBUS_MODE_BLEN4			BIT(1)
-
-#define EQOS_DMA_CH0_CONTROL_PBLX8			BIT(16)
-
-#define EQOS_DMA_CH0_TX_CONTROL_TXPBL_SHIFT		16
-#define EQOS_DMA_CH0_TX_CONTROL_TXPBL_MASK		0x3f
-#define EQOS_DMA_CH0_TX_CONTROL_OSP			BIT(4)
-#define EQOS_DMA_CH0_TX_CONTROL_ST			BIT(0)
-
-#define EQOS_DMA_CH0_RX_CONTROL_RXPBL_SHIFT		16
-#define EQOS_DMA_CH0_RX_CONTROL_RXPBL_MASK		0x3f
-#define EQOS_DMA_CH0_RX_CONTROL_RBSZ_SHIFT		1
-#define EQOS_DMA_CH0_RX_CONTROL_RBSZ_MASK		0x3fff
-#define EQOS_DMA_CH0_RX_CONTROL_SR			BIT(0)
-
 /* These registers are Tegra186-specific */
 #define EQOS_TEGRA186_REGS_BASE 0x8800
 struct eqos_tegra186_regs {
@@ -93,8 +56,6 @@ struct eqos_tegra186_regs {
 #define EQOS_AUTO_CAL_CONFIG_ENABLE			BIT(29)
 
 #define EQOS_AUTO_CAL_STATUS_ACTIVE			BIT(31)
-
-/* Descriptors */
 
 struct eqos_config {
 	int mdio_wait;
