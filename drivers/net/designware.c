@@ -91,9 +91,8 @@ static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 }
 
 
-static int mac_reset(struct eth_device *dev)
+static int mac_reset(struct dw_eth_dev *priv)
 {
-	struct dw_eth_dev *priv = dev->priv;
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 	u64 start;
@@ -187,37 +186,16 @@ static void descs_init(struct eth_device *dev)
 	rx_descs_init(dev);
 }
 
-/* Get PHY out of power saving mode.  If this is needed elsewhere then
- * consider making it part of phy-core and adding a resume method to
- * the phy device ops.  */
-static int phy_resume(struct phy_device *phydev)
-{
-	int bmcr;
-
-	bmcr = phy_read(phydev, MII_BMCR);
-	if (bmcr < 0)
-		return bmcr;
-	if (bmcr & BMCR_PDOWN) {
-		bmcr &= ~BMCR_PDOWN;
-		return phy_write(phydev, MII_BMCR, bmcr);
-	}
-	return 0;
-}
-
 static int dwc_ether_init(struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 
-	/* Before we reset the mac, we must insure the PHY is not powered down
-	 * as the dw controller needs all clock domains to be running, including
-	 * the PHY clock, to come out of a mac reset.  */
-	phy_resume(dev->phydev);
-
-	if (mac_reset(dev) < 0)
+	if (mac_reset(priv) < 0)
 		return -1;
 
+	// TODO do the same for eqos
 	/* HW MAC address is lost during MAC reset */
 	dev->set_ethaddr(dev, priv->macaddr);
 
@@ -259,6 +237,23 @@ static void dwc_update_linkspeed(struct eth_device *edev)
 	writel(conf, &mac_p->conf);
 }
 
+/* Get PHY out of power saving mode.  If this is needed elsewhere then
+ * consider making it part of phy-core and adding a resume method to
+ * the phy device ops.  */
+static int phy_resume(struct phy_device *phydev)
+{
+	int bmcr;
+
+	bmcr = phy_read(phydev, MII_BMCR);
+	if (bmcr < 0)
+		return bmcr;
+	if (bmcr & BMCR_PDOWN) {
+		bmcr &= ~BMCR_PDOWN;
+		return phy_write(phydev, MII_BMCR, bmcr);
+	}
+	return 0;
+}
+
 static int dwc_ether_open(struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
@@ -267,7 +262,14 @@ static int dwc_ether_open(struct eth_device *dev)
 	int ret;
 
 	ret = phy_device_connect(dev, &priv->miibus, priv->phy_addr,
-				 dwc_update_linkspeed, 0, priv->interface);
+				 priv->ops->adjust_link, 0, priv->interface);
+	if (ret)
+		return ret;
+
+	/* Before we reset the mac, we must insure the PHY is not powered down
+	 * as the dw controller needs all clock domains to be running, including
+	 * the PHY clock, to come out of a mac reset.  */
+	ret = phy_resume(dev->phydev);
 	if (ret)
 		return ret;
 
@@ -398,7 +400,7 @@ static void dwc_ether_halt (struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
 
-	mac_reset(dev);
+	mac_reset(priv);
 	priv->tx_currdescnum = priv->rx_currdescnum = 0;
 }
 
@@ -432,46 +434,12 @@ static void dwc_version(struct device_d *dev, u32 hwid)
 		uid, synid);
 }
 
-static int dwc_probe_dt(struct device_d *dev, struct dw_eth_dev *priv)
-{
-	struct device_node *child;
-
-	if (!IS_ENABLED(CONFIG_OFTREE))
-		return -ENODEV;
-
-	priv->phy_addr = -1;
-	priv->interface = of_get_phy_mode(dev->device_node);
-
-	/* Set MDIO bus device node, if present. */
-	for_each_child_of_node(dev->device_node, child) {
-		if (of_device_is_compatible(child, "snps,dwmac-mdio")) {
-			priv->miibus.dev.device_node = child;
-			break;
-		}
-	}
-
-	return 0;
-}
-
 static int dwc_drv_init(struct dw_eth_dev *priv)
 {
 	struct eth_device *edev = &priv->netdev;
-	struct device_d *dev = &edev->dev;
 	struct mii_bus *miibus = &priv->miibus;
-	struct dwc_ether_platform_data *pdata = dev->platform_data;
-	int ret;
 
-	if (pdata) {
-		priv->phy_addr = pdata->phy_addr;
-		priv->interface = pdata->interface;
-		priv->fix_mac_speed = pdata->fix_mac_speed;
-	} else {
-		ret = dwc_probe_dt(dev, priv);
-		if (ret)
-			return ret;
-	}
-
-	dwc_version(dev, readl(&priv->mac_regs_p->version));
+	dwc_version(edev->parent, readl(&priv->mac_regs_p->version));
 
 	priv->tx_mac_descrtable = dma_alloc_coherent(
 		CONFIG_TX_DESCR_NUM * sizeof(struct dmamacdescr),
@@ -482,7 +450,7 @@ static int dwc_drv_init(struct dw_eth_dev *priv)
 	priv->txbuffs = dma_alloc(TX_TOTAL_BUFSIZE);
 	priv->rxbuffs = dma_alloc(RX_TOTAL_BUFSIZE);
 
-	miibus->parent = dev;
+	miibus->parent = edev->parent;
 	miibus->read = dwc_ether_mii_read;
 	miibus->write = dwc_ether_mii_write;
 	miibus->priv = priv;
@@ -497,7 +465,6 @@ void dwc_drv_remove(struct device_d *dev) // FIXME make private
 	struct eth_device *edev = dev->priv;
 
 	dwc_ether_halt(edev);
-
 	dwmac_drv_remove(dev);
 }
 
@@ -509,6 +476,7 @@ static struct dw_eth_ops dwmac1000_ops = {
 	.send = dwc_ether_send,
 	.rx = dwc_ether_rx,
 	.init = dwc_drv_init,
+	.adjust_link = dwc_update_linkspeed,
 
 	.enh_desc = 1,
 	.clk_csr_shift = 0, /* FIXME defines, two in kernel */
