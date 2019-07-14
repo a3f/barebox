@@ -88,6 +88,7 @@ struct dw_eth_dev {
 	int eth_ref_clk_sel_reg;
 
 	struct dw_eth_ops *ops;
+	bool defer_reg_access;
 };
 
 

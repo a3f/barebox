@@ -89,10 +89,17 @@ config DRIVER_NET_DESIGNWARE_SOCFPGA
 	  Designware Core Univesal MAC 10M/100M/1G ethernet IP on SoCFPGA.
 
 config DRIVER_NET_DESIGNWARE_QOS
-	bool "Synopsys Designware Ethernet QOS IP block driver"
+	bool "Designware Ethernet QOS driver for STM32MP"
 	help
 	  This option enables support for the Synopsys Designware Ethernet QOS
-	  IP on STM32MP and Tegra family of CPUs.
+	  IP on STM32MP family of CPUs.
+
+config DRIVER_NET_DESIGNWARE_TEGRA186
+	bool "Designware Ethernet QOS driver for Tegra186"
+	select DRIVER_NET_DESIGNWARE_QOS
+	help
+	  This option enables support for the Synopsys Designware Ethernet QOS
+	  IP on Tegra186 family of CPUs.
 
 endif
 
