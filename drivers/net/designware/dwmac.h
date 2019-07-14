@@ -85,7 +85,6 @@ struct dw_eth_dev {
 	int phy_reset_gpio;
 	unsigned phy_interface;
 	void *descs;
-	bool started;
 	struct clk_bulk_data *clks;
 	int num_clks;
 	int eth_clk_sel_reg;

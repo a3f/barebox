@@ -376,11 +376,6 @@ static int mac_reset(struct dw_eth_dev *eqos)
 	value |= DMAMAC_SRST;
 	writel(value, dma);
 
-#if 0
-	if (priv->interface != PHY_INTERFACE_MODE_RGMII)
-		writel(MII_PORTSELECT, &mac_p->conf);
-#endif
-
 	start = get_time_ns();
 	while (readl(dma) & DMAMAC_SRST) {
 		if (is_timeout(start, 10 * MSECOND)) {
@@ -399,7 +394,6 @@ static int eqos_ether_init(struct eth_device *edev)
 	if (mac_reset(priv) < 0)
 		return -1;
 
-	// TODO do the same for eqos
 	/* HW MAC address is lost during MAC reset */
 	edev->set_ethaddr(edev, priv->macaddr);
 
@@ -630,8 +624,6 @@ int eqos_start(struct eth_device *edev)
 	last_rx_desc = (ulong)&eqos->rx_descs[(EQOS_DESCRIPTORS_RX - 1)];
 	writel(last_rx_desc, &eqos->dma_regs->ch0_rxdesc_tail_pointer);
 
-	eqos->started = true;
-
 	return 0;
 
 err_stop_resets:
@@ -645,10 +637,6 @@ void eqos_stop(struct eth_device *edev)
 {
 	struct dw_eth_dev *eqos = edev->priv;
 	int i;
-
-	if (!eqos->started)
-		return;
-	eqos->started = false;
 
 	mac_reset(eqos);
 
