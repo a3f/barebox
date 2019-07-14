@@ -804,7 +804,7 @@ static int __init stm32_i2c_probe(struct device_d *dev)
 
 	ret = dev_get_drvdata(dev, (const void **)&setup);
 	if (ret)
-		return ret;
+		goto release_rst;
 
 	stm32_i2c->setup = *setup;
 
@@ -819,8 +819,10 @@ static int __init stm32_i2c_probe(struct device_d *dev)
 	stm32_i2c->adapter.dev.parent = dev;
 	stm32_i2c->adapter.dev.device_node = dev->device_node;
 	iores = dev_request_mem_resource(dev, 0);
-	if (IS_ERR(iores))
-		return PTR_ERR(iores);
+	if (IS_ERR(iores)) {
+		ret = PTR_ERR(iores);
+		goto release_rst;
+	}
 
 	stm32_i2c->regs = IOMEM(iores->start);
 
@@ -831,9 +833,16 @@ static int __init stm32_i2c_probe(struct device_d *dev)
 
 	ret = stm32_i2c_set_bus_speed(stm32_i2c, bitrate);
 	if (ret)
-		return ret;
+		goto release_rst;
 
-	return i2c_add_numbered_adapter(&stm32_i2c->adapter);
+	ret = i2c_add_numbered_adapter(&stm32_i2c->adapter);
+	if (ret)
+		goto release_rst;
+
+release_rst:
+	reset_control_put(rst);
+
+	return ret;
 }
 
 static const struct stm32_i2c_setup stm32f7_setup = {
