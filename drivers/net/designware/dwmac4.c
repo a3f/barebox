@@ -810,8 +810,6 @@ static int eqos_init_resources(struct dw_eth_dev *eqos)
 		pr_debug("%s: eqos_alloc_descs() failed\n", __func__);
 		goto err;
 	}
-
-
 	eqos->tx_descs = (struct eqos_desc *)eqos->descs;
 	eqos->rx_descs = (eqos->tx_descs + EQOS_DESCRIPTORS_TX);
 
