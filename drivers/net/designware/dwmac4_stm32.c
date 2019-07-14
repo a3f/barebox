@@ -113,9 +113,9 @@ static void eqos_set_mode_stm32(struct dw_eth_dev *eqos)
 	return;
 }
 
-static int eqos_init_stm32(struct device_d *dev)
+static int eqos_init_stm32(struct dw_eth_dev *eqos)
 {
-	struct dw_eth_dev *eqos = dev->priv;
+	struct device_d *dev = eqos->netdev.parent;
 	struct device_node *np = dev->device_node;
 	struct clk_bulk_data *eth_ck;
 	int ret;
