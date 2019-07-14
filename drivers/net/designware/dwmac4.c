@@ -213,7 +213,7 @@ static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 			  int mdio_reg)
 {
 	struct dw_eth_dev *eqos = bus->priv;
-	u32 val;
+	u32 val = 0;
 	int ret;
 
 	ret = eqos_mdio_wait_idle(eqos);
@@ -222,19 +222,22 @@ static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 		return ret;
 	}
 
-	val = readl(&eqos->mac_regs->mdio_address);
-	val &= EQOS_MAC_MDIO_ADDRESS_SKAP |
-		EQOS_MAC_MDIO_ADDRESS_C45E;
-	val |= (mdio_addr << EQOS_MAC_MIIADDRSHIFT) |
-		(mdio_reg << EQOS_MAC_MIIREGSHIFT);
-	val |= (eqos->config->config_mac_mdio <<
-		 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
-		(EQOS_MAC_MDIO_ADDRESS_GOC_READ <<
-		 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT) |
-		MII_BUSY;
+	if (eqos->ops->has_gmac4) {
+		val = readl(&eqos->mac_regs->mdio_address);
+		val &= EQOS_MAC_MDIO_ADDRESS_SKAP |
+			EQOS_MAC_MDIO_ADDRESS_C45E;
+		val |= (mdio_addr << EQOS_MAC_MIIADDRSHIFT) |
+			(mdio_reg << EQOS_MAC_MIIREGSHIFT);
+		val |= (eqos->ops->config_mac_mdio <<
+			 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
+			(EQOS_MAC_MDIO_ADDRESS_GOC_READ <<
+			 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT);
+	}
+
+	val |= MII_BUSY;
 	writel(val, &eqos->mac_regs->mdio_address);
 
-	udelay(eqos->config->mdio_wait);
+	udelay(eqos->ops->mdio_wait);
 
 	ret = eqos_mdio_wait_idle(eqos);
 	if (ret) {
@@ -242,17 +245,14 @@ static int eqos_mdio_read(struct mii_bus *bus, int mdio_addr,
 		return ret;
 	}
 
-	val = readl(&eqos->mac_regs->mdio_data);
-	val &= 0xffff;
-
-	return val;
+	return readl(&eqos->mac_regs->mdio_data) & 0xffff;
 }
 
 static int eqos_mdio_write(struct mii_bus *bus, int mdio_addr,
 			   int mdio_reg, u16 mdio_val)
 {
 	struct dw_eth_dev *eqos = bus->priv;
-	u32 val;
+	u32 val = 0;
 	int ret;
 
 	ret = eqos_mdio_wait_idle(eqos);
@@ -263,19 +263,22 @@ static int eqos_mdio_write(struct mii_bus *bus, int mdio_addr,
 
 	writel(mdio_val, &eqos->mac_regs->mdio_data);
 
-	val = readl(&eqos->mac_regs->mdio_address);
-	val &= EQOS_MAC_MDIO_ADDRESS_SKAP |
-		EQOS_MAC_MDIO_ADDRESS_C45E;
-	val |= (mdio_addr << EQOS_MAC_MIIADDRSHIFT) |
-		(mdio_reg << EQOS_MAC_MIIREGSHIFT) |
-		(eqos->config->config_mac_mdio <<
-		 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
-		(EQOS_MAC_MDIO_ADDRESS_GOC_WRITE <<
-		 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT) |
-		MII_BUSY;
+	if (eqos->ops->has_gmac4) {
+		val = readl(&eqos->mac_regs->mdio_address);
+		val &= EQOS_MAC_MDIO_ADDRESS_SKAP |
+			EQOS_MAC_MDIO_ADDRESS_C45E;
+		val |= (mdio_addr << EQOS_MAC_MIIADDRSHIFT) |
+			(mdio_reg << EQOS_MAC_MIIREGSHIFT) |
+			(eqos->ops->config_mac_mdio <<
+			 EQOS_MAC_MDIO_ADDRESS_CR_SHIFT) |
+			(EQOS_MAC_MDIO_ADDRESS_GOC_WRITE <<
+			 EQOS_MAC_MDIO_ADDRESS_GOC_SHIFT);
+	}
+
+	val |= MII_BUSY;
 	writel(val, &eqos->mac_regs->mdio_address);
 
-	udelay(eqos->config->mdio_wait);
+	udelay(eqos->ops->mdio_wait);
 
 	ret = eqos_mdio_wait_idle(eqos);
 	if (ret) {

@@ -36,9 +36,7 @@ void eqos_remove_resources(struct device_d *dev); // FIXME removable?
 #define EQOS_MAC_MDIO_ADDRESS_C45E			BIT(1)
 
 struct eqos_config {
-	int mdio_wait;
 	int config_mac;
-	int config_mac_mdio;
 };
 
 #endif

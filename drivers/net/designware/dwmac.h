@@ -23,6 +23,9 @@ struct dw_eth_ops {
 
 	bool enh_desc;
 	u32 clk_csr_shift;
+	int mdio_wait;
+	int config_mac_mdio;
+	int has_gmac4;
 };
 
 

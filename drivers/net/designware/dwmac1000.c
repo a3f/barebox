@@ -55,6 +55,8 @@ static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 
 	writel(miiaddr | MII_CLKRANGE_150_250M | MII_BUSY, &mac_p->miiaddr);
 
+	udelay(priv->ops->mdio_wait);
+
 	if (dwc_ether_mii_wait_idle(priv) == -ETIMEDOUT) {
 		dev_err(&priv->netdev.dev, "MDIO timeout\n");
 		return -EIO;
