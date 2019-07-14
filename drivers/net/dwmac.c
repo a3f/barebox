@@ -18,6 +18,7 @@
 #include <linux/phy.h>
 #include <linux/err.h>
 #include <linux/iopoll.h>
+#include <linux/clk.h>
 
 #include "designware.h"
 #include "dwmac.h"
@@ -44,6 +45,30 @@ static int dwmac_start(struct eth_device *edev)
 	struct dw_eth_dev *priv = edev->priv;
 	int ret;
 
+	ret = clk_bulk_enable(priv->num_clks, priv->clks);
+	if (ret < 0) {
+		pr_err("clk_bulk_enable() failed: %s\n", strerror(-ret));
+		return ret;
+	}
+
+	if (priv->ops->clks_set_rate) {
+		ret = priv->ops->clks_set_rate(priv);
+		if (ret < 0) {
+			pr_err("eqos_set_rate_clks() failed: %s\n", strerror(-ret));
+			goto err;
+		}
+	}
+
+	if (priv->ops->reset) {
+		ret = priv->ops->reset(priv, 0);
+		if (ret < 0) {
+			pr_err("eqos_reset(0) failed: %s\n", strerror(-ret));
+			goto err_stop_clks;
+		}
+	}
+
+	udelay(10);
+
 	ret = phy_device_connect(edev, &priv->miibus, priv->phy_addr,
 				 priv->ops->adjust_link, 0, priv->interface);
 	if (ret)
@@ -55,9 +80,21 @@ static int dwmac_start(struct eth_device *edev)
 	ret = phy_resume(edev->phydev);
 	if (ret)
 		return ret;
-#endif
 
-	return priv->ops->start(edev);
+	ret = priv->ops->start(edev);
+	if (ret)
+		goto err_stop_resets;
+
+	return 0;
+
+err_stop_resets:
+	if (priv->ops->reset)
+		priv->ops->reset(priv, 1);
+err_stop_clks:
+	clk_bulk_disable(priv->num_clks, priv->clks);
+err:
+	pr_err("%s: failed with %s\n", __func__, strerror(-ret));
+	return ret;
 }
 
 static int dwmac_probe_dt(struct device_d *dev, struct dw_eth_dev *priv)

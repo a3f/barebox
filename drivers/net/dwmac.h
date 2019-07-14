@@ -17,6 +17,8 @@ struct dw_eth_ops {
 	int (*send)(struct eth_device *dev, void *packet, int length);
 	int (*rx)(struct eth_device *edev);
 	int (*init)(struct dw_eth_dev *priv);
+	int (*reset)(struct dw_eth_dev *, int reset);
+	int (*clks_set_rate)(struct dw_eth_dev *);
 
 	bool enh_desc;
 	u32 clk_csr_shift;
