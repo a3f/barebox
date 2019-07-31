@@ -6,4 +6,7 @@ Boot:
     CONFIG_DRIVER_VIDEO_BACKLIGHT=y and CONFIG_DRIVER_VIDEO_BACKLIGHT_PWM=y)
   - or by barebox_update -t spiflash /mnt/tftp/${global.user}-barebox-${global.hostname}
 Observation:
-  - barebox hangs directly after DEBUG_LL printing only a >
+  - bnet: barebox hangs directly after DEBUG_LL printing only a '>'
+  - imx-usb-load boot: barebox hangs directly after DEBUG_LL printing only a '>'
+  - spi-nor boot: barebox hangs even before DEBUG_LL printing '>'
+

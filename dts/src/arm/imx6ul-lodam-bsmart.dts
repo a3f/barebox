@@ -39,6 +39,7 @@
 		vbus-gpio = <&gpio4 23 GPIO_ACTIVE_HIGH>;
 	};
 
+	#if 0
 	leds: leds {
 		compatible = "gpio-leds";
 		pinctrl-names = "default";
@@ -62,6 +63,7 @@
 			default-state = "on";
 		};
 	};
+	#endif
 
 	mdio_gpio: mdio-gpio { /* because MDC/MDIO lines are swapped */
 		compatible = "virtual,mdio-gpio";

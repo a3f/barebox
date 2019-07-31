@@ -1921,6 +1921,7 @@ static int source_script(const char *path, int argc, char *argv[])
 
 	return ret;
 }
+#include <debug_ll.h>
 
 int run_shell(void)
 {

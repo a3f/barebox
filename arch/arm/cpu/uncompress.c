@@ -17,6 +17,7 @@
  * GNU General Public License for more details.
  *
  */
+#define DEBUG 1
 #define pr_fmt(fmt) "uncompress.c: " fmt
 
 #include <common.h>
@@ -79,6 +80,7 @@ void __noreturn barebox_multi_pbl_start(unsigned long membase,
 	setup_c();
 
 	pr_debug("memory at 0x%08lx, size 0x%08lx\n", membase, memsize);
+	putc_ll('&');
 
 	if (IS_ENABLED(CONFIG_MMU_EARLY)) {
 		unsigned long ttb = arm_mem_ttb(membase, endmem);
@@ -92,6 +94,7 @@ void __noreturn barebox_multi_pbl_start(unsigned long membase,
 	pr_debug("uncompressing barebox binary at 0x%p (size 0x%08x) to 0x%08lx (uncompressed size: 0x%08x)\n",
 			pg_start, pg_len, barebox_base, uncompressed_len);
 
+	putc_ll('*');
 	pbl_barebox_uncompress((void*)barebox_base, pg_start, pg_len);
 
 	arm_early_mmu_cache_flush();
@@ -103,9 +106,11 @@ void __noreturn barebox_multi_pbl_start(unsigned long membase,
 		barebox = (void *)barebox_base;
 
 	pr_debug("jumping to uncompressed image at 0x%p\n", barebox);
+	putc_ll('%');
 
 	if (IS_ENABLED(CONFIG_CPU_V7) && __boot_cpu_mode == HYP_MODE)
 		armv7_switch_to_hyp();
 
+	puthex_ll(barebox);
 	barebox(membase, memsize, boarddata);
 }

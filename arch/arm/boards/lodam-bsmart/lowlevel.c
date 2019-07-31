@@ -53,6 +53,7 @@ ENTRY_FUNCTION(start_imx6ul_lodam_bsmart, r0, r1, r2)
 	writew(0x0, 0x020c0008);
 	writew(0x0, 0x021e4008);
 
+	putc_ll('&');
 	fdt = __dtb_imx6ul_lodam_bsmart_start - get_runtime_offset();
 
 	imx6ul_barebox_entry(fdt);
