@@ -11,7 +11,6 @@
 
 #include <common.h>
 #include <linux/sizes.h>
-#include <linux/linkage.h>
 #include <mach/generic.h>
 #include <asm/barebox-arm-head.h>
 #include <asm/barebox-arm.h>
@@ -51,12 +50,10 @@ static noinline void nxp_imx6_ull(void)
 {
 	imx6ul_barebox_entry(__dtb_imx6ull_14x14_evk_start);
 }
-extern asmlinkage void v7_invalidate_l1_linux(void);
 
 ENTRY_FUNCTION(start_nxp_imx6ull_evk, r0, r1, r2)
 {
 
-	v7_invalidate_l1_linux();
 	imx6ul_cpu_lowlevel_init();
 
 	arm_setup_stack(0x00910000 - 8);
