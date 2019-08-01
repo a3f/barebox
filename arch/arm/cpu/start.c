@@ -1,3 +1,4 @@
+#define DEBUG 1
 /*
  * Copyright (c) 2010 Sascha Hauer <s.hauer@pengutronix.de>, Pengutronix
  *
@@ -74,6 +75,28 @@ u32 barebox_arm_machine(void)
 		return 0;
 	}
 }
+
+#define announce_initlevel(level) \
+	static int announce_ ## level (void) { \
+		puts_ll("\n\t" #level "\n"); \
+		return 0; \
+	} \
+	level ## _initcall(announce_ ## level)
+
+announce_initlevel(core);
+announce_initlevel(postcore);
+announce_initlevel(console);
+announce_initlevel(postconsole);
+announce_initlevel(mem);
+announce_initlevel(mmu);
+announce_initlevel(postmmu);
+announce_initlevel(coredevice);
+announce_initlevel(fs);
+announce_initlevel(device);
+announce_initlevel(crypto);
+announce_initlevel(late);
+announce_initlevel(environment);
+announce_initlevel(postenvironment);
 
 void *barebox_arm_boot_dtb(void)
 {
