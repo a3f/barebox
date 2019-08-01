@@ -134,6 +134,7 @@ static struct device_node *__of_unflatten_dtb(const void *infdt, bool constprops
 	unsigned int maxlen;
 	const struct fdt_header *fdt = infdt;
 
+//	putc_ll('\n');
 	if (fdt->magic != cpu_to_fdt32(FDT_MAGIC)) {
 		pr_err("bad magic: 0x%08x\n", fdt32_to_cpu(fdt->magic));
 		return ERR_PTR(-EINVAL);

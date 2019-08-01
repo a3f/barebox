@@ -36,6 +36,11 @@
 
 #include "entry.h"
 
+extern initcall_t __barebox_initcalls_start[], __barebox_early_initcalls_end[],
+		  __barebox_initcalls_end[];
+
+extern exitcall_t __barebox_exitcalls_start[], __barebox_exitcalls_end[];
+
 unsigned long arm_stack_top;
 static unsigned long arm_barebox_size;
 static void *barebox_boarddata;
@@ -228,8 +233,23 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 
 	pr_debug("starting barebox...\n");
 
+#if 0
+	putc_ll('b');
+	initcall_t *initcall;
+
+	 for (initcall = __barebox_initcalls_start;
+                 initcall < __barebox_initcalls_end; initcall++) {
+         pr_info("initcall-> %pS\n", *initcall);
+ }
+#endif
+
+
 	start_barebox();
 }
+ __attribute__((used)) noinline void dummy(void)
+{
+}
+
 
 #ifndef CONFIG_PBL_IMAGE
 

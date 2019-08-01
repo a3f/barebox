@@ -145,11 +145,15 @@ environment_initcall(load_environment);
 
 int (*barebox_main)(void);
 
+noinline void dummy(void);
 void __noreturn start_barebox(void)
 {
 	initcall_t *initcall;
 	int result;
 	struct stat s;
+
+	//dummy();
+	//putc_ll('b');
 
 	if (!IS_ENABLED(CONFIG_SHELL_NONE))
 		barebox_main = run_shell;
