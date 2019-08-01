@@ -35,8 +35,6 @@ static noinline void achilles_start(void)
 	int barebox = 0;
 	int bitstream = 0;
 
-	arm_early_mmu_cache_invalidate();
-
 	relocate_to_current_adr();
 	setup_c();
 
@@ -97,8 +95,6 @@ ENTRY_FUNCTION(start_socfpga_achilles_bringup, r0, r1, r2)
 	arm_cpu_lowlevel_init();
 
 	arm_setup_stack(ARRIA10_OCRAM_ADDR + SZ_256K - 16);
-
-	arm_early_mmu_cache_invalidate();
 
 	relocate_to_current_adr();
 	setup_c();

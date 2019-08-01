@@ -37,8 +37,6 @@ static noinline void SECT(start_socfpga_c5_xload_common)(uint32_t size)
 	struct socfpga_io_config io_config;
 	int ret;
 
-	arm_early_mmu_cache_invalidate();
-
 	relocate_to_current_adr();
 	setup_c();
 
