@@ -32,6 +32,7 @@
 #include <asm/cache.h>
 #include <asm/mmu.h>
 #include <asm/unaligned.h>
+#include <linux/linkage.h>
 
 #include <debug_ll.h>
 
@@ -43,6 +44,7 @@ unsigned long free_mem_end_ptr;
 extern unsigned char input_data[];
 extern unsigned char input_data_end[];
 
+extern asmlinkage void v7_coherent_kern_range_linux(unsigned long start, unsigned long end);
 void __noreturn barebox_multi_pbl_start(unsigned long membase,
 		unsigned long memsize, void *boarddata)
 {
@@ -97,8 +99,13 @@ void __noreturn barebox_multi_pbl_start(unsigned long membase,
 	putc_ll('*');
 	pbl_barebox_uncompress((void*)barebox_base, pg_start, pg_len);
 
-	arm_early_mmu_cache_flush();
+	void v7_mmu_cache_invalidate(void);
+	void v7_mmu_cache_flush(void);
+	v7_mmu_cache_flush();
+	dsb();
 	icache_invalidate();
+	isb();
+	v7_coherent_kern_range_linux(barebox_base, endmem);
 
 	if (IS_ENABLED(CONFIG_THUMB2_BAREBOX))
 		barebox = (void *)(barebox_base + 1);
