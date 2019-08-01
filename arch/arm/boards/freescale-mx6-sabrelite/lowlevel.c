@@ -31,8 +31,6 @@ ENTRY_FUNCTION(start_imx6q_sabrelite, r0, r1, r2)
 {
 	imx6_cpu_lowlevel_init();
 
-	arm_early_mmu_cache_invalidate();
-
 	relocate_to_current_adr();
 	setup_c();
 	barrier();
@@ -61,8 +59,6 @@ static noinline void imx6dl_sabrelite_start(void)
 ENTRY_FUNCTION(start_imx6dl_sabrelite, r0, r1, r2)
 {
 	imx6_cpu_lowlevel_init();
-
-	arm_early_mmu_cache_invalidate();
 
 	relocate_to_current_adr();
 	setup_c();

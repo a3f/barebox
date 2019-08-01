@@ -44,8 +44,6 @@ ENTRY_FUNCTION(start_imx7s_element14_warp7, r0, r1, r2)
 {
 	imx7_cpu_lowlevel_init();
 
-	arm_early_mmu_cache_invalidate();
-
 	relocate_to_current_adr();
 	setup_c();
 	barrier();

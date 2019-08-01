@@ -60,8 +60,6 @@ static void __noreturn start_imx6_liteboard(void)
 
 	arm_setup_stack(0x00910000 - 8);
 
-	arm_early_mmu_cache_invalidate();
-
 	if (IS_ENABLED(CONFIG_PBL_CONSOLE))
 		setup_uart();
 

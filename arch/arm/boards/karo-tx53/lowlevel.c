@@ -31,7 +31,6 @@ static void __imx53_tx53_init(int is_xx30)
 	void *fdt;
 	void *fdt_blob_fixed_offset = __dtb_imx53_tx53_1011_start;
 
-	arm_early_mmu_cache_invalidate();
 	imx5_cpu_lowlevel_init();
 	relocate_to_current_adr();
 	setup_c();

@@ -58,8 +58,6 @@ ENTRY_FUNCTION(start_nxp_imx6ull_evk, r0, r1, r2)
 
 	arm_setup_stack(0x00910000 - 8);
 
-	arm_early_mmu_cache_invalidate();
-
 	relocate_to_current_adr();
 	setup_c();
 

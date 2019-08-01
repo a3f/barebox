@@ -40,7 +40,6 @@ static noinline void imx53_guf_vincell_init(void *fdt)
 
 static noinline void __imx53_guf_vincell_init(void *fdt)
 {
-	arm_early_mmu_cache_invalidate();
 	imx5_cpu_lowlevel_init();
 	relocate_to_current_adr();
 	setup_c();
