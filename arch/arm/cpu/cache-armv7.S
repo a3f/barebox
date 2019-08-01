@@ -50,6 +50,7 @@ ENTRY(v7_mmu_cache_off)
 #ifdef CONFIG_MMU
 		mcr	p15, 0, r0, c8, c7, 0	@ invalidate whole TLB
 #endif
+		mcr     p15, 0, r0, c7, c5, 0   @ invalidate I+BTB
 		mcr	p15, 0, r0, c7, c5, 6	@ invalidate BTC
 		dsb
 		isb
@@ -74,7 +75,7 @@ ENTRY(__v7_mmu_cache_flush_invalidate)
 		mov	r12, #0
 		beq	hierarchical
 		mcr	p15, 0, r12, c7, c14, 0	@ clean+invalidate D
-		b	iflush
+		b	out
 hierarchical:
 		stmfd	sp!, {r4-r11}
 		mov	r8, r0
@@ -136,9 +137,7 @@ finished:
 		ldmfd	sp!, {r4-r11}
 		mov	r12, #0			@ switch back to cache level 0
 		mcr	p15, 2, r12, c0, c0, 0	@ select current cache level in cssr
-iflush:
-		dsb
-		mcr	p15, 0, r12, c7, c5, 0	@ invalidate I+BTB
+out:
 		dsb
 		isb
 		mov	pc, lr
