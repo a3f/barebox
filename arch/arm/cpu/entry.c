@@ -28,7 +28,10 @@ void NAKED __noreturn barebox_arm_entry(unsigned long membase,
 					  unsigned long memsize, void *boarddata)
 {
 	arm_setup_stack(arm_mem_stack_top(membase, membase + memsize) - 16);
-	arm_early_mmu_cache_invalidate();
+
+	/* if pbl has run, cache has been already invalidated */
+	if (!IS_ENABLED(CONFIG_PBL_IMAGE) || IS_ENABLED(__PBL__))
+		arm_early_mmu_cache_invalidate();
 
 	if (IS_ENABLED(CONFIG_PBL_MULTI_IMAGES))
 		barebox_multi_pbl_start(membase, memsize, boarddata);
