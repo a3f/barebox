@@ -1,10 +1,25 @@
 #include <linux/linkage.h>
 #include <init.h>
 
+#define ADDR_START 0x0001
+#define ADDR_END   0xffff
+
 .section .text.v7_mmu_cache_on
 ENTRY(v7_mmu_cache_on)
 		stmfd	sp!, {r11, lr}
 		mov	r12, lr
+#if 1
+		movw	r0, #0
+		movt	r0, #ADDR_START
+		movw	r1, #0
+		movt	r1, #ADDR_END
+		bl	v7_dma_inv_range
+#ifdef CONFIG_MMU
+		mcr	p15, 0, r0, c8, c7, 0	@ invalidate whole TLB
+#endif
+		mcr     p15, 0, r0, c7, c5, 0   @ invalidate I+BTB
+		mcr	p15, 0, r0, c7, c5, 6	@ invalidate BTC
+#endif
 #ifdef CONFIG_MMU
 		mrc	p15, 0, r11, c0, c1, 4	@ read ID_MMFR0
 		tst	r11, #0xf		@ VMSA
@@ -59,89 +74,30 @@ ENDPROC(v7_mmu_cache_off)
 
 .section .text.v7_mmu_cache_flush_invalidate
 ENTRY(v7_mmu_cache_invalidate)
-		mov	r0, #1
-		b	__v7_mmu_cache_flush_invalidate
+		movw	r0, #0
+		movt	r0, #ADDR_START
+		movw	r1, #0
+		movt	r1, #ADDR_END
+		b	v7_dma_inv_range
+#ifdef CONFIG_MMU
+		mcr	p15, 0, r0, c8, c7, 0	@ invalidate whole TLB
+#endif
+		mcr     p15, 0, r0, c7, c5, 0   @ invalidate I+BTB
+		mcr	p15, 0, r0, c7, c5, 6	@ invalidate BTC
 ENDPROC(v7_mmu_cache_invalidate)
 
 ENTRY(v7_mmu_cache_flush)
-		mov	r0, #0
-		b	__v7_mmu_cache_flush_invalidate
+		movw	r0, #0
+		movt	r0, #ADDR_START
+		movw	r1, #0
+		movt	r1, #ADDR_END
+		b	v7_dma_clean_range
+#ifdef CONFIG_MMU
+		mcr	p15, 0, r0, c8, c7, 0	@ invalidate whole TLB
+#endif
+		mcr     p15, 0, r0, c7, c5, 0   @ invalidate I+BTB
+		mcr	p15, 0, r0, c7, c5, 6	@ invalidate BTC
 ENDPROC(v7_mmu_cache_flush)
-
-ENTRY(__v7_mmu_cache_flush_invalidate)
-		dmb
-		mrc	p15, 0, r12, c0, c1, 5	@ read ID_MMFR1
-		tst	r12, #0xf << 16		@ hierarchical cache (ARMv7)
-		mov	r12, #0
-		beq	hierarchical
-		mcr	p15, 0, r12, c7, c14, 0	@ clean+invalidate D
-		b	out
-hierarchical:
-		stmfd	sp!, {r4-r11}
-		mov	r8, r0
-		dmb
-		mrc	p15, 1, r0, c0, c0, 1	@ read clidr
-		ands	r3, r0, #0x7000000	@ extract loc from clidr
-		mov	r3, r3, lsr #23		@ left align loc bit field
-		beq	finished		@ if loc is 0, then no need to clean
-		cmp	r8, #0
-THUMB(		ite	eq			)
-		moveq	r12, #0
-		subne	r12, r3, #2		@ start invalidate at outmost cache level
-loop1:
-		add	r2, r12, r12, lsr #1	@ work out 3x current cache level
-		mov	r1, r0, lsr r2		@ extract cache type bits from clidr
-		and	r1, r1, #7		@ mask of the bits for current cache only
-		cmp	r1, #2			@ see what cache we have at this level
-		blt	skip			@ skip if no cache, or just i-cache
-		mcr	p15, 2, r12, c0, c0, 0	@ select current cache level in cssr
-		isb				@ isb to sych the new cssr&csidr
-		mrc	p15, 1, r1, c0, c0, 0	@ read the new csidr
-		and	r2, r1, #7		@ extract the length of the cache lines
-		add	r2, r2, #4		@ add 4 (line length offset)
-		ldr	r4, =0x3ff
-		ands	r4, r4, r1, lsr #3	@ find maximum number on the way size
-		clz	r5, r4			@ find bit position of way size increment
-		ldr	r7, =0x7fff
-		ands	r7, r7, r1, lsr #13	@ extract max number of the index size
-loop2:
-		mov	r9, r4			@ create working copy of max way size
-loop3:
-ARM(		orr	r11, r12, r9, lsl r5	) @ factor way and cache number into r11
-ARM(		orr	r11, r11, r7, lsl r2	) @ factor index number into r11
-THUMB(		lsl	r6, r9, r5		)
-THUMB(		orr	r11, r12, r6		) @ factor way and cache number into r11
-THUMB(		lsl	r6, r7, r2		)
-THUMB(		orr	r11, r11, r6		) @ factor index number into r11
-		cmp	r8, #0
-THUMB(		ite	eq			)
-		mcreq	p15, 0, r11, c7, c14, 2	@ clean & invalidate by set/way
-		mcrne	p15, 0, r11, c7, c6, 2	@ invalidate by set/way
-		subs	r9, r9, #1		@ decrement the way
-		bge	loop3
-		subs	r7, r7, #1		@ decrement the index
-		bge	loop2
-skip:
-		cmp	r8, #0
-		bne	inval_check
-		add	r12, r12, #2		@ increment cache number
-		cmp	r3, r12
-		b	loop_end_check
-inval_check:
-		cmp	r12, #0
-		sub	r12, r12, #2		@ decrement cache number
-loop_end_check:
-		dsb				@ work-around Cortex-A7 erratum 814220
-		bgt	loop1
-finished:
-		ldmfd	sp!, {r4-r11}
-		mov	r12, #0			@ switch back to cache level 0
-		mcr	p15, 2, r12, c0, c0, 0	@ select current cache level in cssr
-out:
-		dsb
-		isb
-		mov	pc, lr
-ENDPROC(__v7_mmu_cache_flush_invalidate)
 
 /*
  * cache_line_size - get the cache line size from the CSIDR register
