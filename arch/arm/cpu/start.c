@@ -198,9 +198,6 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 	if (IS_ENABLED(CONFIG_MMU_EARLY)) {
 		unsigned long ttb = arm_mem_ttb(membase, endmem);
 
-		if (IS_ENABLED(CONFIG_PBL_IMAGE)) {
-			arm_set_cache_functions();
-		} else {
 			pr_debug("enabling MMU, ttb @ 0x%08lx\n", ttb);
 			mmu_early_enable(membase, memsize, ttb);
 		}

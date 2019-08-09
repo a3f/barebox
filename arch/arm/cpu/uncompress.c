@@ -83,9 +83,11 @@ void __noreturn barebox_multi_pbl_start(unsigned long membase,
 	putc_ll('&');
 
 	if (IS_ENABLED(CONFIG_MMU_EARLY)) {
+#if 0
 		unsigned long ttb = arm_mem_ttb(membase, endmem);
 		pr_debug("enabling MMU, ttb @ 0x%08lx\n", ttb);
 		mmu_early_enable(membase, memsize, ttb);
+#endif
 	}
 
 	free_mem_ptr = arm_mem_early_malloc(membase, endmem);
