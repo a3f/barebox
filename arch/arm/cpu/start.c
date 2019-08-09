@@ -214,7 +214,6 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 
 			pr_debug("enabling MMU, ttb @ 0x%08lx\n", ttb);
 			mmu_early_enable(membase, memsize, ttb);
-		}
 	}
 
 	if (boarddata) {
