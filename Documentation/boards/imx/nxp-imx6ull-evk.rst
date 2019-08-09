@@ -1,7 +1,7 @@
 NXP i.MX6ULL EVK Evaluation Board
 =================================
 
-Board comes with:
+Compute module comes with:
 
 * 512MiB of DDR3L SDRAM
 * 256 MB Quad SPI Flash
