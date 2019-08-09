@@ -78,10 +78,16 @@ u32 barebox_arm_machine(void)
 
 #define announce_initlevel(level) \
 	static int announce_ ## level (void) { \
-		puts_ll("\n\t" #level "\n"); \
+		puts_ll("\n\t>" #level "\n"); \
 		return 0; \
 	} \
 	level ## _initcall(announce_ ## level)
+
+#define announce_exitlevel(level) \
+	static void announce_ ## level (void) { \
+		puts_ll("\n\t<" #level "\n"); \
+	} \
+	level ## _exitcall(announce_ ## level)
 
 announce_initlevel(core);
 announce_initlevel(postcore);
@@ -97,6 +103,14 @@ announce_initlevel(crypto);
 announce_initlevel(late);
 announce_initlevel(environment);
 announce_initlevel(postenvironment);
+
+announce_exitlevel(early);
+announce_exitlevel(predevshutdown);
+announce_exitlevel(devshutdown);
+announce_exitlevel(postdevshutdown);
+announce_exitlevel(prearchshutdown);
+announce_exitlevel(archshutdown);
+announce_exitlevel(postarchshutdown);
 
 void *barebox_arm_boot_dtb(void)
 {
