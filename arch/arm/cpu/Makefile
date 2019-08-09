@@ -36,7 +36,7 @@ obj-pbl-$(CONFIG_CPU_32v6) += cache-armv6.o
 AFLAGS_cache-armv7.o       :=-Wa,-march=armv7-a
 obj-$(CONFIG_CPU_32v7) += cache-armv7.o
 pbl-$(CONFIG_CPU_32v7) += cache-armv7-pbl.o
-AFLAGS_pbl-cache-armv7.o       :=-Wa,-march=armv7-a
+AFLAGS_pbl-cache-armv7-pbl.o       :=-Wa,-march=armv7-a
 obj-$(CONFIG_CACHE_L2X0) += cache-l2x0.o
 AFLAGS_cache-armv8.o       :=-Wa,-march=armv8-a
 obj-pbl-$(CONFIG_CPU_64v8) += cache-armv8.o

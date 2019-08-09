@@ -1,14 +1,14 @@
 #include <linux/linkage.h>
 #include <init.h>
 
-#define ADDR_START 0x0001
+#define ADDR_START 0x0000
 #define ADDR_END   0xffff
 
 .section .text.v7_mmu_cache_on
 ENTRY(v7_mmu_cache_on)
 		stmfd	sp!, {r11, lr}
 		mov	r12, lr
-#if 1
+#if 0
 		movw	r0, #0
 		movt	r0, #ADDR_START
 		movw	r1, #0
@@ -29,7 +29,9 @@ ENTRY(v7_mmu_cache_on)
 		mcrne	p15, 0, r0, c8, c7, 0	@ flush I,D TLBs
 #endif
 		mrc	p15, 0, r0, c1, c0, 0	@ read control reg
+#if 1
 		orr	r0, r0, #0x5000		@ I-cache enable, RR cache replacement
+#endif
 		orr	r0, r0, #0x003c		@ write buffer
 #ifdef CONFIG_MMU
 #ifdef CONFIG_CPU_ENDIAN_BE8

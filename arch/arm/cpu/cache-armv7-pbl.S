@@ -29,7 +29,9 @@ ENTRY(v7_mmu_cache_on)
 		mcrne	p15, 0, r0, c8, c7, 0	@ flush I,D TLBs
 #endif
 		mrc	p15, 0, r0, c1, c0, 0	@ read control reg
+#if 1
 		orr	r0, r0, #0x5000		@ I-cache enable, RR cache replacement
+#endif
 		orr	r0, r0, #0x003c		@ write buffer
 #ifdef CONFIG_MMU
 #ifdef CONFIG_CPU_ENDIAN_BE8
