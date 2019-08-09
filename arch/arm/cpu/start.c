@@ -217,9 +217,11 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 
 	if (IS_ENABLED(CONFIG_MMU_EARLY)) {
 		unsigned long ttb = arm_mem_ttb(membase, endmem);
+#if 0
 
 			pr_debug("enabling MMU, ttb @ 0x%08lx\n", ttb);
 			mmu_early_enable(membase, memsize, ttb);
+#endif
 	}
 
 	if (boarddata) {
