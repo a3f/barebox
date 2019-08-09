@@ -368,7 +368,7 @@ static int update_progress(resource_size_t offset)
 
 int mem_test_moving_inversions(resource_size_t _start, resource_size_t _end)
 {
-	volatile resource_size_t *start, num_words, i, offset, temp, anti_pattern;
+	volatile resource_size_t *start, num_words, offset, temp, anti_pattern;
 	int ret;
 
 	_start = ALIGN(_start, sizeof(resource_size_t));
@@ -394,7 +394,7 @@ int mem_test_moving_inversions(resource_size_t _start, resource_size_t _end)
 	 *		selected by the caller.
 	 */
 
-	init_progression_bar(4 * num_words);
+	init_progression_bar(3 * num_words);
 
 	/* Fill memory with a known pattern */
 	for (offset = 0; offset < num_words; offset++) {
@@ -405,9 +405,8 @@ int mem_test_moving_inversions(resource_size_t _start, resource_size_t _end)
 	}
 
 	/* Check each location and invert it for the second pass */
-	offset = 0;
-	for (i = 0; i < num_words; i++) {
-		ret = update_progress(num_words + i);
+	for (offset = 0; offset < num_words; offset++) {
+		ret = update_progress(num_words + offset);
 		if (ret)
 			return ret;
 
@@ -420,21 +419,13 @@ int mem_test_moving_inversions(resource_size_t _start, resource_size_t _end)
 			return -EIO;
 		}
 
-		offset += 67;
-		offset %= num_words;
-	}
-
-	/* Fill memory with a known pattern */
-	for (offset = 0; offset < num_words; offset++) {
-		ret = update_progress(2 * num_words + offset);
-		if (ret)
-			return ret;
-		start[offset] = ~(offset + 1);
+		anti_pattern = ~(offset + 1);
+		start[offset] = anti_pattern;
 	}
 
 	/* Check each location for the inverted pattern and zero it */
 	for (offset = 0; offset < num_words; offset++) {
-		ret = update_progress(3 * num_words + offset);
+		ret = update_progress(2 * num_words + offset);
 		if (ret)
 			return ret;
 
@@ -443,7 +434,7 @@ int mem_test_moving_inversions(resource_size_t _start, resource_size_t _end)
 
 		if (temp != anti_pattern) {
 			printf("\n");
-			mem_test_report_failure("read/write anti",
+			mem_test_report_failure("read/write",
 						anti_pattern,
 						temp, &start[offset]);
 			return -EIO;
@@ -451,7 +442,7 @@ int mem_test_moving_inversions(resource_size_t _start, resource_size_t _end)
 
 		start[offset] = 0;
 	}
-	show_progress(4 * num_words);
+	show_progress(3 * num_words);
 
 	/* end of progressbar */
 	printf("\n");
