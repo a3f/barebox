@@ -183,9 +183,15 @@ static int barebox_memory_areas_init(void)
 }
 device_initcall(barebox_memory_areas_init);
 
+extern char __dtb_imx6ull_14x14_evk_start[];
 __noreturn void barebox_non_pbl_start(unsigned long membase,
+
 		unsigned long memsize, void *boarddata)
 {
+	membase = 0x90000000;
+	memsize = 0x10000000;
+	boarddata = __dtb_imx6ull_14x14_evk_start;
+
 	unsigned long endmem = membase + memsize;
 	unsigned long malloc_start, malloc_end;
 	unsigned long barebox_size = barebox_image_size + MAX_BSS_SIZE;
