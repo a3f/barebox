@@ -30,6 +30,16 @@ config MACH_MICROCHIP_KSZ9477_EVB_DT
 	  But only if we need the device tree (bootstrap doesn't yet work with
 	  DT)
 
+config MACH_SAMA5D27_SOM1_DT
+	def_bool y
+	depends on MACH_SAMA5D27_SOM1 && OFDEVICE
+	select ARM_USE_COMPRESSED_DTB
+	help
+	  Enabled for sama5d27 SoM1 - evaluation kit.
+	  But only if we need the device tree (bootstrap doesn't yet work with
+	  DT)
+
+
 config HAVE_AT91_SMD
 	bool
 
@@ -588,8 +598,8 @@ config MACH_MICROCHIP_KSZ9477_EVB
 config MACH_SAMA5D27_SOM1
 	bool "Microchip SAMA5D27 SoM-1 Evaluation Kit"
 	select SOC_SAMA5D2
-	select OFDEVICE
-	select COMMON_CLK_OF_PROVIDER
+	select HAVE_AT91_BOOTSTRAP
+	select COMMON_CLK_OF_PROVIDER if OFDEVICE
 	help
 	  Select this if you are using Microchip's sama5d27 SoM evaluation kit
 
