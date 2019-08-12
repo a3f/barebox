@@ -92,6 +92,7 @@ config SOC_SAMA5D3
 	select PINCTRL_AT91
 	select HAS_MACB
 	select HAVE_MACH_ARM_HEAD
+	select HAVE_AT91_LOAD_BAREBOX_SRAM
 
 config SOC_SAMA5D4
 	bool
