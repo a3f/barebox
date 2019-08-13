@@ -31,6 +31,7 @@ SECTIONS
 #else
 	. = TEXT_BASE;
 #endif
+	. = 0x9fe00000;
 	.image_start : { *(.__image_start) }
 
 #ifndef CONFIG_PBL_IMAGE
@@ -147,5 +148,5 @@ SECTIONS
 #endif
 
 	_end = .;
-	_barebox_image_size = __bss_start - TEXT_BASE;
+	_barebox_image_size = __bss_start - 0x9fe00000;
 }

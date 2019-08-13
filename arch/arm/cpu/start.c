@@ -183,6 +183,8 @@ static int barebox_memory_areas_init(void)
 }
 device_initcall(barebox_memory_areas_init);
 
+#include <asm-generic/sections.h>
+
 extern char __dtb_imx6ull_14x14_evk_start[];
 __noreturn void barebox_non_pbl_start(unsigned long membase,
 
@@ -190,7 +192,9 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 {
 	membase = 0x90000000;
 	memsize = 0x10000000;
-	boarddata = __dtb_imx6ull_14x14_evk_start;
+	boarddata = __dtb_imx6ull_14x14_evk_start + get_runtime_offset();
+	
+	barrier();
 
 	unsigned long endmem = membase + memsize;
 	unsigned long malloc_start, malloc_end;
