@@ -14,6 +14,7 @@
 ENTRY(setup_c)
 	push	{r4, r5}
 	mov	r5, lr
+#if 0
 	bl	get_runtime_offset
 	subs	r4, r0, #0
 	beq	1f			/* skip memcpy if already at correct address */
@@ -22,17 +23,20 @@ ENTRY(setup_c)
 	sub	r2, r2, r0
 	add	r1, r0, r4
 	bl	memcpy			/* memcpy(_text, _text + offset, __bss_start - _text) */
+#endif
 1:	ldr	r0, =__bss_start
 	mov	r1, #0
 	ldr	r2, =__bss_stop
 	sub	r2, r2, r0
 	bl	memset			/* clear bss */
+#if 0
 #ifdef CONFIG_MMU
 	bl	arm_early_mmu_cache_flush
 #endif
 	mov	r0, #0
 	mcr	p15, 0, r0, c7, c5, 0	/* flush icache */
-	sub	lr, r5, r4		/* adjust return address to new location */
+#endif
+	mov	lr, r5		/* adjust return address to new location */
 	pop	{r4, r5}
 	mov	pc, lr
 ENDPROC(setup_c)

@@ -206,8 +206,12 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 	if (IS_ENABLED(CONFIG_CPU_V7))
 		armv7_hyp_install();
 
+#if 0
 	if (IS_ENABLED(CONFIG_RELOCATABLE))
 		relocate_to_adr(barebox_base);
+#endif
+
+	barrier();
 
 	setup_c();
 
