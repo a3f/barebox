@@ -202,6 +202,7 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 	unsigned long barebox_base = arm_mem_barebox_image(membase,
 							   endmem,
 							   barebox_size);
+	unsigned long runtime_offset = get_runtime_offset();
 
 	if (IS_ENABLED(CONFIG_CPU_V7))
 		armv7_hyp_install();
@@ -216,6 +217,9 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 	setup_c();
 
 	barrier();
+
+	pr_debug("runtime offset at 0x%08lx, text 0x%08lx, barebox_base=0x%08lx\n",
+		 runtime_offset, _stext, barebox_base);
 
 	pr_debug("memory at 0x%08lx, size 0x%08lx\n", membase, memsize);
 
