@@ -31,27 +31,6 @@
 #define HALF_DUPLEX		1
 #define FULL_DUPLEX		2
 
-static int mac_reset(struct dw_eth_dev *priv)
-{
-	struct eth_mac_regs *mac_p = priv->mac_regs_p;
-	struct eth_dma_regs *dma_p = priv->dma_regs_p;
-	u64 start;
-
-	writel(readl(&dma_p->busmode) | DMAMAC_SRST, &dma_p->busmode);
-
-	if (priv->interface != PHY_INTERFACE_MODE_RGMII)
-		writel(MII_PORTSELECT, &mac_p->conf);
-
-	start = get_time_ns();
-	while (readl(&dma_p->busmode) & DMAMAC_SRST) {
-		if (is_timeout(start, 10 * MSECOND)) {
-			dev_err(&priv->netdev.dev, "MAC reset timeout\n");
-			return -EIO;
-		}
-	}
-	return 0;
-}
-
 static void tx_descs_init(struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
@@ -131,13 +110,6 @@ static int dwc_ether_init(struct eth_device *dev)
 	struct dw_eth_dev *priv = dev->priv;
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
-
-	if (mac_reset(priv) < 0)
-		return -1;
-
-	// TODO do the same for eqos
-	/* HW MAC address is lost during MAC reset */
-	dev->set_ethaddr(dev, priv->macaddr);
 
 	writel(FIXEDBURST | PRIORXTX_41 | BURST_16, &dma_p->busmode);
 	writel(readl(&dma_p->opmode) | FLUSHTXFIFO | STOREFORWARD |
@@ -310,7 +282,7 @@ static void dwc_ether_halt(struct eth_device *dev)
 {
 	struct dw_eth_dev *priv = dev->priv;
 
-	mac_reset(priv);
+	dwmac_reset(priv);
 	priv->tx_currdescnum = priv->rx_currdescnum = 0;
 }
 

@@ -178,6 +178,10 @@ static int dwmac_start(struct eth_device *edev)
 	if (ret)
 		return ret;
 
+	ret = dwmac_reset(priv);
+	if (ret)
+		return ret;
+
 	ret = priv->ops->start(edev);
 	if (ret)
 		goto err_stop_resets;
@@ -269,6 +273,13 @@ struct dw_eth_dev *dwmac_drv_probe(struct device_d *dev, struct dw_eth_ops *ops)
 	miibus->write = dwmac_mdio_write;
 	miibus->priv = priv;
 
+	int ret = dwmac_reset(priv);
+	if (ret)
+		return ret;
+
+	/* HW MAC address is lost during MAC reset */
+	dev->set_ethaddr(dev, priv->macaddr);
+
 	ret = ops->init(priv);
 	if (ret)
 		return ERR_PTR(ret);
@@ -278,6 +289,28 @@ struct dw_eth_dev *dwmac_drv_probe(struct device_d *dev, struct dw_eth_ops *ops)
 
 	return priv;
 }
+
+int dwmac_reset(struct dw_eth_dev *priv)
+{
+	struct eth_mac_regs *mac_p = priv->mac_regs_p;
+	struct eth_dma_regs *dma_p = priv->dma_regs_p;
+	u64 start;
+
+	writel(readl(&dma_p->busmode) | DMAMAC_SRST, &dma_p->busmode);
+
+	if (priv->ops->has_gmac4 && priv->interface != PHY_INTERFACE_MODE_RGMII)
+		writel(MII_PORTSELECT, &mac_p->conf);
+
+	start = get_time_ns();
+	while (readl(&dma_p->busmode) & DMAMAC_SRST) {
+		if (is_timeout(start, 10 * MSECOND)) {
+			dev_err(&priv->netdev.dev, "MAC reset timeout\n");
+			return -EIO;
+		}
+	}
+	return 0;
+}
+
 
 void dwmac_drv_remove(struct device_d *dev) // FIXME export
 {

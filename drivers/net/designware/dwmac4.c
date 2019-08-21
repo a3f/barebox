@@ -273,40 +273,6 @@ int eqos_set_ethaddr(struct eth_device *edev, const unsigned char *mac)
 	return 0;
 }
 
-static int mac_reset(struct dw_eth_dev *eqos)
-{
-	void __iomem *dma = eqos->dma_regs;
-	u32 value = readl(dma);
-	u64 start;
-
-	/* DMA SW reset */
-	value |= DMAMAC_SRST;
-	writel(value, dma);
-
-	start = get_time_ns();
-	while (readl(dma) & DMAMAC_SRST) {
-		if (is_timeout(start, 10 * MSECOND)) {
-			dev_err(&eqos->netdev.dev, "MAC reset timeout\n");
-			return -EBUSY;
-		}
-	}
-
-	return 0;
-}
-
-static int eqos_ether_init(struct eth_device *edev)
-{
-	struct dw_eth_dev *priv = edev->priv;
-
-	if (mac_reset(priv) < 0)
-		return -1;
-
-	/* HW MAC address is lost during MAC reset */
-	edev->set_ethaddr(edev, priv->macaddr);
-
-	return 0;
-}
-
 int eqos_start(struct eth_device *edev)
 {
 	struct dw_eth_dev *eqos = edev->priv;
@@ -318,10 +284,6 @@ int eqos_start(struct eth_device *edev)
 	unsigned long last_rx_desc;
 
 	eqos->tx_currdescnum = eqos->rx_currdescnum = 0;
-
-	ret = eqos_ether_init(edev);
-	if (ret)
-		goto err_stop_resets;
 
 	ret = readl_poll_timeout(&eqos->dma_regs->mode, mode_set,
 				 !(mode_set & EQOS_DMA_MODE_SWR),
@@ -545,7 +507,7 @@ void eqos_stop(struct eth_device *edev)
 	struct dw_eth_dev *eqos = edev->priv;
 	int i;
 
-	mac_reset(eqos);
+	dwmac_reset(eqos);
 
 	/* Disable TX DMA */
 	clrbits_le32(&eqos->dma_regs->ch0_tx_control,
@@ -728,8 +690,9 @@ int eqos_init(struct dw_eth_dev *eqos)
 	struct device_d *dev = edev->parent;
 	int ret;
 
-	if (mac_reset(eqos) < 0)
-		return -1;
+	ret = dwmac_reset(eqos);
+	if (ret < 0)
+		return ret;
 
 	ret = dev_get_drvdata(dev, (const void **)&eqos->config); // TODO remove
 	if (ret)

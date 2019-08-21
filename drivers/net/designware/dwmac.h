@@ -114,6 +114,7 @@ struct dw_eth_dev {
 
 struct dw_eth_dev *dwmac_drv_probe(struct device_d *dev, struct dw_eth_ops *ops);
 void dwmac_drv_remove(struct device_d *dev);
+int dwmac_reset(struct dw_eth_dev *priv);
 
 #define DMAMAC_SRST		(1 << 0)
 
