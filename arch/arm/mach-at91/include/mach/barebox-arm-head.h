@@ -10,9 +10,7 @@
 static inline void __barebox_arm_head(void)
 {
 	__asm__ __volatile__ (
-#ifdef CONFIG_THUMB2_BAREBOX
-#error Thumb2 is not supported
-#else
+	        ".arm\n"
 		"b 2f\n"
 		"1: b 1b\n"
 		"1: b 1b\n"
@@ -21,7 +19,6 @@ static inline void __barebox_arm_head(void)
 		AT91_EXV6				/* image size to load by the bootrom */
 		"1: b 1b\n"
 		"1: b 1b\n"
-#endif
 		".asciz \"barebox\"\n"
 		".word _text\n"				/* text base. If copied there,
 							 * barebox can skip relocation
@@ -31,6 +28,10 @@ static inline void __barebox_arm_head(void)
 		".word 0x55555555\n"
 		".endr\n"
 		"2:\n"
+		"adr r9, 3f + 1\n"
+		"bx r9\n"
+		".thumb\n"
+		"3:\n"
 	);
 }
 
