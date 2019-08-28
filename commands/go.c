@@ -24,8 +24,10 @@
 #include <complete.h>
 #include <fs.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <linux/ctype.h>
 #include <errno.h>
+#include <mmu.h>
 
 static int do_go(int argc, char *argv[])
 {
@@ -33,12 +35,23 @@ static int do_go(int argc, char *argv[])
 	int     rcode = 1;
 	int	fd = -1;
 	int	(*func)(int argc, char *argv[]);
+	int	opt;
 
-	if (argc < 2)
+	while ((opt = getopt(argc, argv, "m")) > 0) {
+		switch (opt) {
+		case 'm':
+			mmu_boot_enabled();
+			break;
+		default:
+			return COMMAND_ERROR_USAGE;
+		}
+	}
+
+	if (optind == argc)
 		return COMMAND_ERROR_USAGE;
 
-	if (!isdigit(*argv[1])) {
-		fd = open(argv[1], O_RDONLY);
+	if (!isdigit(*argv[optind])) {
+		fd = open(argv[optind], O_RDONLY);
 		if (fd < 0) {
 			perror("open");
 			goto out;
@@ -50,7 +63,7 @@ static int do_go(int argc, char *argv[])
 			goto out;
 		}
 	} else
-		addr = (void *)simple_strtoul(argv[1], NULL, 16);
+		addr = (void *)simple_strtoul(argv[optind], NULL, 16);
 
 	printf("## Starting application at 0x%p ...\n", addr);
 
@@ -60,7 +73,7 @@ static int do_go(int argc, char *argv[])
 
 	shutdown_barebox();
 
-	func(argc - 1, &argv[1]);
+	func(argc - 1, &argv[optind]);
 
 	/*
 	 * The application returned. Since we have shutdown barebox and
@@ -80,12 +93,14 @@ BAREBOX_CMD_HELP_TEXT("Start application at ADDR passing ARG as arguments.")
 BAREBOX_CMD_HELP_TEXT("")
 BAREBOX_CMD_HELP_TEXT("If addr does not start with a digit it is interpreted as a filename")
 BAREBOX_CMD_HELP_TEXT("in which case the file is memmapped and executed")
+BAREBOX_CMD_HELP_TEXT("Options:")
+BAREBOX_CMD_HELP_OPT("-m", "don't disable MMU if enabled. Only for debugging purposes!")
 BAREBOX_CMD_HELP_END
 
 BAREBOX_CMD_START(go)
 	.cmd		= do_go,
 	BAREBOX_CMD_DESC("start application at address or file")
-	BAREBOX_CMD_OPTS("ADDR [ARG...]")
+	BAREBOX_CMD_OPTS("[-m] ADDR [ARG...]")
 	BAREBOX_CMD_GROUP(CMD_GRP_BOOT)
 	BAREBOX_CMD_HELP(cmd_go_help)
 	BAREBOX_CMD_COMPLETE(command_var_complete)
