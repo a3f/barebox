@@ -209,6 +209,9 @@ config MMU_EARLY
 	  This enables the MMU during early startup. This speeds up things during startup
 	  of barebox, but may lead to harder to debug code. If unsure say yes here.
 
+config HAVE_MMU_OFF_FOR_BOOT
+	bool
+
 config HAVE_CONFIGURABLE_TEXT_BASE
 	bool
 

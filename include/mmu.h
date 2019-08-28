@@ -38,4 +38,13 @@ static inline int remap_range(void *start, size_t size, unsigned flags)
 	return arch_remap_range(start, size, flags);
 }
 
+#ifdef CONFIG_HAVE_MMU_OFF_FOR_BOOT
+void mmu_boot_enabled(void);
+#else
+static inline void mmu_boot_enabled(void)
+{
+}
+#endif
+
+
 #endif
