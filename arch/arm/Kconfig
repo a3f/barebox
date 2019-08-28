@@ -4,6 +4,7 @@ config ARM
 	select HAS_CACHE
 	select HAVE_CONFIGURABLE_TEXT_BASE if !RELOCATABLE
 	select HAVE_IMAGE_COMPRESSION
+	select HAVE_MMU_OFF_FOR_BOOT
 	default y
 
 config ARM_LINUX

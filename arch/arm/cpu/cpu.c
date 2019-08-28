@@ -25,6 +25,7 @@
 #include <init.h>
 #include <command.h>
 #include <cache.h>
+#include <mmu.h>
 #include <asm/mmu.h>
 #include <asm/system.h>
 #include <asm/memory.h>
@@ -90,6 +91,12 @@ static void disable_interrupts(void)
 #endif
 }
 
+static bool _mmu_boot_enabled;
+void mmu_boot_enabled(void)
+{
+	_mmu_boot_enabled = true;
+}
+
 /**
  * Disable MMU and D-cache, flush caches
  * @return 0 (always)
@@ -99,9 +106,11 @@ static void disable_interrupts(void)
  */
 static void arch_shutdown(void)
 {
-
 #ifdef CONFIG_MMU
-	mmu_disable();
+	if (!_mmu_boot_enabled)
+		mmu_disable();
+	else
+		arm_early_mmu_cache_flush();
 #endif
 	icache_invalidate();
 
