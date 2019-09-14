@@ -51,3 +51,5 @@ pbl-y += entry.o entry_ll$(S64).o
 pbl-y += uncompress.o
 
 obj-pbl-y += common.o sections.o
+
+UBSAN_SANITIZE_start.o := n
