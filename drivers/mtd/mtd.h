@@ -40,4 +40,4 @@ struct cdev;
  */
 void mtdcore_add_hook(struct mtddev_hook *hook);
 
-int mtd_ioctl(struct cdev *cdev, int request, void *buf);
+int mtd_ioctl(struct cdev *cdev, unsigned request, void *buf);

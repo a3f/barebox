@@ -155,7 +155,7 @@ static int devfs_flush(struct device_d *_dev, FILE *f)
 	return cdev_flush(cdev);
 }
 
-static int devfs_ioctl(struct device_d *_dev, FILE *f, int request, void *buf)
+static int devfs_ioctl(struct device_d *_dev, FILE *f, unsigned request, void *buf)
 {
 	struct cdev *cdev = f->priv;
 

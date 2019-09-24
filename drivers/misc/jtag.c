@@ -93,7 +93,7 @@ static void jtag_output(const struct jtag_platdata *pdata,
 	}
 }
 
-static int jtag_ioctl(struct cdev *inode, int cmd, void *arg)
+static int jtag_ioctl(struct cdev *inode, unsigned cmd, void *arg)
 {
 	int ret = 0;
 	struct jtag_info *info = (struct jtag_info *)inode->priv;

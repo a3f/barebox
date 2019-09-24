@@ -180,7 +180,7 @@ static int uimagefs_stat(struct device_d *dev, const char *filename, struct stat
 	return 0;
 }
 
-static int uimagefs_ioctl(struct device_d *dev, FILE *f, int request, void *buf)
+static int uimagefs_ioctl(struct device_d *dev, FILE *f, unsigned request, void *buf)
 {
 	struct uimagefs_handle *priv = dev->priv;
 

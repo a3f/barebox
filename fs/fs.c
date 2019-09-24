@@ -227,7 +227,7 @@ int ftruncate(int fd, loff_t length)
 	return 0;
 }
 
-int ioctl(int fd, int request, void *buf)
+int ioctl(int fd, unsigned request, void *buf)
 {
 	struct fs_driver_d *fsdrv;
 	FILE *f = fd_to_file(fd);

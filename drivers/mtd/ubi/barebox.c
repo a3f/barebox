@@ -177,7 +177,7 @@ static int ubi_volume_cdev_truncate(struct cdev *cdev, size_t size)
 	return 0;
 }
 
-static int ubi_volume_cdev_ioctl(struct cdev *cdev, int cmd, void *buf)
+static int ubi_volume_cdev_ioctl(struct cdev *cdev, unsigned cmd, void *buf)
 {
 	struct ubi_volume_cdev_priv *priv = cdev->priv;
 	struct ubi_device *ubi = priv->ubi;

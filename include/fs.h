@@ -55,7 +55,7 @@ struct fs_driver_d {
 	int (*flush)(struct device_d *dev, FILE *f);
 	int (*lseek)(struct device_d *dev, FILE *f, loff_t pos);
 
-	int (*ioctl)(struct device_d *dev, FILE *f, int request, void *buf);
+	int (*ioctl)(struct device_d *dev, FILE *f, unsigned request, void *buf);
 	int (*erase)(struct device_d *dev, FILE *f, loff_t count,
 			loff_t offset);
 	int (*protect)(struct device_d *dev, FILE *f, size_t count,
