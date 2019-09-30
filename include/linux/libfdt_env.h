@@ -16,4 +16,6 @@ typedef __be64 fdt64_t;
 #define fdt64_to_cpu(x) be64_to_cpu(x)
 #define cpu_to_fdt64(x) cpu_to_be64(x)
 
+#define INT32_MIN	(-2147483647-1)
+
 #endif /* LIBFDT_ENV_H */
