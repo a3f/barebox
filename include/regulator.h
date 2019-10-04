@@ -4,6 +4,33 @@
 /* struct regulator is an opaque object for consumers */
 struct regulator;
 
+/**
+ * struct regulator_linear_range - specify linear voltage ranges
+ *
+ * Specify a range of voltages for regulator_map_linear_range() and
+ * regulator_list_linear_range().
+ *
+ * @min_uV:  Lowest voltage in range
+ * @min_sel: Lowest selector for range
+ * @max_sel: Highest selector for range
+ * @uV_step: Step size
+ */
+struct regulator_linear_range {
+	unsigned int min_uV;
+	unsigned int min_sel;
+	unsigned int max_sel;
+	unsigned int uV_step;
+};
+
+/* Initialize struct regulator_linear_range */
+#define REGULATOR_LINEAR_RANGE(_min_uV, _min_sel, _max_sel, _step_uV)	\
+{									\
+	.min_uV		= _min_uV,					\
+	.min_sel	= _min_sel,					\
+	.max_sel	= _max_sel,					\
+	.uV_step	= _step_uV,					\
+}
+
 struct regulator_desc {
 	unsigned n_voltages;
 	const struct regulator_ops *ops;
@@ -21,6 +48,9 @@ struct regulator_desc {
 	unsigned int enable_val;
 	unsigned int disable_val;
 	bool enable_is_inverted;
+
+	const struct regulator_linear_range *linear_ranges;
+	int n_linear_ranges;
 };
 
 struct regulator_dev {
@@ -37,6 +67,7 @@ struct regulator_ops {
 
 	int (*list_voltage) (struct regulator_dev *, unsigned int);
 	int (*set_voltage_sel) (struct regulator_dev *, unsigned int);
+	int (*map_voltage)(struct regulator_dev *, int min_uV, int max_uV);
 };
 
 #ifdef CONFIG_OFDEVICE
@@ -65,8 +96,22 @@ int regulator_set_voltage_sel_regmap(struct regulator_dev *, unsigned);
 int regulator_set_voltage(struct regulator *regulator, int min_uV, int max_uV);
 int regulator_map_voltage_linear(struct regulator_dev *rdev,
 				 int min_uV, int max_uV);
+int regulator_map_voltage_linear_range(struct regulator_dev *rdev,
+				       int min_uV, int max_uV);
 int regulator_list_voltage_linear(struct regulator_dev *rdev,
 				  unsigned int selector);
+int regulator_list_voltage_linear_range(struct regulator_dev *rdev,
+					unsigned int selector);
+int regulator_get_voltage_sel_regmap(struct regulator_dev *rdev);
+int regulator_map_voltage_iterate(struct regulator_dev *rdev,
+				  int min_uV, int max_uV);
+
+/*
+ * Helper functions intended to be used by regulator drivers prior registering
+ * their regulators.
+ */
+int regulator_desc_list_voltage_linear_range(const struct regulator_desc *desc,
+					     unsigned int selector);
 #else
 
 static inline struct regulator *regulator_get(struct device_d *dev, const char *id)
