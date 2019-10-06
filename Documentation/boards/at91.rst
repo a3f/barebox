@@ -3,10 +3,6 @@ Microchip (Atmel) AT91
 
 The Microchip (former Atmel) AT91 architecure has very good support within
 barebox.
-Most boards today have their description in their board files, but
-boards are slowly migrating to use DT.
-Likewise most boards are not yet migrated to multi image support, but
-this is also ongoing.
 
 The boot process of the AT91 CPU's is a two step process.
 The first step is named the bootstrap and at91bootstrap
@@ -21,7 +17,25 @@ processor and then load and execute barebox.
 
 AT91 boards
 -----------
-The majority of the supported boards have a short entry here.
+
+Most boards today have their description in their board files, but
+boards are slowly migrating to use DT.
+Likewise most boards are not yet migrated to multi image support, but
+this is also ongoing.
+
+Boards that can be be built in a multi-image configuration are covered by a
+general ``at91_defconfig``, which can be built as follows::
+
+  make ARCH=arm at91_multi_defconfig
+  make ARCH=arm
+
+Currently these are::
+
+  Atmel AT91SAM9X5-EK Evaluation Kit
+  Microchip KSZ9477 Evaluation Board
+
+Other boards usually have their own defconfig. The majority of them have a short
+entry here.
 For each board defconfig file(s) are noted but barebox may include additional
 defconfig files and may also include boards not included in the following.
 
