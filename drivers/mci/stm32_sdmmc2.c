@@ -627,10 +627,21 @@ static int stm32_sdmmc2_probe(struct amba_device *adev,
 	if (IS_ERR(priv->reset_ctl))
 		priv->reset_ctl = NULL;
 
+	mci_of_parse(&priv->mci);
+
 	mci->f_min = 400000;
-	/* f_max is taken from kernel v5.3 variant_stm32_sdmmc */
-	mci->f_max = 208000000;
 	mci->voltages = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195;
+
+	if (mci->f_max != 208000000) {
+		/* f_max is taken from kernel v5.3 variant_stm32_sdmmc */
+		dev_notice(dev, "Fixing max-frequency to 208 MHz due to driver limitation\n");
+		mci->f_max = 208000000;
+	}
+
+	if (mci->host_caps & (MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA)) {
+		dev_notice(dev, "Fixing bus-width to 1 due to driver limitation\n");
+		mci->host_caps &= ~(MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA);
+	}
 
 	return mci_register(&priv->mci);
 
