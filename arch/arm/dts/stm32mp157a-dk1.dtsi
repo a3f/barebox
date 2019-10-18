@@ -40,4 +40,17 @@
 			pool;
 		};
 	};
+
+	reg_vmmc: regulator-vmmc {
+		compatible = "regulator-fixed";
+		regulator-name = "vmmc";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+};
+
+&sdmmc1 {
+	/* regulator driver not yet ported to barebox, but always on */
+	vmmc-supply = <&reg_vmmc>;
 };
