@@ -15,6 +15,9 @@
 
 #include <poller.h>
 #include <driver.h>
+#include <linux/bitops.h>
+
+#define WDOG_HW_RUNNING	3
 
 struct watchdog {
 	int (*set_timeout)(struct watchdog *, unsigned);
@@ -27,7 +30,18 @@ struct watchdog {
 	unsigned int poller_enable;
 	struct poller_async poller;
 	struct list_head list;
+	unsigned long status;
+	unsigned long supported_status;
 };
+
+/*
+ * Use the following function to check whether or not the hardware watchdog
+ * is running
+ */
+static inline bool watchdog_hw_running(struct watchdog *w)
+{
+	return test_bit(WDOG_HW_RUNNING, &w->status);
+}
 
 #ifdef CONFIG_WATCHDOG
 int watchdog_register(struct watchdog *);

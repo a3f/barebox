@@ -37,6 +37,8 @@ static const char *watchdog_name(struct watchdog *wd)
  */
 int watchdog_set_timeout(struct watchdog *wd, unsigned timeout)
 {
+	int ret;
+
 	if (!wd)
 		return -ENODEV;
 
@@ -45,7 +47,18 @@ int watchdog_set_timeout(struct watchdog *wd, unsigned timeout)
 
 	pr_debug("setting timeout on %s to %ds\n", watchdog_name(wd), timeout);
 
-	return wd->set_timeout(wd, timeout);
+	ret = wd->set_timeout(wd, timeout);
+	if (ret)
+		return ret;
+
+	if (test_bit(WDOG_HW_RUNNING, &wd->supported_status)) {
+		if (timeout)
+			set_bit(WDOG_HW_RUNNING, &wd->status);
+		else
+			clear_bit(WDOG_HW_RUNNING, &wd->status);
+	}
+
+	return ret;
 }
 EXPORT_SYMBOL(watchdog_set_timeout);
 
@@ -118,6 +131,11 @@ static int watchdog_register_poller(struct watchdog *wd)
 	return PTR_ERR_OR_ZERO(p);
 }
 
+static const char *watchdog_get_running(struct device_d *dev, struct param_d *p)
+{
+	return watchdog_hw_running((struct watchdog *)p->value) ? "1" : "0";
+}
+
 static int watchdog_register_dev(struct watchdog *wd, const char *name, int id)
 {
 	wd->dev.parent = wd->hwdev;
@@ -144,6 +162,15 @@ int watchdog_register(struct watchdog *wd)
 
 	if (ret)
 		return ret;
+
+	if (test_bit(WDOG_HW_RUNNING, &wd->supported_status)) {
+		p = dev_add_param(&wd->dev, "running", NULL,
+				  watchdog_get_running, PARAM_FLAG_RO);
+		if (IS_ERR(p))
+			return PTR_ERR(p);
+
+		p->value = (char *)wd;
+	}
 
 	if (!wd->priority)
 		wd->priority = WATCHDOG_DEFAULT_PRIORITY;
