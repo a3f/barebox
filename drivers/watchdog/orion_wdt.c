@@ -76,6 +76,16 @@ static int armada_xp_set_timeout(struct watchdog *wd, unsigned timeout)
 	return 0;
 }
 
+static int orion_wdt_enabled(struct orion_wdt_ddata *ddata)
+{
+	bool enabled, running;
+
+	enabled = readl(ddata->rstout_base) & WD_RSTOUTn_MASK_GLOBAL_WD;
+	running = readl(ddata->timer_base + TIMER_CTRL) & TIMER_CTRL_WD_TIMER_EN;
+
+	return enabled && running;
+}
+
 static int orion_wdt_probe(struct device_d *dev)
 {
 	struct orion_wdt_ddata* ddata;
@@ -103,6 +113,10 @@ static int orion_wdt_probe(struct device_d *dev)
 		return PTR_ERR(res_rstout);
 	}
 	ddata->rstout_base = IOMEM(res_rstout->start);
+
+	set_bit(WDOG_HW_RUNNING, &ddata->wd.supported_status);
+	if (orion_wdt_enabled(ddata)
+		set_bit(WDOG_HW_RUNNING, &ddata->wd.status);
 
 	return watchdog_register(&ddata->wd);
 }
