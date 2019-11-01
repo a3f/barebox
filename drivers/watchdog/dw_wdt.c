@@ -58,6 +58,12 @@ static inline int dw_wdt_top_in_seconds(struct dw_wdt *dw_wdt, unsigned top)
 	return (1U << (16 + top)) / clk_get_rate(dw_wdt->clk);
 }
 
+static inline int dw_wdt_is_enabled(struct dw_wdt *dw_wdt)
+{
+	return readl(dw_wdt->regs + WDOG_CONTROL_REG_OFFSET) &
+		WDOG_CONTROL_REG_WDT_EN_MASK;
+}
+
 static int dw_wdt_start(struct watchdog *wdd)
 {
 	struct dw_wdt *dw_wdt = to_dw_wdt(wdd);
@@ -159,6 +165,10 @@ static int dw_wdt_drv_probe(struct device_d *dev)
 	wdd->name = "dw_wdt";
 	wdd->hwdev = dev;
 	wdd->set_timeout = dw_wdt_set_timeout;
+
+	set_bit(WDOG_HW_RUNNING, wdd->supported_status);
+	if (dw_wdt_is_enabled(wdd))
+		set_bit(WDOG_HW_RUNNING, wdd->status);
 
 	ret = watchdog_register(wdd);
 	if (ret)
