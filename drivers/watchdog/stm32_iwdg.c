@@ -35,6 +35,7 @@
 /* IWDG_SR register bit mask */
 #define SR_PVU	BIT(0) /* Watchdog prescaler value update */
 #define SR_RVU	BIT(1) /* Watchdog counter reload value update */
+#define SR_ONF	BIT(8) /* Watchdog enable status bit */
 
 #define RCC_MP_GRSTCSETR		0x404
 #define RCC_MP_RSTSCLRR			0x408
@@ -93,6 +94,11 @@ static void __noreturn stm32_iwdg_restart_handler(struct restart_handler *rst)
 static void stm32_iwdg_ping(struct stm32_iwdg *wd)
 {
 	writel(KR_KEY_RELOAD, wd->iwdg_base + IWDG_KR);
+}
+
+static inline bool stm32_iwdg_is_running(struct stm32_iwdg *wd)
+{
+	return readl(wd->iwdg_base + IWDG_SR) & SR_ONF;
 }
 
 static int stm32_iwdg_start(struct stm32_iwdg *wd, unsigned int timeout)
@@ -256,6 +262,10 @@ static int stm32_iwdg_probe(struct device_d *dev)
 	wdd->set_timeout = stm32_iwdg_set_timeout;
 	wdd->timeout_max = (RLR_MAX + 1) * data->max_prescaler * 1000;
 	wdd->timeout_max /= wd->rate * 1000;
+
+	set_bit(WDOG_HW_RUNNING, &wdd->supported_status);
+	if (stm32_iwdg_is_running(wd))
+		set_bit(WDOG_HW_RUNNING, &wdd->status);
 
 	ret = watchdog_register(wdd);
 	if (ret) {
