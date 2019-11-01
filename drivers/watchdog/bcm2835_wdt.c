@@ -72,6 +72,11 @@ static void __noreturn bcm2835_restart_soc(struct restart_handler *rst)
 	hang();
 }
 
+static inline bool bcm2835_wdt_is_running(struct bcm2835_wdt *wdt)
+{
+	return readl(wdt->base + PM_RSTC) & PM_RSTC_WRCFG_FULL_RESET;
+}
+
 static int bcm2835_wd_set_timeout(struct watchdog *wd, unsigned timeout)
 {
 	struct bcm2835_wd *priv = container_of(wd, struct bcm2835_wd, wd);
@@ -110,6 +115,10 @@ static int bcm2835_wd_probe(struct device_d *dev)
 	priv->dev = dev;
 
 	if (IS_ENABLED(CONFIG_WATCHDOG_BCM2835)) {
+		set_bit(WDOG_HW_RUNNING, &priv->supported_status);
+		if (bcm2835_wdt_is_running(priv))
+			set_bit(WDOG_HW_RUNNING, &priv->status);
+
 		ret = watchdog_register(&priv->wd);
 		if (ret) {
 			free(priv);
