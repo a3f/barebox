@@ -434,6 +434,14 @@ struct regulator *regulator_get(struct device *dev, const char *supply)
 	return r;
 }
 
+void regulator_put(struct regulator *r)
+{
+	if (IS_ERR_OR_NULL(r))
+		return;
+	list_del(&r->list);
+	free(r);
+}
+
 static struct regulator_internal *regulator_by_name(const char *name)
 {
 	struct regulator_internal *ri;
