@@ -153,6 +153,7 @@ void regulators_print(void);
 #ifdef CONFIG_REGULATOR
 
 struct regulator *regulator_get(struct device *, const char *);
+void regulator_put(struct regulator *r);
 struct regulator *regulator_get_name(const char *name);
 int regulator_enable(struct regulator *);
 int regulator_disable(struct regulator *);
