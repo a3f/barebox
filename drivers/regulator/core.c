@@ -383,14 +383,27 @@ static void regulator_print_one(struct regulator_internal *ri)
 	}
 }
 
-/*
- * regulators_print - print informations about all regulators
- */
-void regulators_print(void)
+#ifdef CONFIG_CMD_REGULATOR
+
+#include <common.h>
+#include <command.h>
+#include <regulator.h>
+
+static int do_regulator(int argc, char *argv[])
 {
 	struct regulator_internal *ri;
 
 	printf("%-20s %6s %10s %10s\n", "name", "enable", "min_uv", "max_uv");
 	list_for_each_entry(ri, &regulator_list, list)
 		regulator_print_one(ri);
+
+	return 0;
 }
+
+BAREBOX_CMD_START(regulator)
+	.cmd		= do_regulator,
+	BAREBOX_CMD_DESC("list regulators")
+	BAREBOX_CMD_GROUP(CMD_GRP_INFO)
+BAREBOX_CMD_END
+
+#endif
