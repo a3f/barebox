@@ -388,22 +388,75 @@ static void regulator_print_one(struct regulator_internal *ri)
 #include <common.h>
 #include <command.h>
 #include <regulator.h>
+#include <getopt.h>
 
 static int do_regulator(int argc, char *argv[])
 {
-	struct regulator_internal *ri;
+	struct regulator_internal *ri, *chosen = NULL;
+	int opt;
 
-	printf("%-20s %6s %10s %10s\n", "name", "enable", "min_uv", "max_uv");
-	list_for_each_entry(ri, &regulator_list, list)
-		regulator_print_one(ri);
+	if (argc == 1) {
+		printf("%-20s %6s %10s %10s\n", "name", "enable", "min_uv", "max_uv");
+		list_for_each_entry(ri, &regulator_list, list)
+			regulator_print_one(ri);
 
-	return 0;
+		return 0;
+	}
+
+	while ((opt = getopt(argc, argv, "r:")) > 0) {
+		switch (opt) {
+		case 'r':
+			if (chosen)
+				return COMMAND_ERROR_USAGE;
+
+			list_for_each_entry(ri, &regulator_list, list) {
+				if (!strcmp(ri->name, optarg)) {
+					chosen = ri;
+					break;
+				}
+			}
+
+			break;
+		default:
+			return COMMAND_ERROR_USAGE;
+		}
+	}
+
+
+	if (!chosen) {
+		printf("regulator not found.\n");
+		return COMMAND_ERROR;
+	}
+
+	if (argc != optind + 1) {
+		printf("Operation must be specified\n");
+		return COMMAND_ERROR_USAGE;
+	}
+
+	if (!strcmp(argv[optind], "enable"))
+		return regulator_enable_internal(chosen);
+
+	if (!strcmp(argv[optind], "disable"))
+		return regulator_disable_internal(chosen);
+
+	printf("Unknown operation '%s'\n", argv[optind]);
+
+	return COMMAND_ERROR_USAGE;
 }
+
+BAREBOX_CMD_HELP_START(regulator)
+BAREBOX_CMD_HELP_TEXT("List and control regulators.")
+BAREBOX_CMD_HELP_TEXT("Without a parameter, displays available regulators.")
+BAREBOX_CMD_HELP_TEXT("Options:")
+BAREBOX_CMD_HELP_OPT("-r REGULATOR\t", "regulator name")
+BAREBOX_CMD_HELP_END
 
 BAREBOX_CMD_START(regulator)
 	.cmd		= do_regulator,
-	BAREBOX_CMD_DESC("list regulators")
-	BAREBOX_CMD_GROUP(CMD_GRP_INFO)
+	BAREBOX_CMD_DESC("list and control regulators")
+	BAREBOX_CMD_OPTS("[-r REGULATOR] [enable | disable]")
+	BAREBOX_CMD_GROUP(CMD_GRP_HWMANIP)
+	BAREBOX_CMD_HELP(cmd_regulator_help)
 BAREBOX_CMD_END
 
 #endif
