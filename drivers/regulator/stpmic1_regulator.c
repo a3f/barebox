@@ -4,27 +4,11 @@
 
 #include <common.h>
 #include <init.h>
-#include <asm/io.h>
 #include <of_device.h>
-#include <mfd/syscon.h>
 #include <regmap.h>
 #include <linux/regulator/of_regulator.h>
 #include <regulator.h>
 #include <linux/mfd/stpmic1.h>
-#include <mfd/syscon.h>
-
-#include <common.h>
-#include <init.h>
-#include <watchdog.h>
-#include <asm/io.h>
-#include <of_device.h>
-#include <linux/iopoll.h>
-#include <poweroff.h>
-#include <mfd/syscon.h>
-#include <restart.h>
-#include <reset_source.h>
-
-
 
 #include <dt-bindings/mfd/st,stpmic1.h>
 
@@ -434,7 +418,7 @@ static int stpmic1_regulator_probe(struct device_d *dev)
 			return ret;
 	}
 
-	dev_info(dev, "probed\n");
+	dev_dbg(dev, "probed\n");
 
 	return 0;
 }

@@ -196,17 +196,4 @@
 #define PONKEY_TURNOFF_TIMER_MASK	GENMASK(3, 0)
 #define PONKEY_TURNOFF_MASK		GENMASK(7, 0)
 
-/*
- * struct stpmic1 - stpmic1 master device for sub-drivers
- * @dev: master device of the chip (can be used to access platform data)
- * @irq: main IRQ number
- * @regmap_irq_chip_data: irq chip data
- */
-struct stpmic1 {
-	struct device *dev;
-	struct regmap *regmap;
-	int irq;
-	struct regmap_irq_chip_data *irq_data;
-};
-
 #endif /*  __LINUX_MFD_STPMIC1_H */
