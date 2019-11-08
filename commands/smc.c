@@ -10,12 +10,12 @@ static void second_entry(void)
 {
 	struct arm_smccc_res res;
 
-	psci_printf("2nd CPU online, now turn off again\n");
+	printf("2nd CPU online, now turn off again\n");
 
 	arm_smccc_smc(ARM_PSCI_0_2_FN_CPU_OFF,
 		      0, 0, 0, 0, 0, 0, 0, &res);
 
-	psci_printf("2nd CPU still alive?\n");
+	printf("2nd CPU still alive?\n");
 
 	while (1);
 }
@@ -69,6 +69,11 @@ static int do_smc(int argc, char *argv[])
 	while ((opt = getopt(argc, argv, "nic")) > 0) {
 		switch (opt) {
 		case 'n':
+			if (!IS_ENABLED(CONFIG_ARM_SECURE_MONITOR)) {
+				printf("secure monitor support not compiled in\n");
+				return COMMAND_ERROR;
+			}
+
 			armv7_secure_monitor_install();
 			break;
 		case 'i':
