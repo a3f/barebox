@@ -6,7 +6,7 @@
 #include <asm/secure.h>
 #include <linux/arm-smccc.h>
 
-void second_entry(void)
+static void second_entry(void)
 {
 	struct arm_smccc_res res;
 
