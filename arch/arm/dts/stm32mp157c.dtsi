@@ -26,6 +26,14 @@
 	};
 
 	soc {
+		hsem: hwspinlock@4c000000 {
+			compatible = "st,stm32-hwspinlock";
+			#hwlock-cells = <1>;
+			reg = <0x4c000000 0x400>;
+			clocks = <&rcc HSEM>;
+			clock-names = "hsem";
+		};
+
 		memory-controller@5a003000 {
 			compatible = "st,stm32mp1-ddr";
 			reg = <0x5a003000 0x1000>;
@@ -42,4 +50,12 @@
 
 &bsec {
 	barebox,provide-mac-address = <&ethernet0 0x39>;
+};
+
+&pinctrl {
+	hwlocks = <&hsem 0>;
+};
+
+&pinctrl_z {
+	hwlocks = <&hsem 0>;
 };
