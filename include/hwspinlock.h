@@ -6,26 +6,51 @@
 #ifndef __HWSPINLOCK_H
 #define __HWSPINLOCK_H
 
-struct hwspinlock { /* TODO to be implemented */ };
+struct hwspinlock;
+
+#ifdef CONFIG_HWSPINLOCK
+int __hwspinlock_get_by_index(const struct of_phandle_args *hwlock_spec,
+			      struct hwspinlock **hws);
+
+int hwspinlock_lock_timeout(struct hwspinlock *hws, unsigned int timeout_ms);
+void hwspinlock_unlock(struct hwspinlock *hws);
+#else
+static inline int __hwspinlock_get_by_index(const struct of_phandle_args *hwlock_spec,
+					    struct hwspinlock **hws) {
+	return -ENOSYS;
+}
+static inline int hwspinlock_lock_timeout(struct hwspinlock *hws,
+					  unsigned int timeout_ms)
+{
+	return -ENOSYS;
+}
+
+static inline void hwspinlock_unlock(struct hwspinlock *hws)
+{
+}
+#endif
 
 static inline int hwspinlock_get_by_index(struct device_d *dev,
 					  int index,
-					  struct hwspinlock *hws)
+					  struct hwspinlock **hws)
 {
-	return -ENOSYS;
-}
+	struct of_phandle_args args;
+	int ret;
 
-static inline int hwspinlock_lock_timeout(struct hwspinlock *hws,
-					  int timeout_ms)
-{
-	return -ENOSYS;
-}
+	/*
+	 * we still check for the property, so callers may warn if there's
+	 * an hwlock referenced and enabled, but support is not compiled in
+	 */
+	ret = of_parse_phandle_with_args(dev->device_node, "hwlocks",
+					 "#hwlock-cells", index, &args);
+	if (ret)
+		return ret;
 
-static inline int hwspinlock_unlock(struct hwspinlock *hws)
-{
-	return -ENOSYS;
-}
+	if (!of_device_is_available(args.np))
+		return -ENOENT;
 
-struct hwspinlock_ops { /* TODO to be implemented */ };
+
+	return __hwspinlock_get_by_index(&args, hws);
+}
 
 #endif /* __HWSPINLOCK_H */

@@ -30,7 +30,7 @@ struct stm32_gpio_bank {
 
 struct stm32_pinctrl {
 	struct pinctrl_device pdev;
-	struct hwspinlock hws;
+	struct hwspinlock *hws;
 	struct stm32_gpio_bank gpio_banks[];
 };
 
@@ -188,7 +188,7 @@ static int stm32_pinctrl_set_state(struct pinctrl_device *pdev, struct device_no
 	void *prop;
 	int ret;
 
-	ret = hwspinlock_lock_timeout(&pinctrl->hws, 10);
+	ret = hwspinlock_lock_timeout(pinctrl->hws, 10);
 	if (ret == -ETIMEDOUT) {
 		dev_err(dev, "hw spinlock timeout\n");
 		return ret;
@@ -207,7 +207,7 @@ static int stm32_pinctrl_set_state(struct pinctrl_device *pdev, struct device_no
 	}
 
 out:
-	hwspinlock_unlock(&pinctrl->hws);
+	hwspinlock_unlock(pinctrl->hws);
 	return ret;
 }
 
@@ -395,11 +395,12 @@ static int stm32_pinctrl_probe(struct device_d *dev)
 	pinctrl->pdev.dev = dev;
 	pinctrl->pdev.ops = &stm32_pinctrl_ops;
 
-	/* hwspinlock property is optional, just log the error */
+	/* hwspinlock property is optional, only log the error if hwlocks specified */
 	ret = hwspinlock_get_by_index(dev, 0, &pinctrl->hws);
-	if (ret)
-		dev_dbg(dev, "proceeding without hw spinlock support: (%d)\n",
-			ret);
+	if (ret == -ENOSYS)
+		dev_notice(dev, "proceeding without hw spinlock support: (%d)\n", ret);
+	else if (ret && ret != -ENOENT)
+		return ret;
 
 	ret = pinctrl_register(&pinctrl->pdev);
 	if (ret) {

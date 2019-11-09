@@ -1,0 +1,17 @@
+menu "Hardware Spinlock Support"
+
+config HWSPINLOCK
+	bool
+
+config HWSPINLOCK_STM32
+	bool "Enable Hardware Spinlock support for STM32"
+	depends on ARCH_STM32MP
+	select HWSPINLOCK
+	default STM32_REMOTEPROC
+	help
+	  Enable hardware spinlock support in STM32MP. This is useful if
+	  you're using barebox to load the microcontroller firmware and the
+	  microcontroller needs access to hardware peripherals used by barebox
+	  as well.
+
+endmenu
