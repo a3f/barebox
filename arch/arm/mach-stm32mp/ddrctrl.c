@@ -4,6 +4,7 @@
  */
 
 #include <common.h>
+#include <init.h>
 #include <mach/stm32.h>
 #include <mach/ddr_regs.h>
 #include <mach/entry.h>
@@ -119,3 +120,36 @@ void __noreturn stm32mp1_barebox_entry(void *boarddata)
 {
 	barebox_arm_entry(STM32_DDR_BASE, stm32mp1_ddrctrl_ramsize(), boarddata);
 }
+
+
+static int stm32_ddrctrl_probe(struct device_d *dev)
+{
+	struct resource *iores;
+	void __iomem *base;
+
+	iores = dev_request_mem_resource(dev, 0);
+	if (IS_ERR(iores))
+		return PTR_ERR(iores);
+	base = IOMEM(iores->start);
+
+	arm_add_mem_device("ram0", STM32_DDR_BASE, ddrctrl_ramsize(base));
+
+	return 0;
+}
+
+static __maybe_unused struct of_device_id stm32_ddrctrl_dt_ids[] = {
+	{ .compatible = "st,stm32-ddrctrl" },
+	{ /* sentinel */ }
+};
+
+static struct driver_d stm32_ddrctrl_driver = {
+	.name   = "stm32-ddrctrl",
+	.probe  = stm32_ddrctrl_probe,
+	.of_compatible = DRV_OF_COMPAT(stm32_ddrctrl_dt_ids),
+};
+
+static int stm32_ddrctrl_init(void)
+{
+	return platform_driver_register(&stm32_ddrctrl_driver);
+}
+mem_initcall(stm32_ddrctrl_init);
