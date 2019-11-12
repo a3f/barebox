@@ -33,6 +33,13 @@
 	};
 };
 
+&pmic {
+	watchdog {
+		status = "okay";
+		watchdog-priority = <400>;
+	};
+};
+
 &bsec {
 	barebox,provide-mac-address = <&ethernet0 0x39>;
 };
