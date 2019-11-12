@@ -87,7 +87,7 @@ static int pinctrl_config_one(struct device_node *np)
 	while (1) {
 		pinctrl_node = pinctrl_node->parent;
 		if (!pinctrl_node)
-			return -ENODEV;
+			return -EPROBE_DEFER;
 		pdev = find_pinctrl(pinctrl_node);
 		if (pdev)
 			break;
