@@ -85,9 +85,7 @@ int device_probe(struct device_d *dev)
 {
 	int ret;
 
-	ret = pinctrl_select_state_default(dev);
-	if (ret == -ENODEV)
-		goto defer_probe;
+	pinctrl_select_state_default(dev);
 
 	list_add(&dev->active, &active);
 
@@ -96,7 +94,6 @@ int device_probe(struct device_d *dev)
 		return 0;
 
 	if (ret == -EPROBE_DEFER) {
-defer_probe:
 		list_del(&dev->active);
 		list_add(&dev->active, &deferred);
 		dev_dbg(dev, "probe deferred\n");
