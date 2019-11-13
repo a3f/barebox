@@ -122,7 +122,7 @@ void __noreturn stm32mp1_barebox_entry(void *boarddata)
 }
 
 
-static int stm32_ddrctrl_probe(struct device_d *dev)
+static int stm32mp1_ddr_probe(struct device_d *dev)
 {
 	struct resource *iores;
 	void __iomem *base;
@@ -137,19 +137,19 @@ static int stm32_ddrctrl_probe(struct device_d *dev)
 	return 0;
 }
 
-static __maybe_unused struct of_device_id stm32_ddrctrl_dt_ids[] = {
-	{ .compatible = "st,stm32-ddrctrl" },
+static __maybe_unused struct of_device_id stm32mp1_ddr_dt_ids[] = {
+	{ .compatible = "st,stm32mp1-ddr" },
 	{ /* sentinel */ }
 };
 
-static struct driver_d stm32_ddrctrl_driver = {
-	.name   = "stm32-ddrctrl",
-	.probe  = stm32_ddrctrl_probe,
-	.of_compatible = DRV_OF_COMPAT(stm32_ddrctrl_dt_ids),
+static struct driver_d stm32mp1_ddr_driver = {
+	.name   = "stm32mp1-ddr",
+	.probe  = stm32mp1_ddr_probe,
+	.of_compatible = DRV_OF_COMPAT(stm32mp1_ddr_dt_ids),
 };
 
-static int stm32_ddrctrl_init(void)
+static int stm32mp1_ddr_init(void)
 {
-	return platform_driver_register(&stm32_ddrctrl_driver);
+	return platform_driver_register(&stm32mp1_ddr_driver);
 }
-mem_initcall(stm32_ddrctrl_init);
+mem_initcall(stm32mp1_ddr_init);
