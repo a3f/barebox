@@ -534,8 +534,11 @@ int globalvar_add_simple_bool(const char *name, int *value)
 	return 0;
 }
 
-int globalvar_add_simple_enum(const char *name,	int *value,
-			      const char * const *names, int max)
+int globalvar_add_enum(const char *name,
+		       int (*set)(struct param_d *, void *),
+		       int (*get)(struct param_d *, void *),
+		       int *value, const char * const *names, int max,
+		       void *priv)
 {
 	struct param_d *p;
 	int ret;
@@ -544,8 +547,8 @@ int globalvar_add_simple_enum(const char *name,	int *value,
 	if (ret)
 		return ret;
 
-	p = dev_add_param_enum(&global_device, name, NULL, NULL,
-		value, names, max, NULL);
+	p = dev_add_param_enum(&global_device, name, set, get,
+		value, names, max, priv);
 
 	if (IS_ERR(p))
 		return PTR_ERR(p);

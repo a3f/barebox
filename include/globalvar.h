@@ -20,8 +20,10 @@ int globalvar_add_simple_string(const char *name, char **value);
 int globalvar_add_simple_int(const char *name, int *value,
 			     const char *format);
 int globalvar_add_simple_bool(const char *name, int *value);
-int globalvar_add_simple_enum(const char *name,	int *value,
-			      const char * const *names, int max);
+int globalvar_add_enum(const char *name,
+		       int (*set)(struct param_d *, void *),
+		       int (*get)(struct param_d *, void *),
+		       int *value, const char * const *names, int max, void *priv);
 int globalvar_add_simple_bitmask(const char *name, unsigned long *value,
 				 const char * const *names, int max);
 int globalvar_add_simple_ip(const char *name, IPaddr_t *ip);
@@ -57,8 +59,11 @@ static inline int globalvar_add_simple_bool(const char *name,
 	return 0;
 }
 
-static inline int globalvar_add_simple_enum(const char *name,
-		int *value, const char * const *names, int max)
+static inline int globalvar_add_enum(const char *name,
+				     int (*set)(struct param_d *, void *),
+				     int (*get)(struct param_d *, void *),
+				     int *value, const char * const *names,
+				     int max, void *priv)
 {
 	return 0;
 }
@@ -115,6 +120,12 @@ static inline void dev_param_init_from_nv(struct device_d *dev, const char *name
 }
 
 #endif
+
+static inline int globalvar_add_simple_enum(const char *name, int *value,
+					    const char * const *names, int max)
+{
+	return globalvar_add_enum(name, NULL, NULL, value, names, max, NULL);
+}
 
 void nv_var_set_clean(void);
 int nvvar_save(void);
