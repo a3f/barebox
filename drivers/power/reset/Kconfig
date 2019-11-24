@@ -13,3 +13,14 @@ config NVMEM_REBOOT_MODE
 	  get reboot mode arguments and store it in a NVMEM cell,
 	  then the bootloader can read it and take different
 	  action according to the mode.
+
+config SYSCON_REBOOT_MODE
+	bool "Generic SYSCON regmap reboot mode driver"
+	depends on OFDEVICE
+	depends on MFD_SYSCON
+	select REBOOT_MODE
+	help
+	  Say y here will enable reboot mode driver. This will
+	  get reboot mode arguments and store it in SYSCON mapped
+	  register, then the bootloader can read it to take different
+	  action according to the mode.
