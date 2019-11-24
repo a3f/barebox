@@ -15,9 +15,10 @@ struct nvmem_reboot_mode {
 };
 
 static int nvmem_reboot_mode_write(struct reboot_mode_driver *reboot,
-				   u32 magic)
+				   const u32 *_magic)
 {
 	struct nvmem_reboot_mode *nvmem_rbm;
+	u32 magic = *_magic;
 	int ret;
 
 	nvmem_rbm = container_of(reboot, struct nvmem_reboot_mode, reboot);
@@ -55,7 +56,7 @@ static int nvmem_reboot_mode_probe(struct device_d *dev)
 		return PTR_ERR(magicbuf);
 	}
 
-	ret = reboot_mode_register(&nvmem_rbm->reboot, *(u32 *)magicbuf);
+	ret = reboot_mode_register(&nvmem_rbm->reboot, magicbuf, 1);
 	if (ret)
 		dev_err(dev, "can't register reboot mode\n");
 
