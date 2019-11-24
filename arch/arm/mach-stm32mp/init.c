@@ -11,7 +11,6 @@
 #include <mach/stm32.h>
 #include <mach/bsec.h>
 #include <mach/revision.h>
-#include <mach/bootsource.h>
 #include <bootsource.h>
 
 /* DBGMCU register */
@@ -75,12 +74,18 @@
 #define TAMP_BOOT_FORCED_MASK           GENMASK(7, 0)
 #define TAMP_BOOT_DEBUG_ON              BIT(16)
 
+enum stm32mp_boot_device {
+	STM32MP_BOOT_FLASH_SD		= 0x10, /* .. 0x13 */
+	STM32MP_BOOT_FLASH_EMMC		= 0x20, /* .. 0x23 */
+	STM32MP_BOOT_FLASH_NAND		= 0x30,
+	STM32MP_BOOT_FLASH_NAND_FMC	= 0x31,
+	STM32MP_BOOT_FLASH_NOR		= 0x40,
+	STM32MP_BOOT_FLASH_NOR_QSPI	= 0x41,
+	STM32MP_BOOT_SERIAL_UART	= 0x50, /* .. 0x58 */
+	STM32MP_BOOT_SERIAL_USB		= 0x60,
+	STM32MP_BOOT_SERIAL_USB_OTG	= 0x62,
+};
 
-static enum stm32mp_forced_boot_mode __stm32mp_forced_boot_mode;
-enum stm32mp_forced_boot_mode st32mp_get_forced_boot_mode(void)
-{
-	return __stm32mp_forced_boot_mode;
-}
 
 static void setup_boot_mode(void)
 {
@@ -117,17 +122,11 @@ static void setup_boot_mode(void)
 		break;
 	}
 
-	__stm32mp_forced_boot_mode = boot_ctx & TAMP_BOOT_FORCED_MASK;
-
-	pr_debug("[boot_ctx=0x%x] => mode=0x%x, instance=%d forced=0x%x\n",
-		 boot_ctx, boot_mode, instance, __stm32mp_forced_boot_mode);
+	pr_debug("[boot_ctx=0x%x] => mode=0x%x, instance=%d\n",
+		 boot_ctx, boot_mode, instance);
 
 	bootsource_set(src);
 	bootsource_set_instance(instance);
-
-	/* clear TAMP for next reboot */
-	clrsetbits_le32(TAMP_BOOT_CONTEXT, TAMP_BOOT_FORCED_MASK,
-			STM32MP_BOOT_NORMAL);
 }
 
 static int __stm32mp_cputype;
