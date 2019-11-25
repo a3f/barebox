@@ -117,4 +117,22 @@ config F71808E_WDT
 	  F71862FG, F71868, F71869, F71882FG, F71889FG, F81865 and F81866
 	  Super I/O controllers.
 
+config ITCO_WDT
+	bool "Intel TCO Timer/Watchdog"
+	depends on X86
+	depends on PCI
+	help
+	  Hardware driver for the intel TCO timer based watchdog devices.
+	  These drivers are included in the Intel 82801 I/O Controller
+	  Hub family (from ICH0 up to ICH10) and in the Intel 63xxESB
+	  controller hub.
+
+	  The TCO (Total Cost of Ownership) timer is a watchdog timer
+	  that will reboot the machine after its second expiration.
+
+	  On some motherboards the driver may fail to reset the chipset's
+	  NO_REBOOT flag which prevents the watchdog from rebooting the
+	  machine. If this is the case you will get a kernel message like
+	  "failed to reset NO_REBOOT flag, reboot disabled by hardware".
+
 endif
