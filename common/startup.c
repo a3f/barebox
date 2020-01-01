@@ -161,7 +161,7 @@ static const char * const global_autoboot_abort_keys[] = {
 	"any",
 	"ctrl-c",
 };
-static int global_autoboot_timeout = 3;
+static int global_autoboot_timeout = 0;
 
 static bool test_abort(void)
 {
@@ -283,8 +283,6 @@ static int run_init(void)
 				  &global_autoboot_abort_key,
                                   global_autoboot_abort_keys,
 				  ARRAY_SIZE(global_autoboot_abort_keys));
-	globalvar_add_simple_int("autoboot_timeout",
-				 &global_autoboot_timeout, "%u");
 
 	setenv("PATH", "/env/bin");
 
