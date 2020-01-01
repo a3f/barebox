@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <linux/stringify.h>
+#include <asan.h>
 
 #include "tlsf.h"
 #include "tlsfbits.h"
@@ -242,9 +243,11 @@ static block_header_t* offset_to_block(const void* ptr, size_t size)
 }
 
 /* Return location of previous block. */
+// ASAN pre: unpoisoned size: block
+// ASAN temporarily unpoisons trailer
 static block_header_t* block_prev(const block_header_t* block)
 {
-	return block->prev_phys_block;
+	return ASAN_READ_UNPOISONED(block->prev_phys_block);
 }
 
 /* Return location of next existing block. */
@@ -257,25 +260,36 @@ static block_header_t* block_next(const block_header_t* block)
 }
 
 /* Link a new block with its physical neighbor, return the neighbor. */
+// ASAN pre: unpoisoned size: block
 static block_header_t* block_link_next(block_header_t* block)
 {
 	block_header_t* next = block_next(block);
-	next->prev_phys_block = block;
+	ASAN_WRITE_UNPOISONED(next->prev_phys_block, block);
 	return next;
 }
 
+// ASAN expects unpoisoned size block
+// ASAN leaves it unpoisoned
+// ASAN temporarily unpoisons next block
 static void block_mark_as_free(block_header_t* block)
 {
 	/* Link the block to the next block, first. */
 	block_header_t* next = block_link_next(block);
-	block_set_prev_free(next);
+	ASAN_UNPOISON_OBJECT(next->size); {
+		block_set_prev_free(next);
+	} ASAN_POISON_OBJECT(next->size);
 	block_set_free(block);
 }
 
+// ASAN pre: unpoisoned size block
+// ASAN post: unpoisoned size block
+// ASAN temporarily unpoisons next block
 static void block_mark_as_used(block_header_t* block)
 {
 	block_header_t* next = block_next(block);
-	block_set_prev_used(next);
+	ASAN_UNPOISON_OBJECT(next->size); {
+		block_set_prev_used(next);
+	} ASAN_POISON_OBJECT(next->size);
 	block_set_used(block);
 }
 
@@ -351,6 +365,7 @@ static void mapping_search(size_t size, int* fli, int* sli)
 
 static block_header_t* search_suitable_block(pool_t* pool, int* fli, int* sli)
 {
+	block_header_t *block;
 	int fl = *fli;
 	int sl = *sli;
 
@@ -358,11 +373,11 @@ static block_header_t* search_suitable_block(pool_t* pool, int* fli, int* sli)
 	** First, search for a block in the list associated with the given
 	** fl/sl index.
 	*/
-	unsigned int sl_map = pool->sl_bitmap[fl] & (~0 << sl);
+	unsigned int sl_map = pool->sl_bitmap[fl] & (~0U << sl);
 	if (!sl_map)
 	{
 		/* No block exists. Search in the next largest first-level list. */
-		const unsigned int fl_map = pool->fl_bitmap & (~0 << (fl + 1));
+		const unsigned int fl_map = pool->fl_bitmap & (~0U << (fl + 1));
 		if (!fl_map)
 		{
 			/* No free blocks available, memory has been exhausted. */
@@ -378,18 +393,25 @@ static block_header_t* search_suitable_block(pool_t* pool, int* fli, int* sli)
 	*sli = sl;
 
 	/* Return the first block in the free list. */
-	return pool->blocks[fl][sl];
+	block = pool->blocks[fl][sl];
+
+	ASAN_UNPOISON_OBJECT(block->size);
+
+	return block;
 }
 
 /* Remove a free block from the free list.*/
+// ASAN pre: unpoisoned size block
+// ASAN temporarily unpoisons block/next/prev free list
 static void remove_free_block(pool_t* pool, block_header_t* block, int fl, int sl)
 {
-	block_header_t* prev = block->prev_free;
-	block_header_t* next = block->next_free;
+	block_header_t* prev = ASAN_READ_UNPOISONED(block->prev_free);
+	block_header_t* next = ASAN_READ_UNPOISONED(block->next_free);
 	tlsf_assert(prev && "prev_free field can not be null");
 	tlsf_assert(next && "next_free field can not be null");
-	next->prev_free = prev;
-	prev->next_free = next;
+
+	ASAN_WRITE_UNPOISONED(next->prev_free, prev);
+	ASAN_WRITE_UNPOISONED(prev->next_free, next);
 
 	/* If this block is the head of the free list, set new head. */
 	if (pool->blocks[fl][sl] == block)
@@ -411,14 +433,15 @@ static void remove_free_block(pool_t* pool, block_header_t* block, int fl, int s
 }
 
 /* Insert a free block into the free block list. */
+// ASAN temporarily unpoisons free list of current free list head
 static void insert_free_block(pool_t* pool, block_header_t* block, int fl, int sl)
 {
 	block_header_t* current = pool->blocks[fl][sl];
 	tlsf_assert(current && "free list cannot have a null entry");
 	tlsf_assert(block && "cannot insert a null entry into the free list");
-	block->next_free = current;
-	block->prev_free = &pool->block_null;
-	current->prev_free = block;
+	ASAN_WRITE_UNPOISONED(block->next_free, current);
+	ASAN_WRITE_UNPOISONED(block->prev_free, &pool->block_null);
+	ASAN_WRITE_UNPOISONED(current->prev_free, block);
 
 	tlsf_assert(block_to_ptr(block) == align_ptr(block_to_ptr(block), ALIGN_SIZE)
 		&& "block not aligned properly");
@@ -453,13 +476,17 @@ static int block_can_split(block_header_t* block, size_t size)
 }
 
 /* Split a block into two, the second of which is free. */
+// ASAN pre: unpoisoned size block
+// ASAN post: unpoisoned size block, unpoisoned result
 static block_header_t* block_split(block_header_t* block, size_t size)
 {
 	/* Calculate the amount of space left in the remaining block. */
 	block_header_t* remaining =
 		offset_to_block(block_to_ptr(block), size - block_header_overhead);
+	size_t remain_size;
+	ASAN_UNPOISON_OBJECT(remaining->size);
 
-	const size_t remain_size = block_size(block) - (size + block_header_overhead);
+	remain_size = block_size(block) - (size + block_header_overhead);
 
 	tlsf_assert(block_to_ptr(remaining) == align_ptr(block_to_ptr(remaining), ALIGN_SIZE)
 		&& "remaining block not aligned properly");
@@ -475,13 +502,12 @@ static block_header_t* block_split(block_header_t* block, size_t size)
 }
 
 /* Absorb a free block's storage into an adjacent previous free block. */
-static block_header_t* block_absorb(block_header_t* prev, block_header_t* block)
+static void block_absorb(block_header_t* prev, block_header_t* block)
 {
 	tlsf_assert(!block_is_last(prev) && "previous block can't be last!");
 	/* Note: Leaves flags untouched. */
 	prev->size += block_size(block) + block_header_overhead;
 	block_link_next(prev);
-	return prev;
 }
 
 /* Merge a just-freed block with an adjacent previous free block. */
@@ -490,32 +516,41 @@ static block_header_t* block_merge_prev(pool_t* pool, block_header_t* block)
 	if (block_is_prev_free(block))
 	{
 		block_header_t* prev = block_prev(block);
+		ASAN_UNPOISON_OBJECT(prev->size);
 		tlsf_assert(prev && "prev physical block can't be null");
 		tlsf_assert(block_is_free(prev) && "prev block is not free though marked as such");
 		block_remove(pool, prev);
-		block = block_absorb(prev, block);
+		block_absorb(prev, block);
+		ASAN_POISON_OBJECT(block->size);
+		block = prev;
 	}
 
 	return block;
 }
 
 /* Merge a just-freed block with an adjacent free block. */
+// ASAN pre expect unpoisoned header for block
+// ASAN post leave it unpoisoned
 static block_header_t* block_merge_next(pool_t* pool, block_header_t* block)
 {
 	block_header_t* next = block_next(block);
 	tlsf_assert(next && "next physical block can't be null");
+	ASAN_UNPOISON_OBJECT(next->size);
 
 	if (block_is_free(next))
 	{
 		tlsf_assert(!block_is_last(block) && "previous block can't be last!");
 		block_remove(pool, next);
-		block = block_absorb(block, next);
+		block_absorb(block, next);
 	}
 
+	ASAN_POISON_OBJECT(next->size);
 	return block;
 }
 
 /* Trim any trailing block space off the end of a block, return to pool. */
+// ASAN pre unpoisoned size block
+// ASAN post unpoisoned size block
 static void block_trim_free(pool_t* pool, block_header_t* block, size_t size)
 {
 	tlsf_assert(block_is_free(block) && "block must be free");
@@ -525,10 +560,13 @@ static void block_trim_free(pool_t* pool, block_header_t* block, size_t size)
 		block_link_next(block);
 		block_set_prev_free(remaining_block);
 		block_insert(pool, remaining_block);
+		ASAN_POISON_OBJECT(remaining_block->size);
 	}
 }
 
 /* Trim any trailing block space off the end of a used block, return to pool. */
+// ASAN pre unpoisoned size block
+// ASAN post unpoisoned size block
 static void block_trim_used(pool_t* pool, block_header_t* block, size_t size)
 {
 	tlsf_assert(!block_is_free(block) && "block must be used");
@@ -540,9 +578,12 @@ static void block_trim_used(pool_t* pool, block_header_t* block, size_t size)
 
 		remaining_block = block_merge_next(pool, remaining_block);
 		block_insert(pool, remaining_block);
+		ASAN_POISON_OBJECT(remaining_block->size);
 	}
 }
 
+// ASAN pre unpoisoned size block
+// ASAN post unpoisoned return, block should not be used
 static block_header_t* block_trim_free_leading(pool_t* pool, block_header_t* block, size_t size)
 {
 	block_header_t* remaining_block = block;
@@ -554,6 +595,7 @@ static block_header_t* block_trim_free_leading(pool_t* pool, block_header_t* blo
 
 		block_link_next(block);
 		block_insert(pool, block);
+		ASAN_POISON_OBJECT(block->size);
 	}
 
 	return remaining_block;
@@ -587,6 +629,8 @@ static void* block_prepare_used(pool_t* pool, block_header_t* block, size_t size
 		block_trim_free(pool, block, size);
 		block_mark_as_used(block);
 		p = block_to_ptr(block);
+		ASAN_UNPOISON_MEMORY_REGION(p, block_size(block));
+		ASAN_POISON_OBJECT(block->size);
 	}
 	return p;
 }
@@ -726,7 +770,10 @@ size_t tlsf_block_size(void* ptr)
 	if (ptr)
 	{
 		const block_header_t* block = block_from_ptr(ptr);
-		size = block_size(block);
+		ASAN_UNPOISON_OBJECT(block->size); {
+			size = block_size(block);
+		} ASAN_POISON_OBJECT(block->size);
+		ASAN_UNPOISON_MEMORY_REGION(ptr, size);
 	}
 	return size;
 }
@@ -813,6 +860,12 @@ tlsf_pool tlsf_create(void* mem, size_t bytes)
 	block_set_used(next);
 	block_set_prev_free(next);
 
+	ASAN_POISON_OBJECT(pool->block_null.next_free);
+	ASAN_POISON_OBJECT(pool->block_null.prev_free);
+	ASAN_POISON_MEMORY_REGION(block_to_ptr(block), block_size(block));
+	ASAN_POISON_OBJECT(block->size);
+	ASAN_POISON_OBJECT(next->size);
+
 	return tlsf_cast(tlsf_pool, pool);
 }
 
@@ -891,10 +944,14 @@ void tlsf_free(tlsf_pool tlsf, void* ptr)
 	{
 		pool_t* pool = tlsf_cast(pool_t*, tlsf);
 		block_header_t* block = block_from_ptr(ptr);
+		block_header_t* prev;
+		ASAN_UNPOISON_OBJECT(block->size);
+		ASAN_POISON_MEMORY_REGION(ptr, block_size(block));
 		block_mark_as_free(block);
-		block = block_merge_prev(pool, block);
-		block = block_merge_next(pool, block);
+		prev = block_merge_prev(pool, block);
+		block = block_merge_next(pool, prev);
 		block_insert(pool, block);
+		ASAN_POISON_OBJECT(prev->size);
 	}
 }
 
@@ -928,12 +985,17 @@ void* tlsf_realloc(tlsf_pool tlsf, void* ptr, size_t size)
 	}
 	else
 	{
-		block_header_t* block = block_from_ptr(ptr);
-		block_header_t* next = block_next(block);
+		block_header_t *block, *next;
+		size_t cursize, combined, adjust;
 
-		const size_t cursize = block_size(block);
-		const size_t combined = cursize + block_size(next) + block_header_overhead;
-		const size_t adjust = adjust_request_size(size, ALIGN_SIZE);
+		block = block_from_ptr(ptr);
+		ASAN_UNPOISON_OBJECT(block->size); {
+			next = block_next(block);
+		} ASAN_UNPOISON_OBJECT(next->size);
+
+		cursize = block_size(block);
+		combined = cursize + block_size(next) + block_header_overhead;
+		adjust = adjust_request_size(size, ALIGN_SIZE);
 
 		/*
 		** If the next block is used, or when combined with the current
@@ -941,6 +1003,8 @@ void* tlsf_realloc(tlsf_pool tlsf, void* ptr, size_t size)
 		*/
 		if (adjust > cursize && (!block_is_free(next) || adjust > combined))
 		{
+			ASAN_POISON_OBJECT(block->size);
+			ASAN_POISON_OBJECT(next->size);
 			p = tlsf_malloc(tlsf, size);
 			if (p)
 			{
@@ -951,16 +1015,21 @@ void* tlsf_realloc(tlsf_pool tlsf, void* ptr, size_t size)
 		}
 		else
 		{
+			ASAN_POISON_OBJECT(next->size);
 			/* Do we need to expand to the next block? */
 			if (adjust > cursize)
 			{
 				block_merge_next(pool, block);
 				block_mark_as_used(block);
+				ASAN_UNPOISON_MEMORY_REGION(ptr + cursize, adjust - cursize);
+			} else {
+				ASAN_POISON_MEMORY_REGION(ptr + adjust, cursize - adjust);
 			}
 
 			/* Trim the resulting block and return the original pointer. */
 			block_trim_used(pool, block, adjust);
 			p = ptr;
+			ASAN_POISON_OBJECT(block->size);
 		}
 	}
 
