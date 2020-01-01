@@ -38,6 +38,7 @@ obj-$(CONFIG_KALLSYMS)		+= kallsyms.o
 obj-$(CONFIG_MALLOC_DLMALLOC)	+= dlmalloc.o
 obj-$(CONFIG_MALLOC_TLSF)	+= tlsf_malloc.o tlsf.o calloc.o
 obj-$(CONFIG_MALLOC_DUMMY)	+= dummy_malloc.o calloc.o
+obj-$(CONFIG_MALLOC_LIBC)	+= libc_malloc.o
 obj-$(CONFIG_MEMINFO)		+= meminfo.o
 obj-$(CONFIG_MENU)		+= menu.o
 obj-$(CONFIG_MODULES)		+= module.o
