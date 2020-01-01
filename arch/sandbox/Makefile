@@ -1,6 +1,8 @@
 KBUILD_DEFCONFIG := sandbox_defconfig
 
-CPPFLAGS += -D__SANDBOX__ -fno-strict-aliasing -fvisibility=hidden
+CPPFLAGS += -D__SANDBOX__ -fno-strict-aliasing -fvisibility=hidden -m32
+LDFLAGS += -m elf_i386
+LDFLAGS_barebox += -m elf_i386
 
 
 machine-y := sandbox
@@ -59,7 +61,7 @@ endif
 cmd_barebox__ = $(CC) -o $@ -Wl,-T,$(barebox-lds) \
 	-Wl,--start-group $(barebox-common) -Wl,--end-group \
 	-lrt -lpthread $(SDL_LIBS) $(FTDI1_LIBS) \
-	$(SANITIZER_LIBS)
+	$(SANITIZER_LIBS) -m32
 
 common-y += $(BOARD) arch/sandbox/os/ arch/sandbox/lib/
 

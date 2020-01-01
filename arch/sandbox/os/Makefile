@@ -8,7 +8,9 @@ else
 CPPFLAGS = $(patsubst %,-I$(srctree)/%include,$(machdirs))
 endif
 
-CPPFLAGS += -DCONFIG_MALLOC_SIZE=$(CONFIG_MALLOC_SIZE)
+CPPFLAGS += -DCONFIG_MALLOC_SIZE=$(CONFIG_MALLOC_SIZE) -m32
+LDFLAGS += -m elf_i386
+LDFLAGS_barebox += -m elf_i386
 
 CFLAGS := -Wall
 NOSTDINC_FLAGS :=
