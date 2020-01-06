@@ -19,6 +19,7 @@ struct pbl_bio {
 	void *priv;
 	int (*read)(struct pbl_bio *bio, off_t block_off, void *buf, unsigned int nblocks);
 };
+int pbl_fat_load(struct pbl_bio *, const char *filename, void *dest, unsigned int len);
 #else
 #define IN_PBL	0
 #endif
