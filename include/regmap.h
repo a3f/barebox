@@ -44,6 +44,16 @@ struct regmap *regmap_init(struct device_d *dev,
 			     const struct regmap_bus *bus,
 			     void *bus_context,
 			     const struct regmap_config *config);
+
+struct clk;
+
+struct regmap *regmap_init_mmio_clk(struct device_d *dev, const char *clk_id,
+				    void __iomem *regs,
+				    const struct regmap_config *config);
+
+int regmap_mmio_attach_clk(struct regmap *map, struct clk *clk);
+void regmap_mmio_detach_clk(struct regmap *map);
+
 void regmap_exit(struct regmap *map);
 
 struct regmap *dev_get_regmap(struct device_d *dev, const char *name);
