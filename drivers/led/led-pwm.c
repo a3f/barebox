@@ -29,22 +29,27 @@ struct pwmled {
 	bool active_low;
 	struct led led;
 	struct pwm_device *pwm;
-	uint32_t period;
 };
 
 static void led_pwm_set(struct led *led, unsigned int brightness)
 {
 	struct pwmled *pwmled = container_of(led, struct pwmled, led);
-	unsigned long long duty =  pwmled->period;
+	unsigned long long duty;
+	struct pwm_state state;
 	unsigned int max = pwmled->led.max_value;
 
-        duty *= brightness;
+	pwm_get_state(pwmled->pwm, &state);
+
+	duty = state.period_ns * brightness;
         do_div(duty, max);
 
 	if (pwmled->active_low)
-		duty = pwmled->period - duty;
+		duty = state.period_ns - duty;
 
-	pwm_config(pwmled->pwm, duty, pwmled->period);
+	state.p_enable = true;
+	state.duty_ns = duty;
+
+	pwm_apply_state(pwmled->pwm, &state);
 }
 
 static int led_pwm_of_probe(struct device_d *dev)
@@ -55,6 +60,7 @@ static int led_pwm_of_probe(struct device_d *dev)
 	for_each_child_of_node(dev->device_node, child) {
 		struct pwmled *pwmled;
 		struct pwm_device *pwm;
+		struct pwm_state state;
 
 		pwm = of_pwm_request(child, NULL);
 		if (IS_ERR(pwm))
@@ -68,13 +74,16 @@ static int led_pwm_of_probe(struct device_d *dev)
 		if (ret)
 			return ret;
 
-		pwmled->period = pwm_get_period(pwmled->pwm);
 		pwmled->active_low = of_property_read_bool(child, "active-low");
 
 		pwmled->led.set = led_pwm_set;
 
-		pwm_config(pwmled->pwm, 0, pwmled->period);
-		pwm_enable(pwmled->pwm);
+		pwm_get_state(pwm, &state);
+
+		state.p_enable = true;
+		state.duty_ns = 0;
+
+		pwm_apply_state(pwm, &state);
 
 		ret = led_register(&pwmled->led);
 		if (ret)
