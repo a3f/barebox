@@ -33,7 +33,6 @@ struct pwm_backlight {
 	struct backlight_device backlight;
 	struct pwm_device *pwm;
 	struct regulator *power;
-	uint32_t period;
 	unsigned int *levels;
 	int enable_gpio;
 	int enable_active_high;
@@ -91,13 +90,16 @@ static int backlight_pwm_disable(struct pwm_backlight *pwm_backlight)
 static int compute_duty_cycle(struct pwm_backlight *pwm_backlight, int brightness)
 {
 	int duty_cycle;
+	struct pwm_state state;
+
+	pwm_get_state(pwm_backlight->pwm, &state);
 
 	if (pwm_backlight->levels)
 		duty_cycle = pwm_backlight->levels[brightness];
 	else
 		duty_cycle = brightness;
 
-	return duty_cycle * pwm_backlight->period / pwm_backlight->scale;
+	return duty_cycle * state.period_ns / pwm_backlight->scale;
 }
 
 static int backlight_pwm_set(struct backlight_device *backlight,
@@ -105,9 +107,11 @@ static int backlight_pwm_set(struct backlight_device *backlight,
 {
 	struct pwm_backlight *pwm_backlight = container_of(backlight,
 			struct pwm_backlight, backlight);
+	struct pwm_state state;
 
-	pwm_config(pwm_backlight->pwm, compute_duty_cycle(pwm_backlight, brightness),
-		   pwm_backlight->period);
+	pwm_get_state(pwm_backlight->pwm, &state);
+	state.duty_ns = compute_duty_cycle(pwm_backlight, brightness);
+	pwm_apply_state(pwm_backlight->pwm, &state);
 
 	if (brightness)
 		return backlight_pwm_enable(pwm_backlight);
@@ -192,7 +196,6 @@ static int backlight_pwm_of_probe(struct device_d *dev)
 
 	pwm_backlight = xzalloc(sizeof(*pwm_backlight));
 	pwm_backlight->pwm = pwm;
-	pwm_backlight->period = pwm_get_period(pwm);
 
 	ret = pwm_backlight_parse_dt(dev, pwm_backlight);
 	if (ret)
