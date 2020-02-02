@@ -17,12 +17,14 @@
 #include <errno.h>
 #include <malloc.h>
 #include <pwm.h>
+#include <dt-bindings/pwm/pwm.h>
 #include <linux/list.h>
 #include <linux/err.h>
 
 /**
  * struct pwm_args - board-dependent PWM arguments
  * @period_ns: reference period
+ * @polarity: reference polarity
  *
  * This structure describes board-dependent arguments attached to a PWM
  * device. These arguments are usually retrieved from the PWM lookup table or
@@ -35,6 +37,7 @@
 
 struct pwm_args {
 	unsigned int period_ns;
+	enum pwm_polarity polarity;
 };
 
 struct pwm_device {
@@ -63,7 +66,7 @@ static struct pwm_device *_find_pwm(const char *devname)
 	return NULL;
 }
 
-static int set_duty_period_ns(struct param_d *p, void *priv)
+static int apply_params(struct param_d *p, void *priv)
 {
 	struct pwm_device *pwm = priv;
 	return pwm_apply_state(pwm, &pwm->params);
@@ -111,18 +114,23 @@ int pwmchip_add(struct pwm_chip *chip, struct device_d *dev)
 
 	list_add_tail(&pwm->node, &pwm_list);
 
-	p = dev_add_param_uint32(&pwm->dev, "duty_ns", set_duty_period_ns,
+	p = dev_add_param_uint32(&pwm->dev, "duty_ns", apply_params,
 			NULL, &pwm->params.duty_ns, "%u", pwm);
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 
-	p = dev_add_param_uint32(&pwm->dev, "period_ns", set_duty_period_ns,
+	p = dev_add_param_uint32(&pwm->dev, "period_ns", apply_params,
 			NULL, &pwm->params.period_ns, "%u", pwm);
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 
 	p = dev_add_param_bool(&pwm->dev, "enable", set_enable,
 			NULL, &pwm->params.p_enable, pwm);
+	if (IS_ERR(p))
+		return PTR_ERR(p);
+
+	p = dev_add_param_bool(&pwm->dev, "inverted", apply_params,
+			       NULL, &pwm->params.polarity, pwm);
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 
@@ -233,6 +241,11 @@ struct pwm_device *of_pwm_request(struct device_node *np, const char *con_id)
 	if (args.args_count > 1)
 		pwm->args.period_ns = args.args[1];
 
+	pwm->args.polarity = PWM_POLARITY_NORMAL;
+
+	if (args.args_count > 2 && args.args[2] & PWM_POLARITY_INVERTED)
+		pwm->args.polarity = PWM_POLARITY_INVERSED;
+
 	ret = __pwm_request(pwm);
 	if (ret)
 		return ERR_PTR(ret);
@@ -276,7 +289,7 @@ static void pwm_get_args(const struct pwm_device *pwm, struct pwm_args *args)
  * This functions prepares a state that can later be tweaked and applied
  * to the PWM device with pwm_apply_state(). This is a convenient function
  * that first retrieves the current PWM state and the replaces the period
- * with the reference values defined in pwm->args.
+ * and polarity fields with the reference values defined in pwm->args.
  * Once the function returns, you can adjust the ->enabled and ->duty_cycle
  * fields according to your needs before calling pwm_apply_state().
  *
@@ -297,6 +310,7 @@ void pwm_init_state(const struct pwm_device *pwm,
 	pwm_get_args(pwm, &args);
 
 	state->period_ns = args.period_ns;
+	state->polarity = args.polarity;
 	state->duty_ns = 0;
 }
 EXPORT_SYMBOL_GPL(pwm_init_state);
