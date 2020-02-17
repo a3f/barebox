@@ -13,6 +13,8 @@
 #include <of.h>
 #include <linux/iopoll.h>
 #include <dma.h>
+#include <linux/reset.h>
+#include <linux/clk.h>
 
 #include "dwc2.h"
 
@@ -1067,6 +1069,7 @@ static int dwc2_probe(struct device_d *dev)
 	struct device_node *np = dev->device_node;
 	int ret;
 	uint32_t snpsid;
+	struct clk *clk;
 
 	priv = xzalloc(sizeof(*priv));
 
@@ -1076,6 +1079,11 @@ static int dwc2_probe(struct device_d *dev)
 
 	priv->regs = IOMEM(iores->start);
 	priv->dev = dev;
+
+	device_reset_us(dev, 2);
+	clk = of_clk_get(dev->device_node, 0);
+	if (!IS_ERR(clk))
+		clk_enable(clk);
 
 	snpsid = readl(&priv->regs->gsnpsid);
 	dev_info(dev, "Core Release: %x.%03x\n",
