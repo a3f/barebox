@@ -32,8 +32,13 @@
 #include <usb/ehci.h>
 #include <linux/err.h>
 #include <linux/sizes.h>
+#include <linux/reset.h>
+#include <linux/clk.h>
+#include <linux/phy/phy.h>
 
 #include "ehci.h"
+
+#define EHCI_MAX_CLKS 4
 
 struct ehci_host {
 	int rootdev;
@@ -56,6 +61,8 @@ struct ehci_host {
 	dma_addr_t periodic_queue_dma;
 	uint32_t *periodic_list;
 	dma_addr_t periodic_list_dma;
+
+	struct phy *phy;
 };
 
 struct int_queue {
@@ -1418,6 +1425,10 @@ static int ehci_probe(struct device_d *dev)
 	struct ehci_platform_data *pdata = dev->platform_data;
 	struct device_node *dn = dev->device_node;
 	struct ehci_host *ehci;
+	struct phy *phy;
+	struct reset_control *rsts;
+	struct clk *clk;
+	int i, err;
 
 	if (pdata)
 		data.flags = pdata->flags;
@@ -1430,6 +1441,37 @@ static int ehci_probe(struct device_d *dev)
 		 * without platform_data
 		 */
 		data.flags = EHCI_HAS_TT;
+
+	rsts = of_reset_control_array_get_optional(dev->device_node);
+	if (IS_ERR(rsts))
+		return PTR_ERR(rsts);
+
+	reset_control_deassert(rsts);
+
+	reset_control_put(rsts);
+
+	for (i = 0; i < EHCI_MAX_CLKS; i++) {
+		clk = of_clk_get(dev->device_node, i);
+		if (IS_ERR(clk)) {
+			err = PTR_ERR(clk);
+			if (err == -EPROBE_DEFER)
+				return err;
+			break;
+		}
+
+		clk_enable(clk);
+	}
+
+	phy = phy_get_by_index(dev, 0);
+	if (IS_ERR(phy) && PTR_ERR(phy) != -ENODEV) {
+		return PTR_ERR(phy);
+	} else {
+		err = phy_init(phy);
+		if (err)
+			return err;
+
+		phy_power_on(phy);
+	}
 
 	iores = dev_request_mem_resource(dev, 0);
 	if (IS_ERR(iores))
