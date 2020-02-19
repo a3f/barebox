@@ -1385,7 +1385,7 @@ static int ehci_dev_detect(struct device_d *dev)
 
 static int ehci_probe(struct device_d *dev)
 {
-	struct resource *iores;
+	struct resource *iores[2] = {};
 	struct ehci_data data = {};
 	struct ehci_platform_data *pdata = dev->platform_data;
 	struct device_node *dn = dev->device_node;
@@ -1438,28 +1438,40 @@ static int ehci_probe(struct device_d *dev)
 		phy_power_on(phy);
 	}
 
-	iores = dev_request_mem_resource(dev, 0);
-	if (IS_ERR(iores))
-		return PTR_ERR(iores);
-	data.hccr = IOMEM(iores->start);
+	iores[0] = dev_request_mem_resource(dev, 0);
+	if (IS_ERR(iores[0]))
+		return PTR_ERR(iores[0]);
+	data.hccr = IOMEM(iores[0]->start);
 
 	if (dev->num_resources > 1) {
-		iores = dev_request_mem_resource(dev, 1);
-		if (IS_ERR(iores))
-			return PTR_ERR(iores);
-		data.hcor = IOMEM(iores->start);
+		iores[1] = dev_request_mem_resource(dev, 1);
+		if (IS_ERR(iores[1])) {
+			err = PTR_ERR(iores[1]);
+			goto release_iores0;
+		}
+		data.hcor = IOMEM(iores[1]->start);
 	}
 	else
 		data.hcor = NULL;
 
 	ehci = ehci_register(dev, &data);
-	if (IS_ERR(ehci))
-		return PTR_ERR(ehci);
+	if (IS_ERR(ehci)) {
+		err = PTR_ERR(ehci);
+		goto release_iores1;
+	}
 
 	dev->priv = ehci;
 	dev->detect = ehci_dev_detect;
 
 	return 0;
+
+release_iores1:
+	if(iores[1])
+		release_region(iores[1]);
+release_iores0:
+	release_region(iores[0]);
+
+	return err;
 }
 
 static void ehci_remove(struct device_d *dev)
