@@ -34,6 +34,8 @@ struct reset_control {
 
 	struct device_d *dev;
 	unsigned int id;
+
+	struct list_head list;
 };
 
 /**
@@ -88,15 +90,23 @@ EXPORT_SYMBOL_GPL(reset_controller_unregister);
  * reset_control_reset - reset the controlled device
  * @rstc: reset controller
  */
-int reset_control_reset(struct reset_control *rstc)
+int reset_control_reset(struct reset_control *rstc_head)
 {
-	if (!rstc)
+	struct reset_control *rstc;
+	int ret;
+
+	if (!rstc_head)
 		return 0;
 
-	if (rstc->rcdev->ops->reset)
-		return rstc->rcdev->ops->reset(rstc->rcdev, rstc->id);
+	list_for_each_entry(rstc, &rstc_head->list, list) {
+		if (!rstc->rcdev->ops->reset)
+			return -ENOSYS;
+		ret = rstc->rcdev->ops->reset(rstc->rcdev, rstc->id);
+		if (ret)
+			return ret;
+	}
 
-	return -ENOSYS;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(reset_control_reset);
 
@@ -104,18 +114,30 @@ EXPORT_SYMBOL_GPL(reset_control_reset);
  * reset_control_assert - asserts the reset line
  * @rstc: reset controller
  */
-int reset_control_assert(struct reset_control *rstc)
+int reset_control_assert(struct reset_control *rstc_head)
 {
-	if (!rstc)
+	struct reset_control *rstc;
+	int ret;
+
+	if (!rstc_head)
 		return 0;
 
-	if (rstc->gpio >= 0)
-		return gpio_direction_output(rstc->gpio, rstc->gpio_active_high);
+	list_for_each_entry(rstc, &rstc_head->list, list) {
+		if (rstc->gpio >= 0) {
+			 ret = gpio_direction_output(rstc->gpio, rstc->gpio_active_high);
+			 if (ret)
+				 return ret;
+		}
 
-	if (rstc->rcdev->ops->assert)
-		return rstc->rcdev->ops->assert(rstc->rcdev, rstc->id);
+		if (!rstc->rcdev->ops->assert)
+			return -ENOSYS;
 
-	return -ENOSYS;
+		ret = rstc->rcdev->ops->assert(rstc->rcdev, rstc->id);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
 }
 EXPORT_SYMBOL_GPL(reset_control_assert);
 
@@ -123,18 +145,30 @@ EXPORT_SYMBOL_GPL(reset_control_assert);
  * reset_control_deassert - deasserts the reset line
  * @rstc: reset controller
  */
-int reset_control_deassert(struct reset_control *rstc)
+int reset_control_deassert(struct reset_control *rstc_head)
 {
-	if (!rstc)
+	struct reset_control *rstc;
+	int ret;
+
+	if (!rstc_head)
 		return 0;
 
-	if (rstc->gpio >= 0)
-		return gpio_direction_output(rstc->gpio, !rstc->gpio_active_high);
+	list_for_each_entry(rstc, &rstc_head->list, list) {
+		if (rstc->gpio >= 0) {
+			ret = gpio_direction_output(rstc->gpio, !rstc->gpio_active_high);
+			if (ret)
+				return ret;
+		}
 
-	if (rstc->rcdev->ops->deassert)
-		return rstc->rcdev->ops->deassert(rstc->rcdev, rstc->id);
+		if (!rstc->rcdev->ops->deassert)
+			return -ENOSYS;
 
-	return -ENOSYS;
+		ret = rstc->rcdev->ops->deassert(rstc->rcdev, rstc->id);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
 }
 EXPORT_SYMBOL_GPL(reset_control_deassert);
 
@@ -148,21 +182,25 @@ EXPORT_SYMBOL_GPL(reset_control_deassert);
  * Use of id names is optional.
  */
 static struct reset_control *of_reset_control_get(struct device_node *node,
-						  const char *id)
+						  const char *id, int index)
 {
 	struct reset_control *rstc = ERR_PTR(-ENODEV);
 	struct reset_controller_dev *r, *rcdev;
 	struct of_phandle_args args;
-	int index = 0;
 	int rstc_id;
 	int ret;
 
 	if (!of_get_property(node, "resets", NULL))
 		return NULL;
 
-	if (id)
+	if (id) {
 		index = of_property_match_string(node,
 						 "reset-names", id);
+		if (index == -EILSEQ)
+			return ERR_PTR(index);
+		if (index < 0)
+			return NULL;
+	}
 	ret = of_parse_phandle_with_args(node, "resets", "#reset-cells",
 					 index, &args);
 	if (ret)
@@ -191,6 +229,7 @@ static struct reset_control *of_reset_control_get(struct device_node *node,
 	rstc->rcdev = rcdev;
 	rstc->id = rstc_id;
 	rstc->gpio = -ENODEV;
+	INIT_LIST_HEAD(&rstc->list);
 
 	return rstc;
 }
@@ -235,7 +274,7 @@ struct reset_control *reset_control_get(struct device_d *dev, const char *id)
 	if (!dev)
 		return ERR_PTR(-EINVAL);
 
-	rstc = of_reset_control_get(dev->device_node, id);
+	rstc = of_reset_control_get(dev->device_node, id, 0);
 	if (IS_ERR(rstc))
 		return ERR_CAST(rstc);
 
@@ -263,14 +302,85 @@ EXPORT_SYMBOL_GPL(reset_control_get);
  * @rstc: reset controller
  */
 
-void reset_control_put(struct reset_control *rstc)
+void reset_control_put(struct reset_control *rstc_head)
 {
-	if (IS_ERR_OR_NULL(rstc))
+	struct reset_control *rstc, *tmp;
+
+	if (IS_ERR_OR_NULL(rstc_head))
 		return;
 
-	kfree(rstc);
+	list_for_each_entry_safe_reverse(rstc, tmp, &rstc_head->list, list)
+		kfree(rstc);
 }
 EXPORT_SYMBOL_GPL(reset_control_put);
+
+/*
+ * APIs to manage an array of reset controls.
+ */
+
+/**
+ * of_reset_control_get_count - Count number of resets available with a device
+ *
+ * @node: device node that contains 'resets'.
+ *
+ * Returns positive reset count on success, or error number on failure and
+ * on count being zero.
+ */
+static int of_reset_control_get_count(struct device_node *node)
+{
+	int count;
+
+	if (!node)
+		return -EINVAL;
+
+	count = of_count_phandle_with_args(node, "resets", "#reset-cells");
+	if (count == 0)
+		count = -ENOENT;
+
+	return count;
+}
+
+/**
+ * of_reset_control_array_get - Get a list of reset controls using
+ *				device node.
+ *
+ * @np: device node for the device that requests the reset controls array
+ * @optional: whether it is optional to get the reset controls
+ *
+ * Returns pointer to allocated reset_control on success or error on failure
+ */
+struct reset_control *
+of_reset_control_array_get(struct device_node *np, bool optional)
+{
+	struct reset_control *rstc_head = NULL, *rstc;
+	int num, i;
+
+	num = of_reset_control_get_count(np);
+	if (num < 0)
+		return optional ? NULL : ERR_PTR(num);
+
+	for (i = 0; i < num; i++) {
+		rstc = of_reset_control_get(np, NULL, i);
+		if (IS_ERR(rstc))
+			goto err_rst;
+		if (!rstc && !optional) {
+			rstc = ERR_PTR(-ENOENT);
+			goto err_rst;
+		}
+
+		if (rstc_head)
+			list_add_tail(&rstc->list, &rstc_head->list);
+		else
+			rstc_head = rstc;
+	}
+
+	return rstc_head;
+err_rst:
+	reset_control_put(rstc_head);
+
+	return rstc;
+}
+EXPORT_SYMBOL_GPL(of_reset_control_array_get);
 
 /**
  * device_reset - find reset controller associated with the device
