@@ -61,6 +61,7 @@ struct stm32_usbphyc_phy {
 	struct regulator_bulk_data supplies[NUM_SUPPLIES];
 	u32 index;
 	bool active;
+	struct usb_phy usb_phy;
 };
 
 struct stm32_usbphyc {
@@ -244,11 +245,30 @@ static int stm32_usbphyc_phy_power_off(struct phy *phy)
 	return regulator_bulk_disable(NUM_SUPPLIES, usbphyc_phy->supplies);
 }
 
+static struct usb_phy *stm32_usbphyc_phy_to_usbphy(struct phy *phy)
+{
+	struct stm32_usbphyc_phy *usbphyc_phy = phy_get_drvdata(phy);
+
+	return &usbphyc_phy->usb_phy;
+}
+
+static int stm32_usbphyc_phy_set_vbus(struct usb_phy *usb_phy, int on)
+{
+	struct phy *phy
+		= container_of(usb_phy, struct stm32_usbphyc_phy, usb_phy)->phy;
+
+	if (on)
+		return stm32_usbphyc_phy_power_on(phy);
+	else
+		return stm32_usbphyc_phy_power_off(phy);
+}
+
 static const struct phy_ops stm32_usbphyc_phy_ops = {
 	.init = stm32_usbphyc_phy_init,
 	.exit = stm32_usbphyc_phy_exit,
 	.power_on = stm32_usbphyc_phy_power_on,
 	.power_off = stm32_usbphyc_phy_power_off,
+	.to_usbphy = stm32_usbphyc_phy_to_usbphy,
 };
 
 static void stm32_usbphyc_switch_setup(struct stm32_usbphyc *usbphyc,
@@ -359,6 +379,8 @@ static int stm32_usbphyc_probe(struct device_d *dev)
 		}
 
 		usbphyc_phy = xzalloc(sizeof(*usbphyc_phy));
+		usbphyc_phy->usb_phy.dev = dev;
+		usbphyc_phy->usb_phy.set_vbus = stm32_usbphyc_phy_set_vbus;
 
 		for (i = 0; i < NUM_SUPPLIES; i++)
 			usbphyc_phy->supplies[i].supply = supplies_names[i];
