@@ -1,0 +1,3 @@
+#!/bin/sh
+
+usbgadget -a -A "/dev/mmc0(rootfs-sd)" -b
