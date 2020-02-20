@@ -1431,6 +1431,10 @@ static int ehci_probe(struct device_d *dev)
 	if (IS_ERR(phy) && PTR_ERR(phy) != -ENODEV) {
 		return PTR_ERR(phy);
 	} else {
+		data.usbphy = phy_to_usbphy(phy);
+		if (IS_ERR(data.usbphy))
+			return PTR_ERR(data.usbphy);
+
 		err = phy_init(phy);
 		if (err)
 			return err;
