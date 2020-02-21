@@ -16,3 +16,9 @@
 		};
 	};
 };
+
+&reboot_mode {
+	mode-normal = <0>;
+	mode-mmc0 = <0x20>;
+	mode-mmc1 = <0x21>;
+};
