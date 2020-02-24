@@ -10,26 +10,38 @@
 #include <regmap.h>
 #include <mfd/syscon.h>
 #include <linux/reboot-mode.h>
+#include <linux/overflow.h>
+
+struct mode_reg {
+	u32 offset;
+	u32 mask;
+};
 
 struct syscon_reboot_mode {
 	struct regmap *map;
 	struct reboot_mode_driver reboot;
-	u32 offset;
-	u32 mask;
+	struct mode_reg reg[];
 };
 
 static int syscon_reboot_mode_write(struct reboot_mode_driver *reboot,
 				    const u32 *magic)
 {
 	struct syscon_reboot_mode *syscon_rbm;
-	int ret;
+	size_t i;
+	int ret = 0;
 
 	syscon_rbm = container_of(reboot, struct syscon_reboot_mode, reboot);
 
-	ret = regmap_update_bits(syscon_rbm->map, syscon_rbm->offset,
-				 syscon_rbm->mask, *magic);
-	if (ret < 0)
-		dev_err(reboot->dev, "update reboot mode bits failed\n");
+	for (i = 0; i < reboot->nelems; i++) {
+		struct mode_reg *reg = &syscon_rbm->reg[i];
+
+		ret = regmap_update_bits(syscon_rbm->map, reg->offset,
+					 reg->mask, *magic++);
+		if (ret < 0) {
+			dev_err(reboot->dev, "update reboot mode bits failed\n");
+			break;
+		}
+	}
 
 	return ret;
 }
@@ -39,18 +51,17 @@ static int syscon_reboot_mode_probe(struct device_d *dev)
 	int ret;
 	struct syscon_reboot_mode *syscon_rbm;
 	struct device_node *np = dev->device_node;
-	size_t nelems;
-	u32 magic;
+	size_t i, nelems;
+	u32 *magic;
 
 	nelems = of_property_count_elems_of_size(np, "offset", sizeof(__be32));
-	if (nelems != 1)
+	if (nelems <= 0)
 		return -EINVAL;
 
-	syscon_rbm = xzalloc(sizeof(*syscon_rbm));
+	syscon_rbm = xzalloc(struct_size(syscon_rbm, reg, nelems));
 
 	syscon_rbm->reboot.dev = dev;
 	syscon_rbm->reboot.write = syscon_reboot_mode_write;
-	syscon_rbm->mask = 0xffffffff;
 
 	syscon_rbm->map = syscon_node_to_regmap(dev->parent->device_node);
 	if (IS_ERR(syscon_rbm->map)) {
@@ -58,29 +69,39 @@ static int syscon_reboot_mode_probe(struct device_d *dev)
 		goto free_rbm;
 	}
 
-	ret = of_property_read_u32(np, "offset", &syscon_rbm->offset);
-	if (ret)
-		goto free_rbm;
+	magic = xzalloc(nelems * sizeof(*magic));
 
-	of_property_read_u32(np, "mask", &syscon_rbm->mask);
+	for (i = 0; i < nelems; i++) {
+		struct mode_reg *reg = &syscon_rbm->reg[i];
 
-	ret = regmap_read(syscon_rbm->map, syscon_rbm->offset, &magic);
-	if (ret) {
-		dev_err(dev, "error reading reboot mode: %s\n",
-			strerror(-ret));
-		goto free_rbm;
+		ret = of_property_read_u32_index(np, "offset", i, &reg->offset);
+		if (ret)
+			goto free_magic;
+
+		reg->mask = 0xffffffff;
+		of_property_read_u32_index(np, "mask", i, &reg->mask);
+
+		ret = regmap_read(syscon_rbm->map, reg->offset, &magic[i]);
+		if (ret) {
+			dev_err(dev, "error reading reboot mode: %s\n",
+				strerror(-ret));
+			goto free_magic;
+		}
+
+		magic[i] &= reg->mask;
 	}
 
-	magic &= syscon_rbm->mask;
-
-	ret = reboot_mode_register(&syscon_rbm->reboot, &magic, 1);
+	ret = reboot_mode_register(&syscon_rbm->reboot, magic, nelems);
 	if (ret) {
 		dev_err(dev, "can't register reboot mode\n");
 		goto free_rbm;
 	}
 
+	free(magic);
 	return 0;
 
+free_magic:
+	free(magic);
 free_rbm:
 	free(syscon_rbm);
 
