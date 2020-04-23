@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <linux/stat.h>
 #include <envfs.h>
+#include <magicvar.h>
 #include <asm/sections.h>
 #include <uncompress.h>
 #include <globalvar.h>
@@ -163,6 +164,14 @@ static const char * const global_autoboot_abort_keys[] = {
 };
 static int global_autoboot_timeout = 3;
 
+static const char * const global_autoboot_states[] = {
+	[AUTOBOOT_COUNTDOWN] = "countdown",
+	[AUTOBOOT_ABORT] = "abort",
+	[AUTOBOOT_MENU] = "menu",
+	[AUTOBOOT_BOOT] = "boot",
+};
+static int global_autoboot_state = AUTOBOOT_COUNTDOWN;
+
 static bool test_abort(void)
 {
 	bool do_abort = false;
@@ -194,8 +203,6 @@ static bool test_abort(void)
 #define INITFILE "/env/bin/init"
 #define MENUFILE "/env/menu/mainmenu"
 
-static enum autoboot_state autoboot_state = AUTOBOOT_UNKNOWN;
-
 /**
  * set_autoboot_state - set the autoboot state
  * @autoboot: the state to set
@@ -205,7 +212,7 @@ static enum autoboot_state autoboot_state = AUTOBOOT_UNKNOWN;
  */
 void set_autoboot_state(enum autoboot_state autoboot)
 {
-	autoboot_state = autoboot;
+	global_autoboot_state = autoboot;
 }
 
 /**
@@ -221,6 +228,7 @@ void set_autoboot_state(enum autoboot_state autoboot)
  */
 enum autoboot_state do_autoboot_countdown(void)
 {
+	enum autoboot_state autoboot_state;
 	unsigned flags = CONSOLE_COUNTDOWN_EXTERN;
 	int ret;
 	struct stat s;
@@ -228,8 +236,8 @@ enum autoboot_state do_autoboot_countdown(void)
 	char *abortkeys = NULL;
 	unsigned char outkey;
 
-	if (autoboot_state != AUTOBOOT_UNKNOWN)
-		return autoboot_state;
+	if (global_autoboot_state != AUTOBOOT_COUNTDOWN)
+		return global_autoboot_state;
 
 	menu_exists = stat(MENUFILE, &s) == 0;
 
@@ -285,6 +293,10 @@ static int run_init(void)
 				  ARRAY_SIZE(global_autoboot_abort_keys));
 	globalvar_add_simple_int("autoboot_timeout",
 				 &global_autoboot_timeout, "%u");
+	globalvar_add_simple_enum("autoboot",
+				  &global_autoboot_state,
+				  global_autoboot_states,
+				  ARRAY_SIZE(global_autoboot_states));
 
 	setenv("PATH", "/env/bin");
 
@@ -391,3 +403,13 @@ void shutdown_barebox(void)
 		(*exitcall)();
 	}
 }
+
+BAREBOX_MAGICVAR_NAMED(autoboot_state,
+                       global.autoboot,
+                       "Autoboot state. Possible values: countdown (default), abort, menu, boot");
+BAREBOX_MAGICVAR_NAMED(global_autoboot_abort_key,
+                       global.autoboot_abort_key,
+                       "Which key allows to interrupt autoboot. Possible values: any, ctrl-c");
+BAREBOX_MAGICVAR_NAMED(global_autoboot_timeout,
+                       global.autoboot_timeout,
+                       "Timeout before autoboot starts in seconds");
