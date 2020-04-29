@@ -40,11 +40,12 @@ static int __mpc5xxx_serial_setbaudrate(struct mpc5xxx_psc *psc, int baudrate)
 	unsigned long baseclk;
 	int div;
 
-#if defined(CONFIG_MGT5100)
-	baseclk = (CFG_MPC5XXX_CLKIN + 16) / 32;
-#elif defined(CONFIG_MPC5200)
-	baseclk = (get_ipb_clock() + 16) / 32;
-#endif
+	if (IS_ENABLED(CONFIG_MGT5100))
+		baseclk = (CFG_MPC5XXX_CLKIN + 16) / 32;
+	else if (IS_ENABLED(CONFIG_MPC5200))
+		baseclk = (get_ipb_clock() + 16) / 32;
+	else
+		return -ENOSYS;
 
 	/* set up UART divisor */
 	div = (baseclk + (baudrate/2)) / baudrate;
@@ -70,21 +71,23 @@ static int __mpc5xxx_serial_init(struct mpc5xxx_psc *psc)
 	psc->command = PSC_SEL_MODE_REG_1;
 
 	/* select clock sources */
-#if defined(CONFIG_MGT5100)
-	psc->psc_clock_select = 0xdd00;
-#elif defined(CONFIG_MPC5200)
-	psc->psc_clock_select = 0;
-#endif
+	if (IS_ENABLED(CONFIG_MGT5100))
+		psc->psc_clock_select = 0xdd00;
+	else if (IS_ENABLED(CONFIG_MPC5200))
+		psc->psc_clock_select = 0;
+	else
+		return -ENOSYS;
 
 	/* switch to UART mode */
 	psc->sicr = 0;
 
 	/* configure parity, bit length and so on */
-#if defined(CONFIG_MGT5100)
-	psc->mode = PSC_MODE_ERR | PSC_MODE_8_BITS | PSC_MODE_PARNONE;
-#elif defined(CONFIG_MPC5200)
-	psc->mode = PSC_MODE_8_BITS | PSC_MODE_PARNONE;
-#endif
+	if (IS_ENABLED(CONFIG_MGT5100))
+		psc->mode = PSC_MODE_ERR | PSC_MODE_8_BITS | PSC_MODE_PARNONE;
+	else if (IS_ENABLED((CONFIG_MPC5200))
+		psc->mode = PSC_MODE_8_BITS | PSC_MODE_PARNONE;
+	else
+		return -ENOSYS;
 	psc->mode = PSC_MODE_ONE_STOP;
 
 	/* disable all interrupts */
