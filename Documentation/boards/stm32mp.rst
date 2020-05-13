@@ -63,7 +63,7 @@ An appropriate image for a SD-Card can be generated with following
   }
 
 For eMMC, the boot partitions are used as the FSBL partitions and so the user
-partitions may look like this:
+partitions may look like this::
 
   image @STM32MP_BOARD@.img {
       partition ssbl {
@@ -78,6 +78,14 @@ partitions may look like this:
 
 The fsbl1 and fsbl2 can be flashed by writing to barebox ``/dev/mmcX.boot0`` and
 ``/dev/mmcX.boot1`` respectively or from a booted operating system.
+
+Additionally, the eMMC's ``ext_csd`` register must be modified to activate the
+boot acknowledge signal and to select a boot partition, e.g.::
+
+  mmcX.boot_ack=1
+  mmcX.boot=boot0
+
+The STM32MP1 BootROM does *not* support booting eMMC without fast boot acknowledge.
 
 Boot source selection
 ---------------------
