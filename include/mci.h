@@ -459,7 +459,9 @@ struct mci {
 	char *ext_csd;
 	int probe;
 	struct param_d *param_boot;
+	struct param_d *param_boot_ack;
 	int bootpart;
+	int boot_ack_enable;
 
 	struct mci_part part[MMC_NUM_PHY_PARTITION];
 	int nr_parts;
