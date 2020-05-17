@@ -318,6 +318,19 @@ const char *getenv_nonempty(const char *var)
 }
 EXPORT_SYMBOL(getenv_nonempty);
 
+int getenv_str(const char *var, const char **val)
+{
+	const char *valstr = getenv_nonempty(var);
+
+	if (!valstr)
+		return -EINVAL;
+
+	*val = valstr;
+
+	return 0;
+}
+EXPORT_SYMBOL(getenv_ull);
+
 int getenv_ull(const char *var , unsigned long long *val)
 {
 	const char *valstr = getenv(var);

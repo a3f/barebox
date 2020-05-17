@@ -37,6 +37,7 @@ int getenv_ull(const char *name, unsigned long long *val);
 int getenv_ul(const char *name, unsigned long *val);
 int getenv_uint(const char *name, unsigned int *val);
 int getenv_bool(const char *var, int *val);
+int getenv_str(const char *var, const char **val);
 const char *getenv_nonempty(const char *var);
 #else
 static inline char *getenv(const char *var)
@@ -72,6 +73,11 @@ static inline int export(const char *var)
 }
 
 static inline int getenv_bool(const char *var, int *val)
+{
+	return -EINVAL;
+}
+
+static inline int getenv_str(const char *var, const char **val)
 {
 	return -EINVAL;
 }
