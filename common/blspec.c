@@ -301,7 +301,7 @@ static struct blspec_entry *blspec_entry_open(struct bootentries *bootentries,
 		if (!strcmp(name, "options")) {
 			/* If there was a previous "options" key given, prepend its value
 			 * (as per spec). */
-			char *prev_val = blspec_entry_var_get(entry, name);
+			const char *prev_val = blspec_entry_var_get(entry, name);
 			if (prev_val) {
 				char *opts = xasprintf("%s %s", prev_val, val);
 				blspec_entry_var_set(entry, name, opts);
