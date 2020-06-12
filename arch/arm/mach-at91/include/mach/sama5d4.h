@@ -85,35 +85,35 @@
  * User Peripheral physical base addresses.
  */
 
-#define SAMA5D4_BASE_LCDC	0xf0000000 /* (HLCDC5) Base Address */
-#define SAMA5D4_BASE_MPDDRC	0xf0010000 /* (MPDDRC) Base Address */
-#define SAMA5D4_BASE_PMC	0xf0018000 /* (PMC) Base Address */
-#define SAMA5D4_BASE_HSMCI0	0xf8000000 /* (MMCI0) Base Address */
-#define SAMA5D4_BASE_UART0	0xf8004000 /* (UART0) Base Address */
-#define SAMA5D4_BASE_SPI0	0xf8010000 /* (SPI0) Base Address */
-#define SAMA5D4_BASE_TC0	0xf801c000 /* (TC0) Base Address */
-#define SAMA5D4_BASE_GMAC0	0xf8020000 /* (GMAC0) Base Address */
-#define SAMA5D4_BASE_USART0	0xf802c000 /* (USART0) Base Address */
-#define SAMA5D4_BASE_USART1	0xf8030000 /* (USART1) Base Address */
-#define SAMA5D4_BASE_HSMCI1	0xfc000000 /* (HSMCI1) Base Address */
-#define SAMA5D4_BASE_UART1	0xfc004000 /* (UART1) Base Address */
-#define SAMA5D4_BASE_USART2	0xfc008000 /* (USART2) Base Address */
-#define SAMA5D4_BASE_USART3	0xfc00c000 /* (USART3) Base Address */
-#define SAMA5D4_BASE_USART4	0xfc010000 /* (USART4) Base Address */
-#define SAMA5D4_BASE_SPI1	0xfc018000 /* (SPI1) Base Address */
-#define SAMA5D4_BASE_GMAC1	0xfc028000 /* (GMAC1) Base Address */
-#define SAMA5D4_BASE_HSMC	0xfc05c000 /* (HSMC) Base Address */
-#define SAMA5D4_BASE_PMECC	0xfc05c070 /* (PMECC) Base Address */
-#define SAMA5D4_BASE_PMERRLOC	0xfc05c500 /* (PMERRLOC) Base Address */
-#define SAMA5D4_BASE_PIOD	0xfc068000 /* (PIOD) Base Address */
-#define SAMA5D4_BASE_RSTC	0xfc068600
-#define SAMA5D4_BASE_PIT	0xfc068630 /* (PIT) Base Address */
-#define SAMA5D4_BASE_DBGU	0xfc069000 /* (DBGU) Base Address */
-#define SAMA5D4_BASE_PIOA	0xfc06a000 /* (PIOA) Base Address */
-#define SAMA5D4_BASE_PIOB	0xfc06b000 /* (PIOB) Base Address */
-#define SAMA5D4_BASE_PIOC	0xfc06c000 /* (PIOC) Base Address */
-#define SAMA5D4_BASE_PIOE	0xfc06d000 /* (PIOE) Base Address */
-#define SAMA5D4_BASE_AIC	0xfc06e000 /* (AIC) Base Address */
+#define SAMA5D4_BASE_LCDC	IOMEM(0xf0000000) /* (HLCDC5) Base Address */
+#define SAMA5D4_BASE_MPDDRC	IOMEM(0xf0010000) /* (MPDDRC) Base Address */
+#define SAMA5D4_BASE_PMC	IOMEM(0xf0018000) /* (PMC) Base Address */
+#define SAMA5D4_BASE_HSMCI0	IOMEM(0xf8000000) /* (MMCI0) Base Address */
+#define SAMA5D4_BASE_UART0	IOMEM(0xf8004000) /* (UART0) Base Address */
+#define SAMA5D4_BASE_SPI0	IOMEM(0xf8010000) /* (SPI0) Base Address */
+#define SAMA5D4_BASE_TC0	IOMEM(0xf801c000) /* (TC0) Base Address */
+#define SAMA5D4_BASE_GMAC0	IOMEM(0xf8020000) /* (GMAC0) Base Address */
+#define SAMA5D4_BASE_USART0	IOMEM(0xf802c000) /* (USART0) Base Address */
+#define SAMA5D4_BASE_USART1	IOMEM(0xf8030000) /* (USART1) Base Address */
+#define SAMA5D4_BASE_HSMCI1	IOMEM(0xfc000000) /* (HSMCI1) Base Address */
+#define SAMA5D4_BASE_UART1	IOMEM(0xfc004000) /* (UART1) Base Address */
+#define SAMA5D4_BASE_USART2	IOMEM(0xfc008000) /* (USART2) Base Address */
+#define SAMA5D4_BASE_USART3	IOMEM(0xfc00c000) /* (USART3) Base Address */
+#define SAMA5D4_BASE_USART4	IOMEM(0xfc010000) /* (USART4) Base Address */
+#define SAMA5D4_BASE_SPI1	IOMEM(0xfc018000) /* (SPI1) Base Address */
+#define SAMA5D4_BASE_GMAC1	IOMEM(0xfc028000) /* (GMAC1) Base Address */
+#define SAMA5D4_BASE_HSMC	IOMEM(0xfc05c000) /* (HSMC) Base Address */
+#define SAMA5D4_BASE_PMECC	IOMEM(0xfc05c070) /* (PMECC) Base Address */
+#define SAMA5D4_BASE_PMERRLOC	IOMEM(0xfc05c500) /* (PMERRLOC) Base Address */
+#define SAMA5D4_BASE_PIOD	IOMEM(0xfc068000) /* (PIOD) Base Address */
+#define SAMA5D4_BASE_RSTC	IOMEM(0xfc068600)
+#define SAMA5D4_BASE_PIT	IOMEM(0xfc068630) /* (PIT) Base Address */
+#define SAMA5D4_BASE_DBGU	IOMEM(0xfc069000) /* (DBGU) Base Address */
+#define SAMA5D4_BASE_PIOA	IOMEM(0xfc06a000) /* (PIOA) Base Address */
+#define SAMA5D4_BASE_PIOB	IOMEM(0xfc06b000) /* (PIOB) Base Address */
+#define SAMA5D4_BASE_PIOC	IOMEM(0xfc06c000) /* (PIOC) Base Address */
+#define SAMA5D4_BASE_PIOE	IOMEM(0xfc06d000) /* (PIOE) Base Address */
+#define SAMA5D4_BASE_AIC	IOMEM(0xfc06e000) /* (AIC) Base Address */
 
 #define SAMA5D4_CHIPSELECT_3	0x80000000
 

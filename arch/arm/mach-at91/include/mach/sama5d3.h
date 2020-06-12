@@ -12,6 +12,9 @@
 #ifndef SAMA5D3_H
 #define SAMA5D3_H
 
+#include <asm/io.h>
+#include <linux/sizes.h>
+
 /*
  * Peripheral identifiers/interrupts.
  */
@@ -68,33 +71,33 @@
  * User Peripheral physical base addresses.
  */
 
-#define SAMA5D3_BASE_HSMCI0	0xf0000000 /* (MMCI) Base Address */
-#define SAMA5D3_BASE_SPI0	0xf0004000
-#define SAMA5D3_BASE_TC0	0xf0010000 /* (TC0) Base Address */
-#define SAMA5D3_BASE_TC1	0xf0010040 /* (TC1) Base Address */
-#define	SAMA5D3_BASE_USART0	0xf001c000
-#define	SAMA5D3_BASE_USART1	0xf0020000
-#define SAMA5D3_BASE_GMAC	0xf0028000 /* (GMAC) Base Address */
-#define SAMA5D3_BASE_LCDC	0xf0030000 /* (HLCDC5) Base Address */
-#define SAMA5D3_BASE_HSMCI1	0xf8000000
-#define SAMA5D3_BASE_HSMCI2	0xf8004000
-#define SAMA5D3_BASE_SPI1	0xf8008000
-#define SAMA5D3_BASE_EMAC	0xf802c000 /* (EMAC) Base Address */
-#define SAMA5D3_BASE_UDPHS	0xf8030000
+#define SAMA5D3_BASE_HSMCI0	IOMEM(0xf0000000) /* (MMCI) Base Address */
+#define SAMA5D3_BASE_SPI0	IOMEM(0xf0004000)
+#define SAMA5D3_BASE_TC0	IOMEM(0xf0010000) /* (TC0) Base Address */
+#define SAMA5D3_BASE_TC1	IOMEM(0xf0010040) /* (TC1) Base Address */
+#define	SAMA5D3_BASE_USART0	IOMEM(0xf001c000)
+#define	SAMA5D3_BASE_USART1	IOMEM(0xf0020000)
+#define SAMA5D3_BASE_GMAC	IOMEM(0xf0028000) /* (GMAC) Base Address */
+#define SAMA5D3_BASE_LCDC	IOMEM(0xf0030000) /* (HLCDC5) Base Address */
+#define SAMA5D3_BASE_HSMCI1	IOMEM(0xf8000000)
+#define SAMA5D3_BASE_HSMCI2	IOMEM(0xf8004000)
+#define SAMA5D3_BASE_SPI1	IOMEM(0xf8008000)
+#define SAMA5D3_BASE_EMAC	IOMEM(0xf802c000) /* (EMAC) Base Address */
+#define SAMA5D3_BASE_UDPHS	IOMEM(0xf8030000)
 
-#define SAMA5D3_BASE_PIOA	0xfffff200
-#define SAMA5D3_BASE_PIOB	0xfffff400
-#define SAMA5D3_BASE_PIOC	0xfffff600
-#define SAMA5D3_BASE_PIOD	0xfffff800
-#define SAMA5D3_BASE_PIOE	0xfffffa00
-#define SAMA5D3_BASE_MPDDRC	0xffffea00
-#define	SAMA5D3_BASE_HSMC	0xffffc000
-#define SAMA5D3_BASE_RSTC	0xfffffe00
-#define SAMA5D3_BASE_PIT	0xfffffe30
-#define SAMA5D3_BASE_WDT	0xfffffe40
-#define SAMA5D3_BASE_PMC	0xfffffc00
-#define SAMA5D3_BASE_PMECC	0xffffc070
-#define SAMA5D3_BASE_PMERRLOC	0xffffc500
+#define SAMA5D3_BASE_PIOA	IOMEM(0xfffff200)
+#define SAMA5D3_BASE_PIOB	IOMEM(0xfffff400)
+#define SAMA5D3_BASE_PIOC	IOMEM(0xfffff600)
+#define SAMA5D3_BASE_PIOD	IOMEM(0xfffff800)
+#define SAMA5D3_BASE_PIOE	IOMEM(0xfffffa00)
+#define SAMA5D3_BASE_MPDDRC	IOMEM(0xffffea00)
+#define	SAMA5D3_BASE_HSMC	IOMEM(0xffffc000)
+#define SAMA5D3_BASE_RSTC	IOMEM(0xfffffe00)
+#define SAMA5D3_BASE_PIT	IOMEM(0xfffffe30)
+#define SAMA5D3_BASE_WDT	IOMEM(0xfffffe40)
+#define SAMA5D3_BASE_PMC	IOMEM(0xfffffc00)
+#define SAMA5D3_BASE_PMECC	IOMEM(0xffffc070)
+#define SAMA5D3_BASE_PMERRLOC	IOMEM(0xffffc500)
 
 /*
  * Internal Memory.
@@ -105,8 +108,8 @@
 #define SAMA5D3_ROM_BASE	0x00100000
 #define SAMA5D3_ROM_SIZE	SZ_1M
 
-#define SAMA5D3_UDPHS_FIFO	0x00500000
-#define SAMA5D3_OHCI_BASE	0x00600000	/* USB Host controller (OHCI) */
-#define SAMA5D3_EHCI_BASE	0x00700000	/* USB Host controller (EHCI) */
+#define SAMA5D3_UDPHS_FIFO	IOMEM(0x00500000)
+#define SAMA5D3_OHCI_BASE	IOMEM(0x00600000)	/* USB Host controller (OHCI) */
+#define SAMA5D3_EHCI_BASE	IOMEM(0x00700000)	/* USB Host controller (EHCI) */
 
 #endif

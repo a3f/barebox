@@ -20,11 +20,11 @@
 #define MASTER_CLOCK	132000000
 
 #define sama5d3_pmc_enable_periph_clock(clk) \
-	at91_pmc_enable_periph_clock(IOMEM(SAMA5D3_BASE_PMC), clk)
+	at91_pmc_enable_periph_clock(SAMA5D3_BASE_PMC, clk)
 
 static void dbgu_init(void)
 {
-	void __iomem *pio = IOMEM(SAMA5D3_BASE_PIOB);
+	void __iomem *pio = SAMA5D3_BASE_PIOB;
 
 	sama5d3_pmc_enable_periph_clock(SAMA5D3_ID_PIOB);
 

@@ -374,8 +374,8 @@ static void __init sama5d3_register_clocks(void)
 
 static void sama5d3_restart(struct restart_handler *rst)
 {
-	at91sam9g45_reset(IOMEM(SAMA5D3_BASE_MPDDRC),
-			  IOMEM(SAMA5D3_BASE_RSTC + AT91_RSTC_CR));
+	at91sam9g45_reset(SAMA5D3_BASE_MPDDRC,
+			  SAMA5D3_BASE_RSTC + AT91_RSTC_CR);
 }
 
 /* --------------------------------------------------------------------
