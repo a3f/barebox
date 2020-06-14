@@ -1,13 +1,26 @@
 // SPDX-License-Identifier: BSD-1-Clause
 /*
  * Copyright (c) 2006, Atmel Corporation
+ * Copyright (C) 2019 Microchip Technology Inc. and its subsidiaries
  *
- * Atmel's name may not be used to endorse or promote products
+ * Atmel/Microchip's name may not be used to endorse or promote products
  * derived from this software without specific prior written permission.
  */
 
+#define pr_fmt(fmt) "at91pmc: " fmt
+
 #include <common.h>
+#include <mach/hardware.h>
+#include <mach/at91_pmc.h>
 #include <mach/at91_pmc_ll.h>
+#include <mach/early_udelay.h>
+#include <debug_ll.h>
+
+#define SFR_UTMICKTRIM	0x30	/* UTMI Clock Trimming Register */
+#define AT91_UTMICKTRIM_FREQ	0x03
+
+#define PMC_GCSR0	0xC0	/* PMCv2 Generic Clock Status Register 0 */
+#define PMC_GCSR1	0xC4	/* PMCv2 Generic Clock Status Register 1 */
 
 #define at91_pmc_write(off, val) writel(val, pmc_base + off)
 #define at91_pmc_read(off) readl(pmc_base + off)
@@ -183,4 +196,164 @@ void at91_pmc_cfg_mck(void __iomem *pmc_base, u32 pmc_mckr, unsigned int flags)
 
 	while (!(at91_pmc_read(AT91_PMC_SR) & AT91_PMC_MCKRDY))
 		;
+}
+
+static int clock_freq_in_range(unsigned long freq,
+			       unsigned long norm)
+{
+	unsigned long delta = norm / 10;
+
+	if (delta > norm)
+		return 0;
+
+	return freq >= norm - delta && freq <= norm + delta;
+}
+
+static int pmc_configure_utmi_ref_clk(void __iomem *pmc_base,
+				      void __iomem *sfr_base,
+				      unsigned long main_xtal)
+{
+	unsigned int utmi_ref_clk_freq, tmp;
+
+	/*
+	 * If mainck rate is different from 12 MHz, we have to configure
+	 * the FREQ field of the SFR_UTMICKTRIM register to generate properly
+	 * the utmi clock.
+	 */
+	if (clock_freq_in_range(main_xtal, 12000000))
+		utmi_ref_clk_freq = 0;
+	else if (clock_freq_in_range(main_xtal, 16000000))
+		utmi_ref_clk_freq = 1;
+	else if (clock_freq_in_range(main_xtal, 24000000))
+		utmi_ref_clk_freq = 2;
+	/*
+	 * Not supported on SAMA5D2 but it's not an issue since MAINCK
+	 * maximum value is 24 MHz.
+	 */
+	else if (clock_freq_in_range(main_xtal, 48000000))
+		utmi_ref_clk_freq = 3;
+	else
+		return -EINVAL;
+
+	tmp = readl(sfr_base + SFR_UTMICKTRIM);
+	tmp &= ~AT91_UTMICKTRIM_FREQ;
+	tmp |= utmi_ref_clk_freq;
+	writel(tmp, sfr_base + SFR_UTMICKTRIM);
+
+	return 0;
+}
+
+static int pmc_uckr_clk(void __iomem *pmc_base,
+			void __iomem *sfr_base,
+			unsigned long main_xtal)
+{
+	unsigned int uckr = at91_pmc_read(AT91_CKGR_UCKR);
+	unsigned int sr;
+	int ret;
+
+	if (main_xtal) {
+		ret = pmc_configure_utmi_ref_clk(pmc_base, sfr_base,
+						 main_xtal);
+		if (ret)
+			return ret;
+
+		uckr |= (AT91_PMC_UPLLCOUNT_DEFAULT |
+			 AT91_PMC_UPLLEN | AT91_PMC_BIASEN);
+		sr = AT91_PMC_LOCKU;
+	} else {
+		uckr &= ~(AT91_PMC_UPLLEN | AT91_PMC_BIASEN);
+		sr = 0;
+	}
+
+	at91_pmc_write(AT91_CKGR_UCKR, uckr);
+
+	do {
+		early_udelay(1);
+	} while ((at91_pmc_read(AT91_PMC_SR) & AT91_PMC_LOCKU) != sr);
+
+	return 0;
+}
+
+static unsigned long at91_pmc_get_main_xtal(void __iomem *pmc_base)
+{
+	unsigned long main_xtal;
+
+	unsigned int tmp;
+
+	do {
+		tmp = at91_pmc_read(AT91_CKGR_MCFR);
+	} while (!(tmp & AT91_PMC_MAINRDY));
+
+	tmp &= AT91_PMC_MAINF;
+	main_xtal = tmp * (AT91_SLOW_CLOCK / 16);
+
+	return main_xtal;
+}
+
+static inline unsigned gck_status(unsigned periph_id,
+				  unsigned flags)
+{
+	if (flags & AT91_PMC_LL_FLAG_GCSR)
+		return periph_id < 32 ? PMC_GCSR0 : PMC_GCSR1;
+
+	return AT91_PMC_SR;
+}
+
+static inline unsigned gck_ready(unsigned status,
+				 unsigned periph_id,
+				 unsigned flags)
+{
+	unsigned mask;
+
+	if (flags & AT91_PMC_LL_FLAG_GCSR)
+		mask = 1 << (periph_id & 0x1f);
+	else
+		mask = AT91_PMC_GCKRDY;
+
+	return status & mask;
+}
+
+int at91_pmc_enable_generic_clock(void __iomem *pmc_base,
+				  void __iomem *sfr_base,
+				  unsigned int periph_id,
+				  unsigned int clk_source, unsigned int div,
+				  unsigned int flags)
+{
+	unsigned long main_xtal;
+	unsigned int regval, status;
+	unsigned int timeout = 1000;
+
+	if (periph_id > 0x7f)
+		return -EINVAL;
+
+	if (div > 0xff)
+		return -EINVAL;
+
+	main_xtal = at91_pmc_get_main_xtal(pmc_base); // 24000000
+
+	if ((flags & AT91_PMC_LL_FLAG_PMC_UTMI) &&
+	    !(at91_pmc_read(AT91_PMC_SR) & AT91_PMC_LOCKU))
+		pmc_uckr_clk(pmc_base, sfr_base, main_xtal);
+
+	at91_pmc_write(AT91_PMC_PCR, periph_id);
+	regval = at91_pmc_read(AT91_PMC_PCR);
+	regval &= ~AT91_PMC_GCKCSS;
+	regval &= ~AT91_PMC_GCKDIV;
+
+	regval |= clk_source;
+	regval |= AT91_PMC_PCR_CMD | AT91_PMC_GCKDIV_(div) | AT91_PMC_GCK_EN;
+
+	at91_pmc_write(AT91_PMC_PCR, regval);
+
+	for (timeout = 1000; timeout; timeout--) {
+		early_udelay(1);
+
+		status = at91_pmc_read(gck_status(periph_id, flags));
+		if (gck_ready(status, periph_id, flags))
+			return 0;
+	}
+
+	pr_warn("Timeout waiting for GCK ready!\n");
+
+	return 0;
 }
