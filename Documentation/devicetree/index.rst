@@ -55,7 +55,7 @@ path, to avoid run-time breakage like this::
         };
   };
 
-In the prvious example, a device tree sync with upstream resulted in a regression
+In the previous example, a device tree sync with upstream resulted in a regression
 as the former override became a new node with a single property without effect.
 
 Using phandles avoids this. When no phandle mapping the full path is defined
@@ -69,8 +69,10 @@ This would lead to a compile error should the ``/leds/red`` path be renamed or
 removed. This also applies to uses of ``/delete-node/``.
 
 Only exception to this rule are well-known node names that are specified by
-the spec to be parsed by name. These are: ``chosen``, ``aliases`` and ``cpus``,
-but **not** ``memory``.
+the `specification`_ to be parsed by name. These are: ``chosen``, ``aliases``
+and ``cpus``, but **not** ``memory``.
+
+.. _specification: https://www.devicetree.org/specifications/
 
 Device Tree Compiler
 --------------------
