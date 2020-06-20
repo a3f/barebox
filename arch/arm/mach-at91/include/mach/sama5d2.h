@@ -261,4 +261,24 @@
 #define	SAMA5D2_SRAM_BASE			SAMA5D2_BASE_SRAM0
 #define	SAMA5D2_SRAM_SIZE			(128 * SZ_1K)
 
+static inline void __iomem *sama5d2_pio_map_bank(int bank, unsigned *id)
+{
+	switch(bank + 'A') {
+	case 'A':
+		*id = SAMA5D2_ID_PIOA;
+		return SAMA5D2_BASE_PIOA;
+	case 'B':
+		*id = SAMA5D2_ID_PIOB;
+		return SAMA5D2_BASE_PIOB;
+	case 'C':
+		*id = SAMA5D2_ID_PIOC;
+		return SAMA5D2_BASE_PIOC;
+	case 'D':
+		*id = SAMA5D2_ID_PIOD;
+		return SAMA5D2_BASE_PIOD;
+	}
+
+	return NULL;
+}
+
 #endif
