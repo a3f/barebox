@@ -42,4 +42,12 @@ config ACPI_TEST
 	help
 	  This is a simple Test driver to test the ACPI bus.
 
+config PWM_BEEPER
+	tristate "PWM beeper support"
+	select POLLER
+	select FS_DEVFS
+	depends on PWM && OFDEVICE
+	help
+	  Say Y here to get support for PWM based beeper devices.
+
 endmenu
