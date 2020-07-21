@@ -1,6 +1,39 @@
 // SPDX-License-Identifier: GPL-2.0+
 #include "dwc2.h"
 
+int dwc2_ulpi_read(struct dwc2 *dwc2, u8 addr)
+{
+	u32 gpvndctl;
+	int data;
+
+	gpvndctl = GPVNDCTL_NEWREGREQ;
+	gpvndctl |= (addr << GPVNDCTL_REGADDR_SHIFT) & GPVNDCTL_REGADDR_MASK;
+
+	dwc2_writel(dwc2, gpvndctl, GPVNDCTL);
+
+	if (dwc2_wait_bit_set(dwc2, GPVNDCTL, GPVNDCTL_VSTSDONE, 10000))
+		dwc2_err(dwc2, "Timeout: Waiting for phy read to complete\n");
+
+	gpvndctl = dwc2_readl(dwc2, GPVNDCTL);
+	data = (gpvndctl & GPVNDCTL_REGDATA_MASK) >> GPVNDCTL_REGDATA_SHIFT;
+
+	return data;
+}
+
+void dwc2_ulpi_write(struct dwc2 *dwc2, u32 addr, u32 data)
+{
+	u32 gpvndctl;
+
+	gpvndctl = GPVNDCTL_NEWREGREQ | GPVNDCTL_REGWR;
+	gpvndctl |= (addr << GPVNDCTL_REGADDR_SHIFT) & GPVNDCTL_REGADDR_MASK;
+	gpvndctl |= (data << GPVNDCTL_REGDATA_SHIFT) & GPVNDCTL_REGDATA_MASK;
+
+	dwc2_writel(dwc2, gpvndctl, GPVNDCTL);
+
+	if (dwc2_wait_bit_set(dwc2, GPVNDCTL, GPVNDCTL_VSTSDONE, 10000))
+		dwc2_err(dwc2, "Timeout: Waiting for phy write to complete\n");
+}
+
 /* Returns the controller's GHWCFG2.OTG_MODE. */
 static unsigned int dwc2_op_mode(struct dwc2 *dwc2)
 {

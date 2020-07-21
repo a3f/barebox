@@ -28,6 +28,9 @@ int dwc2_get_dr_mode(struct dwc2 *dwc2);
 int dwc2_core_reset(struct dwc2 *dwc2);
 void dwc2_core_init(struct dwc2 *dwc2);
 
+int dwc2_ulpi_read(struct dwc2 *dwc2, u8 addr);
+void dwc2_ulpi_write(struct dwc2 *dwc2, u32 addr, u32 data);
+
 /* Host functions */
 #ifdef CONFIG_USB_DWC2_HOST
 int dwc2_submit_roothub(struct dwc2 *dwc2, struct usb_device *dev,
