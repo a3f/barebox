@@ -65,6 +65,8 @@ static int dwc2_probe(struct device_d *dev)
 	dma_set_mask(dev, DMA_BIT_MASK(32));
 
 	ret = dwc2_register_host(dwc2);
+
+	ret = dwc2_gadget_init(dwc2);
 error:
 	return ret;
 }
