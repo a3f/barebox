@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <driver.h>
 #include <linux/clk.h>
+#include <linux/phy/phy.h>
+#include <linux/reset.h>
 
 #include "dwc2.h"
 
@@ -53,16 +55,42 @@ static int dwc2_probe(struct device_d *dev)
 {
 	struct resource *iores;
 	struct dwc2 *dwc2;
+	struct reset_control *rsts;
+	struct phy *phy;
+	struct clk *clk;
 	int ret;
 
 	dwc2 = xzalloc(sizeof(struct dwc2));
 	dev->priv = dwc2;
 	dwc2->dev = dev;
 
+	rsts = of_reset_control_array_get_optional(dev->device_node);
+	if (IS_ERR(rsts))
+		return PTR_ERR(rsts);
+
+	reset_control_deassert(rsts);
+
+	reset_control_put(rsts);
+
+	phy = phy_get_by_index(dev, 0);
+	if (IS_ERR(phy) && PTR_ERR(phy) != -ENODEV) {
+		return PTR_ERR(phy);
+	} else {
+		ret = phy_init(phy);
+		if (ret)
+			return ret;
+
+		phy_power_on(phy);
+	}
+
 	iores = dev_request_mem_resource(dev, 0);
 	if (IS_ERR(iores))
 		return PTR_ERR(iores);
 	dwc2->regs = IOMEM(iores->start);
+
+	clk = of_clk_get(dwc2->dev->device_node, 0);
+	if (!IS_ERR(clk))
+		clk_enable(clk);
 
 	ret = dwc2_core_snpsid(dwc2);
 	if (ret)
@@ -80,10 +108,14 @@ static int dwc2_probe(struct device_d *dev)
 	dwc2_get_hwparams(dwc2);
 
 	ret = dwc2_get_dr_mode(dwc2);
+	if (ret)
+		return ret;
 
 	dwc2_set_default_params(dwc2);
 
 	dma_set_mask(dev, DMA_BIT_MASK(32));
+
+	pr_info("MODE = %u\n", dwc2->dr_mode);
 
 	if (dwc2->dr_mode == USB_DR_MODE_OTG)
 		ret = usb_register_otg_device(dwc2->dev, dwc2_set_mode, dwc2);
@@ -101,10 +133,24 @@ static void dwc2_remove(struct device_d *dev)
 	dwc2_uninit_common(dwc2);
 }
 
+static void dwc2_set_stm32mp15_hsotg_params(struct dwc2 *dwc2)
+{
+	struct dwc2_core_params *p = &dwc2->params;
+
+	p->otg_cap = DWC2_CAP_PARAM_NO_HNP_SRP_CAPABLE;
+	//p->activate_stm_id_vb_detection = true;
+	p->host_rx_fifo_size = 440;
+	p->host_nperio_tx_fifo_size = 256;
+	p->host_perio_tx_fifo_size = 256;
+	p->power_down = DWC2_POWER_DOWN_PARAM_NONE;
+}
+
 static const struct of_device_id dwc2_platform_dt_ids[] = {
 	{ .compatible = "brcm,bcm2835-usb", },
 	{ .compatible = "brcm,bcm2708-usb", },
 	{ .compatible = "snps,dwc2", },
+	{ .compatible = "st,stm32mp15-hsotg",
+	  .data = dwc2_set_stm32mp15_hsotg_params },
 	{ }
 };
 
