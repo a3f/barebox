@@ -72,6 +72,7 @@ obj-$(CONFIG_CRC8)	+= crc8.o
 obj-$(CONFIG_NLS)	+= nls_base.o
 obj-$(CONFIG_FSL_QE_FIRMWARE) += fsl-qe-firmware.o
 obj-$(CONFIG_UBSAN)	+= ubsan.o
+obj-$(CONFIG_KASAN)	+= kasan/
 
 # GCC library routines
 obj-$(CONFIG_GENERIC_LIB_ASHLDI3) += ashldi3.o

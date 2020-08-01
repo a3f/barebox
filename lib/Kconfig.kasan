@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# This config refers to the generic KASAN mode.
+
+source "scripts/Kconfig.include"
+
+config HAVE_ARCH_KASAN
+	bool
+
+config CC_HAS_KASAN_GENERIC
+	def_bool $(cc-option, -fsanitize=kernel-address)
+
+config CC_HAS_WORKING_NOSANITIZE_ADDRESS
+	def_bool !CC_IS_GCC || GCC_VERSION >= 80300
+
+config KASAN_GENERIC
+	bool
+
+config KASAN
+	bool "KASAN: runtime memory debugger"
+	depends on HAVE_ARCH_KASAN && CC_HAS_KASAN_GENERIC
+	depends on CC_HAS_WORKING_NOSANITIZE_ADDRESS
+	select KASAN_GENERIC
+	help
+	  Enables KASAN (KernelAddressSANitizer) - runtime memory debugger,
+	  designed to find out-of-bounds accesses and use-after-free bugs.
+
+	  Before every memory access compiler inserts function call
+	  __asan_load*/__asan_store*. These functions performs check
+	  of shadow memory.

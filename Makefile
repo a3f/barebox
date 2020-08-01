@@ -447,7 +447,7 @@ export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL
 export LDFLAGS_barebox
 export LDFLAGS_pbl
 
-export CFLAGS_UBSAN
+export CFLAGS_UBSAN CFLAGS_KASAN
 
 # Files to ignore in find ... statements
 
@@ -637,6 +637,7 @@ KBUILD_CFLAGS += $(call cc-option,-Wno-pointer-sign,)
 KBUILD_CFLAGS += $(call cc-option,-fmacro-prefix-map=$(srctree)/=)
 
 include $(srctree)/scripts/Makefile.ubsan
+include $(srctree)/scripts/Makefile.kasan
 
 # KBUILD_IMAGE: Default barebox image to build
 # Depending on the architecture, this can be either compressed or not.
