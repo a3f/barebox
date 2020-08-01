@@ -4,6 +4,7 @@ config ARM
 	select HAS_CACHE
 	select HAVE_CONFIGURABLE_TEXT_BASE if !RELOCATABLE
 	select HAVE_IMAGE_COMPRESSION
+	select HAVE_ARCH_KASAN if MMU
 	default y
 
 config ARM_LINUX
@@ -22,6 +23,11 @@ config ARM_USE_COMPRESSED_DTB
 config TEXT_BASE
 	hex
 	default 0x0
+
+config KASAN_SHADOW_OFFSET
+	hex
+	depends on KASAN
+	default 0x1f000000 # FIXME
 
 menu "System Type"
 
@@ -400,6 +406,7 @@ config ARM_OPTIMZED_STRING_FUNCTIONS
 	# without MMU
 	#
 	depends on !CPU_V8 || MMU
+	depends on !KASAN
 	help
 	  Say yes here to use assembler optimized memcpy / memset functions.
 	  These functions work much faster than the normal versions but
