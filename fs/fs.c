@@ -1435,10 +1435,10 @@ static void set_nameidata(struct nameidata *p, int dfd, struct filename *name)
 	p->total_link_count = 0;
 }
 
-static void path_get(const struct path *path)
+static int path_get(const struct path *path)
 {
 	mntget(path->mnt);
-	dget(path->dentry);
+	return dget(path->dentry) ? 0 : -EPERM;
 }
 
 static void path_put(const struct path *path)
@@ -1447,15 +1447,15 @@ static void path_put(const struct path *path)
 	mntput(path->mnt);
 }
 
-static inline void get_root(struct path *root)
+static inline int get_root(struct path *root)
 {
 	root->dentry = d_root;
 	root->mnt = mnt_root;
 
-	path_get(root);
+	return path_get(root);
 }
 
-static inline void get_pwd(struct path *pwd)
+static inline int get_pwd(struct path *pwd)
 {
 	if (!cwd_dentry) {
 		cwd_dentry = d_root;
@@ -1465,7 +1465,7 @@ static inline void get_pwd(struct path *pwd)
 	pwd->dentry = cwd_dentry;
 	pwd->mnt = cwd_mnt;
 
-	path_get(pwd);
+	return path_get(pwd);
 }
 
 static inline void put_link(struct nameidata *nd)
@@ -1977,6 +1977,7 @@ OK:
 static const char *path_init(struct nameidata *nd, unsigned flags)
 {
 	const char *s = nd->name->name;
+	int ret = 0;
 
 	nd->last_type = LAST_ROOT; /* if there are only slashes... */
 	nd->flags = flags | LOOKUP_JUMPED | LOOKUP_PARENT;
@@ -1986,13 +1987,15 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
 	nd->path.dentry = NULL;
 
 	if (*s == '/') {
-		get_root(&nd->path);
-		return s;
+		ret = get_root(&nd->path);
 	} else if (nd->dfd == AT_FDCWD) {
-		get_pwd(&nd->path);
-		nd->inode = nd->path.dentry->d_inode;
-		return s;
+		ret = get_pwd(&nd->path);
+		if (!ret)
+			nd->inode = nd->path.dentry->d_inode;
 	}
+
+	if (ret)
+		return ERR_PTR(ret);
 
 	return s;
 }
@@ -2142,6 +2145,8 @@ static int filename_lookup(int dfd, struct filename *name, unsigned flags,
 	set_nameidata(&nd, dfd, name);
 
 	s = path_init(&nd, flags);
+	if (IS_ERR(s))
+		return PTR_ERR(s);
 
 	while (!(err = link_path_walk(s, &nd)) && ((err = lookup_last(&nd)) > 0)) {
 		s = trailing_symlink(&nd);
@@ -2317,9 +2322,11 @@ int open(const char *pathname, int flags, ...)
 	const char *s;
 
 	set_nameidata(&nd, AT_FDCWD, getname(pathname));
-	s = path_init(&nd, LOOKUP_FOLLOW);
 
-	while (1) {
+	for (s = path_init(&nd, LOOKUP_FOLLOW);
+	     !(error = PTR_ERR_OR_ZERO(s));
+	     s = trailing_symlink(&nd)) {
+
 		error = link_path_walk(s, &nd);
 		if (error)
 			break;
@@ -2343,12 +2350,6 @@ int open(const char *pathname, int flags, ...)
 		error = lookup_last(&nd);
 		if (error <= 0)
 			break;
-
-		s = trailing_symlink(&nd);
-		if (IS_ERR(s)) {
-			error = PTR_ERR(s);
-			break;
-		}
 	}
 
 	terminate_walk(&nd);
