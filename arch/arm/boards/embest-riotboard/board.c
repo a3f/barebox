@@ -51,11 +51,8 @@ static int ar8035_phy_fixup(struct phy_device *dev)
 	return 0;
 }
 
-static int riotboard_device_init(void)
+static int riotboard_probe(struct device_d *dev)
 {
-	if (!of_machine_is_compatible("riot,imx6s-riotboard"))
-		return 0;
-
 	phy_register_fixup_for_uid(0x004dd072, 0xffffffef, ar8035_phy_fixup);
 
 	imx6_bbu_internal_mmc_register_handler("emmc", "/dev/mmc3.barebox",
@@ -65,4 +62,15 @@ static int riotboard_device_init(void)
 
 	return 0;
 }
-device_initcall(riotboard_device_init);
+
+static const struct of_device_id riotboard_of_match[] = {
+	{ .compatible = "riot,imx6s-riotboard" },
+	{},
+};
+
+static struct driver_d riotboard_driver = {
+	.name = "board-embest-riot",
+	.probe = riotboard_probe,
+	.of_compatible = DRV_OF_COMPAT(riotboard_of_match),
+};
+device_platform_driver(riotboard_driver);
