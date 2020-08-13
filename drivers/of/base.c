@@ -2133,7 +2133,6 @@ static void of_probe_memory(void)
 int of_probe(void)
 {
 	struct device_node *firmware;
-	struct device_d *dev;
 
 	if(!root_node)
 		return -ENODEV;
@@ -2149,10 +2148,6 @@ int of_probe(void)
 	firmware = of_find_node_by_path("/firmware");
 	if (firmware)
 		of_platform_populate(firmware, NULL, NULL);
-
-	dev = of_platform_device_create(root_node, NULL);
-	if (dev)
-		dev_set_name(dev, "%s.of", "machine");
 
 	of_clk_init(root_node, NULL);
 	of_platform_populate(root_node, of_default_bus_match_table, NULL);
