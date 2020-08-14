@@ -16,6 +16,9 @@ config PNG
 	bool "png"
 	select ZLIB
 
+config IMAGE_RESIZER
+       bool "Image resizing support"
+
 if PNG
 
 choice

@@ -97,7 +97,7 @@ void gu_memset_pixel(struct fb_info *info, void* buf, u32 color, size_t size)
 	}
 }
 
-static void get_rgb_pixel(struct fb_info *info, void *adr, u8 *r ,u8 *g, u8 *b)
+void gu_get_rgb_pixel(struct fb_info *info, void *adr, u8 *r ,u8 *g, u8 *b)
 {
 	u32 px;
 	u32 rmask, gmask, bmask;
@@ -193,7 +193,7 @@ void gu_set_rgba_pixel(struct fb_info *info, void *adr, u8 r, u8 g, u8 b, u8 a)
 			u8 sg = 0;
 			u8 sb = 0;
 
-			get_rgb_pixel(info, adr, &sr, &sg, &sb);
+			gu_get_rgb_pixel(info, adr, &sr, &sg, &sb);
 
 			r = alpha_mux(sr, r, a);
 			g = alpha_mux(sg, g, a);
