@@ -17,7 +17,27 @@ config PNG
 	select ZLIB
 
 config IMAGE_RESIZER
-       bool "Image resizing support"
+	bool "Image resizing support"
+
+if IMAGE_RESIZER
+
+choice
+	prompt "Real number arithmetic"
+
+config IMAGE_RESIZE_FIXED_POINT
+	bool "Fixed-point arithmetic"
+	help
+	  This is usable everywhere.
+
+config IMAGE_RESIZE_FLOATING_POINT
+	bool "Floating-point arithmetic"
+	help
+	  This requires compile floating point support. Preferably
+	  hardfloats.
+
+endchoice
+
+endif
 
 if PNG
 
