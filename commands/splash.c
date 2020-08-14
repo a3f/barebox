@@ -9,6 +9,7 @@
 
 static int do_splash(int argc, char *argv[])
 {
+	struct image *img;
 	struct surface s;
 	struct screen *sc;
 	int ret = 0;
@@ -16,7 +17,7 @@ static int do_splash(int argc, char *argv[])
 	char *fbdev = "/dev/fb0";
 	char *image_file;
 	u32 bg_color = 0x00000000;
-	bool do_bg = false;
+	bool do_bg = false, do_scale = false;
 	void *buf;
 
 	memset(&s, 0, sizeof(s));
@@ -26,10 +27,13 @@ static int do_splash(int argc, char *argv[])
 	s.width = -1;
 	s.height = -1;
 
-	while((opt = getopt(argc, argv, "f:x:y:ob:")) > 0) {
+	while((opt = getopt(argc, argv, "sf:x:y:ob:")) > 0) {
 		switch(opt) {
 		case 'f':
 			fbdev = optarg;
+			break;
+		case 's':
+			do_scale = true;
 			break;
 		case 'b':
 			bg_color = simple_strtoul(optarg, NULL, 0);
@@ -44,6 +48,12 @@ static int do_splash(int argc, char *argv[])
 		default:
 			return COMMAND_ERROR_USAGE;
 		}
+	}
+
+	if (do_scale) {
+		s.x = 0;
+		s.y = 0;
+		do_bg = false;
 	}
 
 	if (optind == argc) {
@@ -65,12 +75,21 @@ static int do_splash(int argc, char *argv[])
 		gu_memset_pixel(sc->info, buf, bg_color,
 				sc->s.width * sc->s.height);
 
-	ret = image_renderer_file(sc, &s, image_file);
+	img = image_renderer_open(image_file);
+	if (IS_ERR(img))
+		return PTR_ERR(img);
+
+	ret = image_renderer_image(sc, &s, img);
+
 	if (ret > 0)
 		ret = 0;
 
-	gu_screen_blit(sc);
+	if (do_scale)
+		gu_screen_blit_resized(sc, img->width, img->height);
+	else
+		gu_screen_blit(sc);
 
+	image_renderer_close(img);
 	fb_close(sc);
 
 	return ret;
@@ -86,12 +105,13 @@ BAREBOX_CMD_HELP_OPT ("-f FB\t",    "framebuffer device (default /dev/fb0)")
 BAREBOX_CMD_HELP_OPT ("-x XOFFS", "x offset (default center)")
 BAREBOX_CMD_HELP_OPT ("-y YOFFS", "y offset (default center)")
 BAREBOX_CMD_HELP_OPT ("-b COLOR", "background color in 0xttrrggbb")
+BAREBOX_CMD_HELP_OPT ("-s", "scale image to fill screen")
 BAREBOX_CMD_HELP_END
 
 BAREBOX_CMD_START(splash)
 	.cmd		= do_splash,
 	BAREBOX_CMD_DESC("display a BMP or PNG splash image")
-	BAREBOX_CMD_OPTS("[-fxyno] FILE")
+	BAREBOX_CMD_OPTS("[-fxynos] FILE")
 	BAREBOX_CMD_GROUP(CMD_GRP_CONSOLE)
 	BAREBOX_CMD_HELP(cmd_splash_help)
 BAREBOX_CMD_END
