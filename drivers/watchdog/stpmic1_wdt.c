@@ -9,19 +9,9 @@
 #include <asm/io.h>
 #include <of_device.h>
 #include <linux/iopoll.h>
-#include <poweroff.h>
 #include <mfd/syscon.h>
-#include <restart.h>
-#include <reset_source.h>
 
 #include <linux/mfd/stpmic1.h>
-
-/* Restart Status Register (RREQ_STATE_SR) */
-#define R_RST			BIT(0)
-#define R_SWOFF			BIT(1)
-#define R_WDG			BIT(2)
-#define R_PKEYLKP		BIT(3)
-#define R_VINOK_FA		BIT(4)
 
 /* Watchdog Control Register (WCHDG_CR) */
 #define WDT_START		BIT(0)
@@ -34,17 +24,8 @@
 #define PMIC_WDT_MAX_TIMEOUT 256
 #define PMIC_WDT_DEFAULT_TIMEOUT 30
 
-
-struct stpmic1_reset_reason {
-	uint32_t mask;
-	enum reset_src_type type;
-	int instance;
-};
-
 struct stpmic1_wdt {
 	struct watchdog wdd;
-	struct restart_handler restart;
-	struct poweroff_handler poweroff;
 	struct regmap *regmap;
 	unsigned int timeout;
 };
@@ -95,73 +76,10 @@ static int stpmic1_wdt_set_timeout(struct watchdog *wdd, unsigned int timeout)
 	return 0;
 }
 
-static void __noreturn stpmic1_restart_handler(struct restart_handler *rst)
-{
-	struct stpmic1_wdt *wdt = container_of(rst, struct stpmic1_wdt, restart);
-
-	regmap_write_bits(wdt->regmap, SWOFF_PWRCTRL_CR,
-			  SOFTWARE_SWITCH_OFF_ENABLED | RESTART_REQUEST_ENABLED,
-			  SOFTWARE_SWITCH_OFF_ENABLED | RESTART_REQUEST_ENABLED);
-
-	mdelay(1000);
-	hang();
-}
-
-static void __noreturn stpmic1_poweroff(struct poweroff_handler *handler)
-{
-	struct stpmic1_wdt *wdt = container_of(handler, struct stpmic1_wdt, poweroff);
-
-	shutdown_barebox();
-
-	regmap_write_bits(wdt->regmap, SWOFF_PWRCTRL_CR,
-			  SOFTWARE_SWITCH_OFF_ENABLED | RESTART_REQUEST_ENABLED,
-			  SOFTWARE_SWITCH_OFF_ENABLED);
-
-	mdelay(1000);
-	hang();
-}
-
-static const struct stpmic1_reset_reason stpmic1_reset_reasons[] = {
-	{ R_VINOK_FA,	RESET_BROWNOUT, 0 },
-	{ R_PKEYLKP,	RESET_EXT, 0 },
-	{ R_WDG,	RESET_WDG, 2 },
-	{ R_SWOFF,	RESET_RST, 0 },
-	{ R_RST,	RESET_EXT, 0 },
-	{ /* sentinel */ }
-};
-
-static int stpmic1_set_reset_reason(struct regmap *map)
-{
-	enum reset_src_type type = RESET_POR;
-	u32 reg;
-	int ret;
-	int i, instance = 0;
-
-	ret = regmap_read(map, RREQ_STATE_SR, &reg);
-	if (ret)
-		return ret;
-
-	for (i = 0; stpmic1_reset_reasons[i].mask; i++) {
-		if (reg & stpmic1_reset_reasons[i].mask) {
-			type     = stpmic1_reset_reasons[i].type;
-			instance = stpmic1_reset_reasons[i].instance;
-			break;
-		}
-	}
-
-	reset_source_set_prinst(type, 400, instance);
-
-	pr_info("STPMIC1 reset reason %s (RREQ_STATE_SR: 0x%08x)\n",
-		reset_source_to_string(type), reg);
-
-	return 0;
-}
-
 static int stpmic1_wdt_probe(struct device_d *dev)
 {
 	struct stpmic1_wdt *wdt;
 	struct watchdog *wdd;
-	int ret;
 
 	wdt = xzalloc(sizeof(*wdt));
 
@@ -174,38 +92,7 @@ static int stpmic1_wdt_probe(struct device_d *dev)
 	wdd->set_timeout = stpmic1_wdt_set_timeout;
 	wdd->timeout_max = PMIC_WDT_MAX_TIMEOUT;
 
-	/* have the watchdog reset, not power-off the system */
-	regmap_write_bits(wdt->regmap, SWOFF_PWRCTRL_CR,
-			  RESTART_REQUEST_ENABLED, RESTART_REQUEST_ENABLED);
-
-	ret = watchdog_register(wdd);
-	if (ret) {
-		dev_err(dev, "Failed to register watchdog device\n");
-		return ret;
-	}
-
-	wdt->restart.name = "stpmic1-reset";
-	wdt->restart.restart = stpmic1_restart_handler;
-	wdt->restart.priority = 300;
-
-	ret = restart_handler_register(&wdt->restart);
-	if (ret)
-		dev_warn(dev, "Cannot register restart handler\n");
-
-	wdt->poweroff.name = "stpmic1-poweroff";
-	wdt->poweroff.poweroff = stpmic1_poweroff;
-	wdt->poweroff.priority = 200;
-
-	ret = poweroff_handler_register(&wdt->poweroff);
-	if (ret)
-		dev_warn(dev, "Cannot register poweroff handler\n");
-
-	ret = stpmic1_set_reset_reason(wdt->regmap);
-	if (ret)
-		dev_warn(dev, "Cannot query reset reason\n");
-
-	dev_info(dev, "probed\n");
-	return 0;
+	return watchdog_register(wdd);
 }
 
 static __maybe_unused const struct of_device_id stpmic1_wdt_of_match[] = {

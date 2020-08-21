@@ -14,5 +14,5 @@ obj-$(CONFIG_WATCHDOG_ORION) += orion_wdt.o
 obj-$(CONFIG_ARCH_BCM283X) += bcm2835_wdt.o
 obj-$(CONFIG_RAVE_SP_WATCHDOG) += rave-sp-wdt.o
 obj-$(CONFIG_STM32_IWDG_WATCHDOG) += stm32_iwdg.o
-obj-$(CONFIG_STPMIC1_WATCHDOG) += stpmic1_wdt.o
+obj-$(CONFIG_MFD_STPMIC1) += stpmic1_wdt.o
 obj-$(CONFIG_F71808E_WDT) += f71808e_wdt.o
