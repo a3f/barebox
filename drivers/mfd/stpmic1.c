@@ -105,7 +105,7 @@ static const struct stpmic1_reset_reason stpmic1_reset_reasons[] = {
 	{ R_PKEYLKP,	RESET_EXT, 0 },
 	{ R_WDG,	RESET_WDG, 2 },
 	{ R_SWOFF,	RESET_RST, 0 },
-	{ R_RST,	RESET_EXT, 0 },
+	{ R_RST,	RESET_RST, 1 },
 	{ /* sentinel */ }
 };
 
