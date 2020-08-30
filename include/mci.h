@@ -404,6 +404,7 @@ struct mci_host {
 	bool non_removable;	/**< device is non removable */
 	bool no_sd;		/**< do not send SD commands during initialization */
 	bool boot_ack;		/**< verify boot ack on initialization */
+	bool mmc_boot_ddr_3_3v;	/**< use 3v3 DDR on eMMC fast boot */
 	struct regulator *supply;
 
 	/** init the host interface */

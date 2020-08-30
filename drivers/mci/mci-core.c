@@ -1592,7 +1592,9 @@ static int mci_set_boot_ack(struct mci *mci)
 		bus_width |= 2;
 
 	bus_width &= ~(0x3 << 3);
-	if (host->timing == MMC_TIMING_MMC_HS)
+	if (host->mmc_boot_ddr_3_3v)
+		bus_width |= 2 << 3;
+	else if (host->timing == MMC_TIMING_MMC_HS)
 		bus_width |= 1 << 3;
 
 	if (mci->ext_csd_part_config & (0x1 << 6)) {
@@ -1990,6 +1992,7 @@ void mci_of_parse_node(struct mci_host *host,
 		}
 	}
 
+	host->mmc_boot_ddr_3_3v = of_property_read_bool(np, "mmc-ddr-3_3v");
 	host->non_removable = of_property_read_bool(np, "non-removable");
 	host->no_sd = of_property_read_bool(np, "no-sd");
 	host->boot_ack = of_property_read_bool(np, "barebox,mmc-boot-ack");
