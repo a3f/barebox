@@ -512,6 +512,7 @@ static int mmc_change_freq(struct mci *mci)
 		}
 
 		mci->ext_csd_part_config = mci->ext_csd[EXT_CSD_PARTITION_CONFIG];
+		mci->ext_csd_boot_bus_width = mci->ext_csd[EXT_CSD_BOOT_BUS_CONDITIONS];
 		mci->bootpart = (mci->ext_csd_part_config >> 3) & 0x7;
 	}
 
@@ -1578,6 +1579,39 @@ static struct block_device_ops mci_ops = {
 #endif
 };
 
+static int mci_set_boot_ack(struct mci *mci)
+{
+	struct mci_host *host = mci->host;
+	u8 bus_width = mci->ext_csd_boot_bus_width;
+	int ret;
+
+	bus_width &= ~0x3;
+	if (host->bus_width == MMC_BUS_WIDTH_4)
+		bus_width |= 1;
+	else if (host->bus_width == MMC_BUS_WIDTH_8)
+		bus_width |= 2;
+
+	bus_width &= ~(0x3 << 3);
+	if (host->timing == MMC_TIMING_MMC_HS)
+		bus_width |= 1 << 3;
+
+	if (mci->ext_csd_part_config & (0x1 << 6)) {
+		if (mci->ext_csd_boot_bus_width != bus_width)
+			dev_dbg(&mci->dev, "boot bus width unexpected\n");
+		return 0;
+	}
+
+	if (mci->ext_csd_boot_bus_width != bus_width) {
+		mci->ext_csd_boot_bus_width = bus_width;
+		ret = mci_switch(mci, EXT_CSD_BOOT_BUS_CONDITIONS, bus_width);
+		if (ret)
+			return ret;
+	}
+
+	mci->ext_csd_part_config |= 1 << 6;
+	return mci_switch(mci, EXT_CSD_PARTITION_CONFIG, bus_width);
+}
+
 static int mci_set_boot(struct param_d *param, void *priv)
 {
 	struct mci *mci = priv;
@@ -1744,6 +1778,13 @@ static int mci_card_probe(struct mci *mci)
 					mci_set_boot, NULL, &mci->bootpart,
 					mci_boot_names, ARRAY_SIZE(mci_boot_names), mci);
 		}
+	}
+
+	if (host->boot_ack) {
+		if (IS_SD(mci))
+			dev_warn(&mci->dev, "barebox,mmc-boot-ack ignored for SD\n");
+
+		mci_set_boot_ack(mci);
 	}
 
 	dev_dbg(&mci->dev, "SD Card successfully added\n");
@@ -1951,6 +1992,7 @@ void mci_of_parse_node(struct mci_host *host,
 
 	host->non_removable = of_property_read_bool(np, "non-removable");
 	host->no_sd = of_property_read_bool(np, "no-sd");
+	host->boot_ack = of_property_read_bool(np, "barebox,mmc-boot-ack");
 }
 
 void mci_of_parse(struct mci_host *host)

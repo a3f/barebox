@@ -403,6 +403,7 @@ struct mci_host {
 	int use_dsr;		/**< optional dsr usage flag */
 	bool non_removable;	/**< device is non removable */
 	bool no_sd;		/**< do not send SD commands during initialization */
+	bool boot_ack;		/**< verify boot ack on initialization */
 	struct regulator *supply;
 
 	/** init the host interface */
@@ -467,6 +468,7 @@ struct mci {
 
 	struct mci_part *part_curr;
 	u8 ext_csd_part_config;
+	u8 ext_csd_boot_bus_width;
 
 	struct list_head list;     /* The list of all mci devices */
 };
