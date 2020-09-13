@@ -20,8 +20,10 @@
 #include <linux/ctype.h>
 #include <readkey.h>
 
+#define MAX_ESC_LEN 3
+
 struct esc_cmds {
-	const char *seq;
+	const char seq[MAX_ESC_LEN];
 	unsigned char val;
 };
 
@@ -49,7 +51,7 @@ static const struct esc_cmds esccmds[] = {
 int read_key(void)
 {
 	unsigned char c;
-	unsigned char esc[5];
+	unsigned char esc[MAX_ESC_LEN + 2];
 	c = getchar();
 
 	if (c == 27) {
@@ -67,7 +69,7 @@ int read_key(void)
 		}
 		esc[i] = 0;
 		for (i = 0; i < ARRAY_SIZE(esccmds); i++){
-			if (!strcmp(esc, esccmds[i].seq))
+			if (!strncmp(esc, esccmds[i].seq, MAX_ESC_LEN))
 				return esccmds[i].val;
 		}
 		return -1;
