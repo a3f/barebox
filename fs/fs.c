@@ -1129,6 +1129,9 @@ void dput(struct dentry *dentry)
 		return;
 
 	dentry->d_count--;
+
+	if (!dentry->d_count)
+		dentry_kill(dentry);
 }
 
 struct dentry *dget(struct dentry *dentry)
@@ -2837,7 +2840,6 @@ int mount(const char *device, const char *fsname, const char *pathname,
 		fsdev->vfsmount.mountpoint->d_flags |= DCACHE_MOUNTED;
 	} else {
 		d_root = fsdev->sb.s_root;
-		path.dentry = d_root;
 		mnt_root = &fsdev->vfsmount;
 		fsdev->vfsmount.mountpoint = d_root;
 		fsdev->vfsmount.parent = &fsdev->vfsmount;
