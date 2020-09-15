@@ -1,0 +1,1 @@
+global.boot.default="mmc2 ${global.boot.default}"

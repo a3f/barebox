@@ -41,3 +41,8 @@
 &ocotp {
 	barebox,provide-mac-address = <&fec 0x620>;
 };
+
+&reboot_mode_gpr {
+	mode-sd = <0x00002840>, <0>;
+	mode-emmc = <0x00003040>, <0>;
+};
