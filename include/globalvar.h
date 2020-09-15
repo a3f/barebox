@@ -34,6 +34,7 @@ int nvvar_remove(const char *name);
 void globalvar_print(void);
 
 void dev_param_init_from_nv(struct device_d *dev, const char *name);
+void globalvar_alias_deprecated(const char *newname, const char *oldname);
 
 #else
 static inline int globalvar_add_simple(const char *name, const char *value)
@@ -112,6 +113,10 @@ static inline int nvvar_save(void)
 }
 
 static inline void dev_param_init_from_nv(struct device_d *dev, const char *name)
+{
+}
+
+static inline void globalvar_alias_deprecated(const char *newname, const char *oldname)
 {
 }
 
