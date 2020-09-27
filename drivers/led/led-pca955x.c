@@ -349,8 +349,11 @@ static int led_pca955x_probe(struct device_d *dev)
 	struct i2c_client *client;
 	int err;
 	struct pca955x_platform_data *pdata;
+	enum pca955x_type type;
 
-	chip = &pca955x_chipdefs[dev->id_entry->driver_data];
+	type = (enum pca955x_type)device_get_match_data(dev);
+
+	chip = &pca955x_chipdefs[type];
 	client = to_i2c_client(dev);
 
 	/* Make sure the slave address / chip type combo given is possible */
