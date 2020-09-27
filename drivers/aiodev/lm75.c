@@ -109,9 +109,7 @@ static int lm75_probe(struct device_d *dev)
 	int new, ret;
 	enum lm75_type kind;
 
-	ret = dev_get_drvdata(dev, (const void **)&kind);
-	if (ret)
-		return ret;
+	kind = (enum lm75_type)device_get_match_data(dev);
 
 	data = xzalloc(sizeof(*data));
 
