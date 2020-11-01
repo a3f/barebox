@@ -104,7 +104,7 @@ static int usbgadget_autostart_set(struct param_d *param, void *ctx)
 {
 	bool fastboot_bbu = get_fastboot_bbu();
 
-	if (!IS_ENABLED(CONFIG_USB_GADGET_AUTOSTART) || !autostart)
+	if (!autostart)
 		return 0;
 
 	return usbgadget_register(true, NULL, true, NULL, acm, fastboot_bbu);
