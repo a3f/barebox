@@ -58,6 +58,8 @@ static struct usb_function_instance *fi_acm;
 static struct usb_function *f_acm;
 static struct usb_function_instance *fi_dfu;
 static struct usb_function *f_dfu;
+static struct usb_function_instance *fi_ums;
+static struct usb_function *f_ums;
 static struct usb_function_instance *fi_fastboot;
 static struct usb_function *f_fastboot;
 
@@ -114,6 +116,31 @@ static int multi_bind_dfu(struct usb_composite_dev *cdev)
 	return usb_add_function(&config, f_dfu);
 }
 
+static int multi_bind_ums(struct usb_composite_dev *cdev)
+{
+	int ret;
+	struct f_ums_opts *opts;
+
+	fi_ums = usb_get_function_instance("ums");
+	if (IS_ERR(fi_ums)) {
+		ret = PTR_ERR(fi_ums);
+		fi_ums = NULL;
+		return ret;
+	}
+
+	opts = container_of(fi_ums, struct f_ums_opts, func_inst);
+	opts->files = gadget_multi_opts->ums_opts.files;
+
+	f_ums = usb_get_function(fi_ums);
+	if (IS_ERR(f_ums)) {
+		ret = PTR_ERR(f_ums);
+		f_ums = NULL;
+		return ret;
+	}
+
+	return usb_add_function(&config, f_ums);
+}
+
 static int multi_bind_fastboot(struct usb_composite_dev *cdev)
 {
 	int ret;
@@ -144,6 +171,11 @@ static int multi_unbind(struct usb_composite_dev *cdev)
 	if (gadget_multi_opts->create_acm) {
 		usb_put_function(f_acm);
 		usb_put_function_instance(fi_acm);
+	}
+
+	if (gadget_multi_opts->ums_opts.files) {
+		usb_put_function(f_ums);
+		usb_put_function_instance(fi_ums);
 	}
 
 	if (gadget_multi_opts->dfu_opts.files) {
@@ -201,6 +233,13 @@ static int multi_bind(struct usb_composite_dev *cdev)
 	if (gadget_multi_opts->dfu_opts.files) {
 		printf("%s: creating DFU function\n", __func__);
 		ret = multi_bind_dfu(cdev);
+		if (ret)
+			goto out;
+	}
+
+	if (gadget_multi_opts->ums_opts.files) {
+		printf("%s: creating USB mass storage function\n", __func__);
+		ret = multi_bind_ums(cdev);
 		if (ret)
 			goto out;
 	}
@@ -272,6 +311,8 @@ void usb_multi_opts_release(struct f_multi_opts *opts)
 		file_list_free(opts->fastboot_opts.files);
 	if (opts->dfu_opts.files)
 		file_list_free(opts->dfu_opts.files);
+	if (opts->ums_opts.files)
+		file_list_free(opts->ums_opts.files);
 
 	free(opts);
 }

@@ -59,4 +59,11 @@ config USB_GADGET_FASTBOOT
 	select FILE_LIST
 	select FASTBOOT_BASE
 	prompt "Android Fastboot USB Gadget"
+
+config USB_GADGET_MASS_STORAGE
+	bool
+	select BANNER
+	select FILE_LIST
+	prompt "USB mass storage Gadget"
+
 endif

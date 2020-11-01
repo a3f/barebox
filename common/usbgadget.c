@@ -23,6 +23,7 @@
 #include <xfuncs.h>
 #include <usb/usbserial.h>
 #include <usb/dfu.h>
+#include <usb/mass_storage.h>
 #include <usb/gadget-multi.h>
 #include <globalvar.h>
 #include <magicvar.h>
@@ -30,6 +31,7 @@
 static int autostart;
 static int acm;
 static char *dfu_function;
+static char *ums_function;
 
 static struct file_list *parse(const char *files)
 {
@@ -48,7 +50,7 @@ int usbgadget_register(const struct usbgadget_funcs *funcs)
 	struct device_d *dev;
 	struct f_multi_opts *opts;
 	const char *fastboot_partitions = get_fastboot_partitions();
-	const char *dfu_opts = NULL, *fastboot_opts = NULL;
+	const char *dfu_opts = NULL, *fastboot_opts = NULL, *ums_opts = NULL;
 
 	if (flags & USBGADGET_DFU) {
 		dfu_opts = funcs->dfu_opts;
@@ -63,7 +65,13 @@ int usbgadget_register(const struct usbgadget_funcs *funcs)
 			fastboot_opts = fastboot_partitions;
 	}
 
-	if (!dfu_opts && !fastboot_opts && !(flags & USBGADGET_ACM))
+	if (flags & USBGADGET_MASS_STORAGE) {
+		ums_opts = funcs->mass_storage_opts;
+		if (!ums_opts && ums_function && *ums_function)
+			ums_opts = ums_function;
+	}
+
+	if (!dfu_opts && !fastboot_opts && !ums_opts && !(flags & USBGADGET_ACM))
 		return COMMAND_ERROR_USAGE;
 
 	/*
@@ -71,8 +79,8 @@ int usbgadget_register(const struct usbgadget_funcs *funcs)
 	 * Both client tools seem to assume that the device only has
 	 * a single configuration
 	 */
-	if (fastboot_opts && dfu_opts) {
-		pr_err("Only one of Fastboot and DFU allowed\n");
+	if (fastboot_opts && dfu_opts && ums_opts) {
+		pr_err("Only one of Fastboot, DFU and mass storage allowed\n");
 		return -EINVAL;
 	}
 
@@ -87,8 +95,11 @@ int usbgadget_register(const struct usbgadget_funcs *funcs)
 	if (dfu_opts)
 		opts->dfu_opts.files = parse(dfu_opts);
 
+	if (ums_opts)
+		opts->ums_opts.files = parse(ums_opts);
+
 	if (!opts->dfu_opts.files && !opts->fastboot_opts.files &&
-	    !(flags & USBGADGET_ACM)) {
+	    !opts->ums_opts.files && !(flags & USBGADGET_ACM)) {
 		pr_warn("No functions to register\n");
 		free(opts);
 		return 0;
@@ -120,7 +131,7 @@ static int usbgadget_autostart_set(struct param_d *param, void *ctx)
 	if (acm)
 		funcs.flags |= USBGADGET_ACM;
 
-	funcs.flags |= USBGADGET_DFU | USBGADGET_FASTBOOT;
+	funcs.flags |= USBGADGET_DFU | USBGADGET_FASTBOOT | USBGADGET_MASS_STORAGE;
 
 	return usbgadget_register(&funcs);
 }
@@ -133,6 +144,7 @@ static int usbgadget_globalvars_init(void)
 		globalvar_add_simple_bool("usbgadget.acm", &acm);
 	}
 	globalvar_add_simple_string("usbgadget.dfu_function", &dfu_function);
+	globalvar_add_simple_string("usbgadget.mass_storage_function", &ums_function);
 
 	return 0;
 }
@@ -144,3 +156,5 @@ BAREBOX_MAGICVAR(global.usbgadget.acm,
 		 "usbgadget: Create CDC ACM function");
 BAREBOX_MAGICVAR(global.usbgadget.dfu_function,
 		 "usbgadget: Create DFU function");
+BAREBOX_MAGICVAR(global.usbgadget.mass_storage_function,
+		 "usbgadget: Create mass storage function");
