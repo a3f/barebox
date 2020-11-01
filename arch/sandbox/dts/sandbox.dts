@@ -94,4 +94,26 @@
 		compatible = "barebox,sandbox-watchdog";
 		barebox,reset-source = <&stickypage 0>;
 	};
+
+	usb-host {
+		compatible = "barebox,virtual-usb";
+		dr_mode = "host";
+
+		port {
+			host_port: endpoint {
+				remote-endpoint = <&peripheral_port>;
+			};
+		};
+	};
+
+	usb-peripheral {
+		compatible = "barebox,virtual-usb";
+		dr_mode = "host";
+
+		port {
+			peripheral_port: endpoint {
+				remote-endpoint = <&host_port>;
+			};
+		};
+	};
 };
