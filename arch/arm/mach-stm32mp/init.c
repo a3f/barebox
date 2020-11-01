@@ -56,9 +56,13 @@
 #define TAMP_BOOT_FORCED_MASK           GENMASK(7, 0)
 #define TAMP_BOOT_DEBUG_ON              BIT(16)
 
-#define FIXUP_CPU_MASK(num, mhz) (((num) << 16) | (mhz))
-#define FIXUP_CPU_NUM(mask) ((mask) >> 16)
+#define FIXUP_CPU_MASK(num, mhz, flags) (((flags) << 24) | ((num) << 16) | (mhz))
+#define FIXUP_CPU_NUM(mask) (((mask) >> 16) & 0xFF)
 #define FIXUP_CPU_HZ(mask) (((mask) & GENMASK(15, 0)) * 1000UL * 1000UL)
+#define FIXUP_CPU_FLAGS(mask) (((mask) >> 24)
+
+#define FIXUP_CPU_FLAG_NO_CAN		BIT(0)
+#define FIXUP_CPU_FLAG_NO_VIDEO		BIT(1)
 
 static void setup_boot_mode(void)
 {
@@ -135,10 +139,32 @@ static int get_cpu_package(u32 *pkg)
 	return 0;
 }
 
+static void delete_node(struct device_node *root, const char *name)
+{
+	struct device_node np;
+
+	np = of_find_node_by_reproducible_name(root, name);
+	if (np)
+		of_delete_node(np);
+}
+
 static int stm32mp15_fixup_cpus(struct device_node *root, void *_ctx)
 {
 	unsigned long ctx = (unsigned long)_ctx;
 	struct device_node *cpus_node, *np, *tmp;
+
+	if (FIXUP_CPU_FLAGS(ctx) & FIXUP_CPU_FLAG_NO_CRYPTO)
+		delete_node(root, "crypto");
+
+	if (FIXUP_CPU_FLAGS(ctx) & FIXUP_CPU_FLAG_NO_CAN) {
+		delete_node(root, "4400e000.can.of");
+		delete_node(root, "4400f000.can.of");
+	}
+
+	if (FIXUP_CPU_FLAGS(ctx) & FIXUP_CPU_FLAG_NO_VIDEO) {
+		delete_node(root, "59000000.gpu.of");
+		delete_node(root, "5a000000.dsi.of");
+	}
 
 	cpus_node = of_find_node_by_name(root, "cpus");
 	if (!cpus_node)
