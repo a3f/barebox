@@ -44,8 +44,6 @@ void mdelay_non_interruptible(unsigned long msecs);
 #define MSECOND ((uint64_t)(1000 * 1000))
 #define USECOND ((uint64_t)(1000))
 
-#define HZ	SECOND
-
 extern uint64_t time_beginning;
 
 /*
