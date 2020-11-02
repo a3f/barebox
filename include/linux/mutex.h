@@ -10,6 +10,8 @@
 #ifndef __LINUX_MUTEX_H
 #define __LINUX_MUTEX_H
 
+#include <linux/compiler.h>
+
 #define mutex_init(...)
 #define mutex_lock(...)
 #define mutex_unlock(...)
@@ -17,5 +19,7 @@
 #define mutex_unlock_nested(...)
 #define mutex_is_locked(...)	0
 struct mutex { int i; };
+
+#define DEFINE_MUTEX(m) struct mutex __maybe_unused m
 
 #endif /* __LINUX_MUTEX_H */
