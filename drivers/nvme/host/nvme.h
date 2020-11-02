@@ -15,11 +15,12 @@
 #define _NVME_H
 
 #include <linux/nvme.h>
+#include <linux/time.h>
 #include <dma.h>
 #include <block.h>
 
-#define ADMIN_TIMEOUT		(60 * HZ)
-#define SHUTDOWN_TIMEOUT	( 5 * HZ)
+#define ADMIN_TIMEOUT		(60 * NSEC_PER_SEC)
+#define SHUTDOWN_TIMEOUT	( 5 * NSEC_PER_SEC)
 
 /*
  * Common request structure for NVMe passthrough.  All drivers must have
