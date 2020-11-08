@@ -15,7 +15,7 @@
 			compatible = "ns16550a";
 			reg = <0x1fe40000 0x8>;
 			reg-shift = <0>;
-			clock-frequency = <83000000>;
+			clocks = <&pll LS1B_CLK_APB_DIV>;
 			status = "disabled";
 		};
 
@@ -23,7 +23,7 @@
 			compatible = "ns16550a";
 			reg = <0x1fe44000 0x8>;
 			reg-shift = <0>;
-			clock-frequency = <83000000>;
+			clocks = <&pll LS1B_CLK_APB_DIV>;
 			status = "disabled";
 		};
 
@@ -31,7 +31,7 @@
 			compatible = "ns16550a";
 			reg = <0x1fe48000 0x8>;
 			reg-shift = <0>;
-			clock-frequency = <83000000>;
+			clocks = <&pll LS1B_CLK_APB_DIV>;
 			status = "disabled";
 		};
 
@@ -39,7 +39,7 @@
 			compatible = "ns16550a";
 			reg = <0x1fe4c000 0x8>;
 			reg-shift = <0>;
-			clock-frequency = <83000000>;
+			clocks = <&pll LS1B_CLK_APB_DIV>;
 			status = "disabled";
 		};
 
