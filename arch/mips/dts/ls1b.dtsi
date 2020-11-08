@@ -1,3 +1,5 @@
+#include <dt-bindings/clock/ls1b-clk.h>
+
 / {
 	#address-cells = <1>;
 	#size-cells = <1>;
@@ -39,6 +41,13 @@
 			reg-shift = <0>;
 			clock-frequency = <83000000>;
 			status = "disabled";
+		};
+
+		pll: pll@1fe78030 {
+			compatible = "loongson,ls1b-pll";
+			#clock-cells = <1>;
+			reg = <0x1fe78030 0x8>;
+			clocks = <&oscillator>;
 		};
 	};
 };
