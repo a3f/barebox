@@ -13,7 +13,7 @@
 #include <asm/timer.h>
 #include <asm/csr.h>
 
-static u64 notrace riscv_timer_get_count(void)
+static u64 notrace riscv_timer_get_count_sbi(void)
 {
 	__maybe_unused u32 hi, lo;
 
@@ -26,6 +26,22 @@ static u64 notrace riscv_timer_get_count(void)
 	} while (hi != csr_read(CSR_TIMEH));
 
 	return ((u64)hi << 32) | lo;
+}
+
+static u64 notrace riscv_timer_get_count_rdcycle(void)
+{
+	u64 ticks;
+	asm volatile("rdcycle %0" : "=r" (ticks));
+
+	return ticks;
+}
+
+static u64 notrace riscv_timer_get_count(void)
+{
+	if (IS_ENABLED(CONFIG_RISCV_SBI))
+		return riscv_timer_get_count_sbi();
+	else
+		return riscv_timer_get_count_rdcycle();
 }
 
 static struct clocksource riscv_clocksource = {

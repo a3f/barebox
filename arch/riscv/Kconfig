@@ -32,6 +32,7 @@ config MACH_ERIZO
 	select HAS_NMON
 	select USE_COMPRESSED_DTB
 	select RISCV_M_MODE
+	select RISCV_TIMER
 
 endchoice
 
