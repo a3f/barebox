@@ -39,6 +39,6 @@ typedef struct jmp_buf_data jmp_buf[1];
 int setjmp(jmp_buf jmp) __attribute__((returns_twice)) __sjlj_attr;
 void longjmp(jmp_buf jmp, int ret) __attribute__((noreturn)) __sjlj_attr;
 
-int initjmp(jmp_buf jmp, void __noreturn (*func)(void), void *stack_top) __sjlj_attr;
+int initjmp(jmp_buf jmp, void __attribute__((noreturn)) (*func)(void), void *stack_top) __sjlj_attr;
 
 #endif
