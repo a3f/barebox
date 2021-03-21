@@ -84,7 +84,7 @@ struct bthread *bthread_create(int (*threadfn)(void *), void *data,
 	va_list ap;
 	int len;
 
-	bthread = malloc(struct_size(bthread, stack_space, CONFIG_STACK_SIZE));
+	bthread = memalign(16, struct_size(bthread, stack_space, CONFIG_STACK_SIZE));
 	if (!bthread)
 		goto err;
 
