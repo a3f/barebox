@@ -16,6 +16,7 @@ hostprogs-always-$(CONFIG_KALLSYMS)			+= kallsyms
 hostprogs-always-$(CONFIG_MIPS)				+= mips-relocs
 hostprogs-always-$(CONFIG_MVEBU_HOSTTOOLS)		+= kwbimage kwboot mvebuimg
 hostprogs-always-$(CONFIG_ARCH_OMAP)			+= omap_signGP mk-omap-image
+hostprogs-always-$(CONFIG_BOARD_QEMU_MALTA)		+= bswap
 hostprogs-always-$(CONFIG_ARCH_S5PCxx)			+= s5p_cksum
 hostprogs-always-$(CONFIG_ARCH_DAVINCI)			+= mkublheader
 HOSTCFLAGS_zynq_mkimage.o = -I$(srctree) -I$(srctree)/arch/arm/mach-zynq/include
