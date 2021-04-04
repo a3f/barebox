@@ -59,6 +59,19 @@
 		status = "disabled";
 	};
 
+	fpga_regs: system-controller@1f000000 {
+		compatible = "mti,malta-fpga", "syscon", "simple-mfd";
+		reg = <0x1f000000 0x1000>;
+		native-endian;
+
+		reboot {
+			compatible = "syscon-reboot";
+			regmap = <&fpga_regs>;
+			offset = <0x500>;
+			mask = <0x42>;
+		};
+	};
+
 	uart2: serial@1f000900 {
 		compatible = "ns16550a";
 		reg = <0x1f000900 0x40>;
