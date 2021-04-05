@@ -1283,6 +1283,7 @@ ifdef building_out_of_srctree
 	@ln -fsn $(abspath $(srctree)/test/py) $(objtree)/test/
 	@ln -fsn $(abspath $(srctree)/test/conftest.py) $(objtree)/test/
 	@ln -fsn $(abspath $(srctree)/test/__init__.py) $(objtree)/test/
+	@ln -fsn $(abspath $(srctree)/test/emulate.pl) $(objtree)/test/
 endif
 
 all: symlink_tests
