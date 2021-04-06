@@ -34,11 +34,13 @@ static inline void dma_free_coherent(void *vaddr, dma_addr_t dma_handle,
 static inline void dma_sync_single_for_cpu(dma_addr_t address, size_t size,
 					   enum dma_data_direction dir)
 {
+	barrier();
 }
 
 static inline void dma_sync_single_for_device(dma_addr_t address, size_t size,
 					      enum dma_data_direction dir)
 {
+	barrier();
 }
 
 #endif /* _ASM_DMA_MAPPING_H */
