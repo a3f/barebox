@@ -1,0 +1,25 @@
+targets:
+  main:
+    drivers:
+      QEMUDriver:
+        qemu_bin: qemu
+        machine: vexpress-a15
+        cpu: cortex-a15
+        memory: 1024M
+        bios: barebox-vexpress-ca15.img
+        extra_args: ''
+      BareboxDriver:
+        prompt: 'barebox@[^:]+:[^ ]+ '
+        bootstring: 'commandline:'
+      ShellDriver:
+        prompt: 'root@\w+:[^ ]+ '
+        login_prompt: ' login: '
+        login_timeout: 90
+        username: 'root'
+      BareboxStrategy: {}
+    features:
+      - barebox
+images:
+  barebox-vexpress-ca15.img: ../../images/barebox-vexpress-ca15.img
+tools:
+  qemu: /usr/bin/qemu-system-arm

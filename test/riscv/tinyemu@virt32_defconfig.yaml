@@ -1,0 +1,26 @@
+targets:
+  main:
+    drivers:
+      TinyEMUDriver:
+        temu_bin: temu
+        config: ./Documentation/boards/riscv/barebox-virt32.cfg
+        image: barebox-dt-2nd.img
+      BareboxDriver:
+        prompt: 'barebox@[^:]+:[^ ]+ '
+        bootstring: 'commandline:'
+      ShellDriver:
+        prompt: 'root@\w+:[^ ]+ '
+        login_prompt: ' login: '
+        login_timeout: 90
+        username: 'root'
+      BareboxStrategy: {}
+    features:
+      - barebox
+      - virtio-mmio
+    runner:
+      download:
+        bbl32.bin: https://barebox.org/jsbarebox/bbl32.bin
+images:
+  barebox-dt-2nd.img: ../../images/barebox-dt-2nd.img
+tools:
+  temu: /usr/local/bin/temu

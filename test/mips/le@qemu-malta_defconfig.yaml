@@ -1,0 +1,29 @@
+targets:
+  main:
+    drivers:
+      QEMUDriver:
+        qemu_bin: qemu
+        machine: malta
+        cpu: M14Kc
+        memory: 256M
+        bios: barebox-qemu-malta.img.swapped
+        extra_args: ''
+      BareboxDriver:
+        prompt: 'barebox@[^:]+:[^ ]+ '
+        bootstring: 'commandline:'
+      ShellDriver:
+        prompt: 'root@\w+:[^ ]+ '
+        login_prompt: ' login: '
+        login_timeout: 90
+        username: 'root'
+      BareboxStrategy: {}
+    features:
+      - barebox
+      - virtio-pci
+    runner:
+      kconfig_add:
+        - CONFIG_CPU_LITTLE_ENDIAN=y
+images:
+  barebox-qemu-malta.img.swapped: ../../images/barebox-qemu-malta.img.swapped
+tools:
+  qemu: /usr/bin/qemu-system-mipsel

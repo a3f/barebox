@@ -1,0 +1,14 @@
+targets:
+  main:
+    drivers:
+      NativeExecutableDriver:
+        command: ./barebox
+        image: barebox
+    features:
+      - barebox
+    runner:
+      tuxmake_arch: um
+images:
+  barebox: ../../barebox
+tools:
+  qemu: /usr/local/bin/temu

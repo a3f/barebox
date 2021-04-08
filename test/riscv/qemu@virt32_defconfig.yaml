@@ -1,0 +1,29 @@
+targets:
+  main:
+    drivers:
+      QEMUDriver:
+        qemu_bin: qemu
+        machine: virt
+        cpu: rv32
+        memory: 256M
+        kernel: barebox-dt-2nd.img
+        extra_args: -bios opensbi-riscv32-generic-fw_dynamic.bin
+      BareboxDriver:
+        prompt: 'barebox@[^:]+:[^ ]+ '
+        bootstring: 'commandline:'
+      ShellDriver:
+        prompt: 'root@\w+:[^ ]+ '
+        login_prompt: ' login: '
+        login_timeout: 90
+        username: 'root'
+      BareboxStrategy: {}
+    features:
+      - barebox
+      - virtio-mmio
+    runner:
+      download:
+        opensbi-riscv32-generic-fw_dynamic.bin: https://github.com/qemu/qemu/blob/v5.2.0/pc-bios/opensbi-riscv32-generic-fw_dynamic.bin?raw=true
+images:
+  barebox-dt-2nd.img: ../../images/barebox-dt-2nd.img
+tools:
+  qemu: /usr/bin/qemu-system-riscv32
