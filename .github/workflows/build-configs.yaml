@@ -1,0 +1,41 @@
+name: Build Configs
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest' ]
+        ARCH: [ 'arm', 'mips', 'riscv' ]
+    name: ARCH=${{ matrix.ARCH }} Build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup Environment
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends libyaml-tiny-perl \
+            lzop libusb-1.0-0-dev
+        pip3 install tuxmake
+
+    - name: Build Configs
+      run: |
+        for cfg in arch/${{ matrix.ARCH }}/configs/*_defconfig; do
+            cfg=$(basename $cfg)
+            DESTDIR="./artifacts/${{ matrix.ARCH }}-$cfg"
+            mkdir -p $DESTDIR
+            tuxmake -a "${{ matrix.ARCH }}" -k $cfg --runtime=podman -o $DESTDIR default \
+                    --kconfig-add test/kconfig/no-deps.cfg
+        done
+
+    - name: Publish Build Artifacts
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: Build Logs
+        path: artifacts/
+        if-no-files-found: error
