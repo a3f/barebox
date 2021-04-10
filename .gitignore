@@ -89,3 +89,5 @@ GTAGS
 /allrandom.config
 /allyes.config
 /compile_commands.json
+
+!.github/

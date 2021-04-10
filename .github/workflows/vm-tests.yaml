@@ -1,0 +1,71 @@
+name: VM Tests
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest' ]
+        ARCH: [ 'arm', 'mips', 'x86', 'riscv', 'openrisc' ]
+    name: ARCH=${{ matrix.ARCH }} Test
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup Environment
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends libyaml-tiny-perl \
+            qemu-system-arm qemu-system-mips qemu-system-x86 qemu-system-common qemu-system-misc
+        curl --remote-name --location \
+            http://ftp.us.debian.org/debian/pool/main/e/edk2/ovmf_2020.11-4_all.deb
+        sudo dpkg -i ovmf_2020.11-4_all.deb
+        pushd /tmp
+        git clone --depth 1 https://github.com/labgrid-project/labgrid
+        pushd labgrid
+        pip3 install -r requirements.txt
+        sudo python3 setup.py install
+        sudo ln -s $(which pytest) /usr/local/bin/labgrid-pytest
+        #pip3 install tuxmake
+        popd
+        git clone --depth 1 https://gitlab.com/a3f/tuxmake
+        cd tuxmake
+        python3 -m pip install flit
+        flit install
+        popd
+        sudo apt install lzop
+        if [ "${{ matrix.ARCH }}" = "openrisc" ]; then
+            curl --remote-name --location \
+                https://github.com/stffrdhrn/gcc/releases/download/or1k-10.0.0-20190723/or1k-linux-10.0.0-20190723.tar.xz
+            pushd /usr/local
+            sudo tar -xf $OLDPWD/or1k-linux-10.0.0-20190723.tar.xz --strip 1
+            popd
+            sudo ln -s /usr/lib/x86_64-linux-gnu/libmpfr.so.6 /usr/lib/x86_64-linux-gnu/libmpfr.so.4
+        fi
+
+    - name: Build and Run Tests
+      run: |
+        NAME=${{ matrix.ARCH }}-{config}
+        OPTS="--kconfig-full --test -- --junitxml=$PWD/$NAME.tests.xml --lg-log=$PWD/log/$NAME"
+        if [ "${{ matrix.ARCH }}" != "openrisc" ]; then
+            OPTS="--runtime=podman $OPTS"
+        fi
+
+        ARCH=${{ matrix.ARCH }} ./test/emulate.pl $OPTS
+
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v1.11
+      if: always()
+      with:
+        files: ./*.tests.xml
+
+    - name: Publish Labgrid Log Results
+      uses: actions/upload-artifact@v2
+      if: always()
+      with:
+        name: Console Logs
+        path: log/
+        if-no-files-found: error
