@@ -1136,6 +1136,10 @@ MRPROPER_FILES += .config .config.old .version .old_version \
                   include/config.h           \
 		  Module.symvers tags TAGS cscope*
 
+ifdef building_out_of_srctree
+MRPROPER_DIRS += test
+endif
+
 # clean - Delete most, but leave enough to build external modules
 #
 clean: rm-dirs  := $(CLEAN_DIRS)
@@ -1263,6 +1267,25 @@ docs: FORCE
 	@$(srctree)/Documentation/gen_commands.py $(srctree) $(srctree)/Documentation/commands
 	@$(SPHINXBUILD) -b html -d $(objtree)/doctrees $(srctree)/Documentation \
 		$(objtree)/Documentation/html
+
+# Misc
+# ---------------------------------------------------------------------------
+
+# support running tests from the build directory
+
+PHONY += symlink_tests
+symlink_tests: prepare0
+ifdef building_out_of_srctree
+	@mkdir -p test/$(SRCARCH)
+	@for y in $(abspath $(srctree)/test/$(SRCARCH)/*.yaml); do \
+	  ln -fsn $$y $(objtree)/test/$(SRCARCH)/ ; \
+	done
+	@ln -fsn $(abspath $(srctree)/test/py) $(objtree)/test/
+	@ln -fsn $(abspath $(srctree)/test/conftest.py) $(objtree)/test/
+	@ln -fsn $(abspath $(srctree)/test/__init__.py) $(objtree)/test/
+endif
+
+all: symlink_tests
 
 # Single targets
 # ---------------------------------------------------------------------------
