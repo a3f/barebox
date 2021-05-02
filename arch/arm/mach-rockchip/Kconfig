@@ -123,6 +123,10 @@ config MACH_RADXA_CM3
 	help
 	  Say Y here if you are using a Radxa CM3
 
+config MACH_RADXA_ROCK_PI
+	select ARCH_RK3399PRO
+	bool "Radxa Rock Pi N10 board"
+
 endif
 
 comment "select board features:"

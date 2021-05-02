@@ -1,0 +1,121 @@
+// SPDX-License-Identifier: (GPL-2.0 OR X11)
+/*
+ * Copyright (c) 2021 Ahmad Fatoum, Pengutronix
+ */
+
+#include <arm64/rockchip/rk3399pro-rock-pi-n10.dts>
+#include "rk3399.dtsi"
+
+/ {
+	chosen {
+		environment-sd {
+			compatible = "barebox,environment";
+			device-path = &environment_sd;
+			status = "disabled";
+		};
+
+		environment-emmc {
+			compatible = "barebox,environment";
+			device-path = &environment_emmc;
+			status = "disabled";
+		};
+	};
+
+	sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "rk809-audio";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,frame-master = <&link0_cpu>;
+		simple-audio-card,bitclock-master = <&link0_cpu>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		simple-audio-card,dai-link@0 {
+			reg = <0>;
+			bitclock-master = <&link0_cpu>;
+			format = "i2s";
+			frame-master = <&link0_cpu>;
+			mclk-fs = <256>;
+
+			link0_cpu: cpu {
+				sound-dai = <&i2s0>;
+			};
+
+			link0_codec: codec {
+				sound-dai = <&rk809>;
+			};
+		};
+	};
+};
+
+&rk809 {
+        #sound-dai-cells = <0>;
+	clock-names = "mclk";
+	clocks = <&cru SCLK_I2S0_8CH>;
+        pinctrl-0 = <&pmic_int_l>, <&i2s0_2ch_bus>;
+};
+
+&i2s0 {
+	status = "okay";
+};
+
+&gpio0 {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+	                  "pin16", "pin12", "", "", "", "pin7", "", "",
+	                  "", "", "", "", "", "", "", "",
+	                  "", "", "", "", "", "", "", "";
+};
+
+&gpio1 {
+	gpio-line-names = "", "", "pin40", "", "", "", "", "pin21",
+	                  "", "", "", "", "", "", "", "",
+	                  "", "", "", "pin19", "pin23", "pin24", "", "",
+	                  "", "", "", "", "", "", "", "";
+};
+
+&gpio2 {
+	gpio-line-names = "pin27", "pin28", "pin36", "pin38", "pin35", "", "pin18", "pin3",
+	                  "pin5", "pin31", "pin29", "", "", "", "", "",
+	                  "", "", "", "", "", "", "", "",
+	                  "", "", "", "", "", "", "", "";
+};
+
+&gpio3 {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+	                  "", "", "", "", "", "", "", "",
+	                  "", "", "", "", "", "", "", "",
+	                  "", "", "", "", "pin22", "pin32", "pin37", "";
+};
+
+&gpio4 {
+	gpio-line-names = "", "", "", "", "", "", "", "",
+	                  "", "", "", "", "", "", "", "",
+	                  "", "", "pin11", "pin10", "pin8", "pin15", "pin13", "",
+	                  "", "", "", "", "", "pin33", "", "";
+};
+
+&sdhci {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <2>;
+		#size-cells = <2>;
+
+		environment_emmc: partition@408000 {
+			label = "barebox-environment";
+			reg = <0x0 0x408000 0x0 0x8000>;
+		};
+	};
+};
+
+&sdmmc {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <2>;
+		#size-cells = <2>;
+
+		environment_sd: partition@408000 {
+			label = "barebox-environment";
+			reg = <0x0 0x408000 0x0 0x8000>;
+		};
+	};
+};
