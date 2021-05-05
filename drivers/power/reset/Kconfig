@@ -54,3 +54,9 @@ config POWER_RESET_GPIO_RESTART
 	  This driver supports restarting your board via a GPIO line.
 	  If your board needs a GPIO high/low to restart, say Y and
 	  create a binding in your devicetree.
+
+config POWER_RESET_TPS65086
+	bool "TPS65086 restart driver"
+	depends on MFD_TPS65086
+	help
+	  Reset TPS65086 PMIC on restart.

@@ -40,6 +40,16 @@ config MFD_SYSCON
 	help
 	  Select this option to enable accessing system control registers
 
+config MFD_TPS65086
+	bool "TI TPS65086 Power Management Integrated Chips (PMICs)"
+	depends on I2C
+	help
+	  If you say yes here you get support for the TPS65086 series of
+	  Power Management chips.
+	  This driver provides common support for accessing the device,
+	  additional drivers must be enabled in order to use the
+	  functionality of the device.
+
 config MFD_TWLCORE
 	bool
 
