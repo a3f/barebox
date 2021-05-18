@@ -86,6 +86,10 @@ config BOARD_BEAGLEV_BETA
 	  without the special DMA handling enabled by this option. It's safe
 	  to enable this option for other SoCs.
 
+config BOARD_BEAGLEV_LEGACY_INIT
+	bool "Preinitialize peripherals for vendor Linux"
+	depends on BOARD_BEAGLEV
+
 endif
 
 comment "CPU features"
