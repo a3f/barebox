@@ -19,6 +19,12 @@ config ARCH_ROCKCHIP_BOOTM_RK30
 	bool
 	select RC4
 
+config ARCH_ROCKCHIP_DWMAC1000
+	bool
+
+config ARCH_ROCKCHIP_GMAC4
+	bool
+
 config ARCH_ROCKCHIP_V7
 	bool
 	select CPU_V7
@@ -45,6 +51,7 @@ config ARCH_RK3399
 	select ARCH_ROCKCHIP_V8
 	select ARCH_HAS_RESET_CONTROLLER
 	select ARCH_ROCKCHIP_BOOTM_RK30
+	select ARCH_ROCKCHIP_DWMAC1000
 
 config ARCH_RK3399PRO
 	bool
@@ -55,12 +62,14 @@ config ARCH_RK3568
 	select ARCH_ROCKCHIP_V8
 	select HW_HAS_PCI
 	select ARCH_ROCKCHIP_BOOTM_RKNS
+	select ARCH_ROCKCHIP_GMAC4
 
 config ARCH_RK3588
 	bool
 	select ARCH_ROCKCHIP_V8
 	select HW_HAS_PCI
 	select ARCH_ROCKCHIP_BOOTM_RKNS
+	select ARCH_ROCKCHIP_GMAC4
 
 comment "select Rockchip boards:"
 
