@@ -139,8 +139,11 @@ config DRIVER_NET_DESIGNWARE_TEGRA186
 
 config DRIVER_NET_DESIGNWARE_ROCKCHIP
 	bool "Rockchip Designware Ethernet driver"
-	select DRIVER_NET_DESIGNWARE_EQOS
 	depends on HAS_DMA && COMMON_CLK && OFTREE && (ARCH_ROCKCHIP || COMPILE_TEST)
+	select DRIVER_NET_DESIGNWARE_COMMON
+	select DRIVER_NET_DESIGNWARE_EQOS if ARCH_ROCKCHIP_GMAC4
+	select DRIVER_NET_DESIGNWARE if ARCH_ROCKCHIP_DWMAC1000
+	depends on HAS_DMA && COMMON_CLK && OFTREE
 	select MFD_SYSCON
 	help
 	  This option enables support for the Ethernet MAC on different Rockchip SoCs
