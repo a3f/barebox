@@ -844,6 +844,7 @@ static void mci_set_ios(struct mci *mci)
 	};
 
 	host->set_ios(host, &ios);
+	host->actual_clock = host->clock;
 }
 
 /**
