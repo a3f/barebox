@@ -14,6 +14,7 @@
 #include <linux/usb/phy.h>
 
 static LIST_HEAD(phy_provider_list);
+static LIST_HEAD(phy_list);
 static int phy_ida;
 
 /**
@@ -60,6 +61,8 @@ struct phy *phy_create(struct device *dev, struct device_node *node,
 	ret = register_device(&phy->dev);
 	if (ret)
 		goto free_ida;
+
+	list_add_tail(&phy->list, &phy_list);
 
 	return phy;
 
@@ -335,6 +338,32 @@ struct phy *of_phy_get_by_phandle(struct device *dev, const char *phandle,
 
 	return phy_provider->of_xlate(phy_provider->dev, NULL);
 }
+
+/**
+ * of_phy_simple_xlate() - returns the phy instance from phy provider
+ * @dev: the PHY provider device
+ * @args: of_phandle_args (not used here)
+ *
+ * Intended to be used by phy provider for the common case where #phy-cells is
+ * 0. For other cases where #phy-cells is greater than '0', the phy provider
+ * should provide a custom of_xlate function that reads the *args* and returns
+ * the appropriate phy.
+ */
+struct phy *of_phy_simple_xlate(struct device *dev, struct of_phandle_args *args)
+{
+	struct phy *phy;
+
+	list_for_each_entry(phy, &phy_list, list) {
+		if (args->np != phy->dev.of_node)
+			continue;
+
+		return phy;
+	}
+
+	return ERR_PTR(-ENODEV);
+}
+EXPORT_SYMBOL_GPL(of_phy_simple_xlate);
+
 
 /**
  * phy_get() - lookup and obtain a reference to a phy.

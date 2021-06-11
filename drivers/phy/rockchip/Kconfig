@@ -13,3 +13,8 @@ config PHY_ROCKCHIP_NANENG_COMBO_PHY
 	  Enable this to support the Rockchip PCIe/USB3.0/SATA/QSGMII
 	  combo PHY with NaNeng IP block.
 
+config PHY_ROCKCHIP_EMMC
+	bool "Rockchip EMMC PHY Driver"
+	depends on ARCH_ROCKCHIP  && OFDEVICE
+	help
+	  Enable this to support the Rockchip EMMC PHY.
