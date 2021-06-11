@@ -925,4 +925,54 @@ static inline void clk_bulk_disable(int num_clks,
 
 #endif
 
+/**
+ * clk_get_optional - lookup and obtain a reference to an optional clock
+ *		      producer.
+ * @dev: device for clock "consumer"
+ * @id: clock consumer ID
+ *
+ * Behaves the same as clk_get() except where there is no clock producer. In
+ * this case, instead of returning -ENOENT, the function returns NULL.
+ */
+static inline struct clk *clk_get_optional(struct device *dev, const char *id)
+{
+	struct clk *clk = clk_get(dev, id);
+
+	if (clk == ERR_PTR(-ENOENT))
+		return NULL;
+
+	return clk;
+}
+
+/**
+ * devm_clk_get_enabled - devm_clk_get() + clk_prepare_enable()
+ * @dev: device for clock "consumer"
+ * @id: clock consumer ID
+ *
+ * Context: May sleep.
+ *
+ * Return: a struct clk corresponding to the clock producer, or
+ * valid IS_ERR() condition containing errno.  The implementation
+ * uses @dev and @id to determine the clock consumer, and thereby
+ * the clock producer.  (IOW, @id may be identical strings, but
+ * clk_get may return different clock producers depending on @dev.)
+ *
+ * The returned clk (if valid) is enabled.
+ */
+static inline struct clk *clk_get_enabled(struct device *dev, const char *id)
+{
+	struct clk *clk;
+	int ret;
+
+	clk = clk_get(dev, id);
+	if (IS_ERR(clk))
+		return clk;
+
+	ret = clk_enable(clk);
+	if (ret)
+		return ERR_PTR(ret);
+
+	return clk;
+}
+
 #endif

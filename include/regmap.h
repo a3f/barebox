@@ -4,6 +4,7 @@
 
 #include <linux/compiler.h>
 #include <linux/types.h>
+#include <linux/iopoll.h>
 
 enum regmap_endian {
 	/* Unspecified -> 0 -> Backwards compatible default */
