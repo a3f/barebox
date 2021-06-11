@@ -22,6 +22,7 @@ struct rk_gmac_ops {
 	void (*set_rgmii_speed)(struct eqos *eqos, int speed);
 	void (*integrated_phy_powerup)(struct eqos *eqos);
 	const u32 *regs;
+	int *required_clkids;
 };
 
 struct eqos_rk_gmac {
@@ -180,6 +181,11 @@ static const struct rk_gmac_ops rk3568_ops = {
 		0xfe010000, /* gmac1 */
 		0x0, /* sentinel */
 	},
+	.required_clkids = (int []) {
+		CLK_STMMACETH, CLK_MAC_RX, CLK_MAC_TX, CLK_MAC_REFOUT,
+		CLK_MAC_ACLK, CLK_MAC_PCLK, CLK_MAC_SPEED, CLK_PTP_REF,
+		-1
+	}
 };
 
 static int rk_gmac_powerup(struct eqos *eqos)
@@ -234,7 +240,7 @@ static int eqos_init_rk_gmac(struct device *dev, struct eqos *eqos)
 {
 	struct device_node *np = dev->of_node;
 	struct eqos_rk_gmac *priv = to_rk_gmac(eqos);
-	int i = 0, ret;
+	int i = 0, ret, *clkid;
 	const char *strings;
 
 	priv->dev = dev;
@@ -278,10 +284,13 @@ static int eqos_init_rk_gmac(struct device *dev, struct eqos *eqos)
 	priv->clks = xmalloc(priv->num_clks * sizeof(*priv->clks));
 	memcpy(priv->clks, rk_gmac_clks, sizeof rk_gmac_clks);
 
-	ret = clk_bulk_get(dev, priv->num_clks, priv->clks);
-	if (ret) {
-		dev_err(dev, "Failed to get clks: %s\n", strerror(-ret));
+	ret = clk_bulk_get_optional(dev, priv->num_clks, priv->clks);
+	if (ret)
 		return ret;
+
+	for (clkid = priv->ops->required_clkids; *clkid >= 0; clkid++) {
+		if (!priv->clks[*clkid].clk)
+			return dev_err_probe(dev, -ENOENT, "Failed to get clks\n");
 	}
 
 	ret = clk_bulk_enable(priv->num_clks, priv->clks);
