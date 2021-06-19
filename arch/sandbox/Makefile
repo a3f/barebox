@@ -75,3 +75,11 @@ common-y += $(BOARD) arch/sandbox/os/ arch/sandbox/lib/
 common-$(CONFIG_OFTREE) += arch/sandbox/dts/
 
 CLEAN_FILES += $(BOARD)/barebox.lds
+
+quiet_cmd_install = INSTALL $@
+      cmd_install = install $< $@
+
+stickypage.bin: arch/sandbox/board/stickypage.bin
+	$(call cmd,install)
+
+all: stickypage.bin
