@@ -185,6 +185,11 @@ static int nvmem_cell_info_to_nvmem_cell(struct nvmem_device *nvmem,
 	return 0;
 }
 
+struct device *nvmem_get_device(struct nvmem_device *nvmem)
+{
+        return &nvmem->dev;
+}
+
 /**
  * nvmem_register() - Register a nvmem device for given nvmem_config.
  *
