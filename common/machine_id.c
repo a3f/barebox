@@ -10,6 +10,9 @@
 #include <magicvar.h>
 #include <crypto/sha.h>
 #include <machine_id.h>
+#include <linux/err.h>
+#include <linux/nvmem-consumer.h>
+#include <of.h>
 
 #define MACHINE_ID_LENGTH 32
 
@@ -24,16 +27,49 @@ void machine_id_set_hashable(const void *hashable, size_t len)
 	__machine_id_hashable_length = len;
 }
 
+static const void *machine_id_get_hashable(size_t *len)
+{
+	struct device_node *np = of_get_machineidpath();
+	struct nvmem_cell *cell;
+	void *ret;
+
+	if (!np)
+		goto no_cell;
+
+	cell = of_nvmem_cell_get_from_node(np, "machine-id");
+	if (IS_ERR(cell)) {
+		pr_err("Invalid barebox,machine-id-path: %pe\n", cell);
+		goto no_cell;
+	}
+
+	ret = nvmem_cell_read(cell, len);
+	nvmem_cell_put(cell);
+	if (IS_ERR(ret)) {
+		pr_err("Couldn't read from barebox,machine-id-path: %pe\n", ret);
+		goto no_cell;
+	}
+
+	return ret;
+
+no_cell:
+	*len = __machine_id_hashable_length;
+	return __machine_id_hashable;
+}
+
 static int machine_id_set_globalvar(void)
 {
 	struct digest *digest = NULL;
 	unsigned char machine_id[SHA1_DIGEST_SIZE];
 	char hex_machine_id[MACHINE_ID_LENGTH];
 	char *env_machine_id;
-	int ret;
+	int ret = 0;
+	const void *hashable;
+	size_t length;
+
+	hashable = machine_id_get_hashable(&length);
 
 	/* nothing to do if no hashable information provided */
-	if (!__machine_id_hashable)
+	if (!hashable)
 		return 0;
 
 	digest = digest_alloc_by_algo(HASH_ALGO_SHA1);
@@ -46,8 +82,7 @@ static int machine_id_set_globalvar(void)
 	if (ret)
 		goto out;
 
-	ret = digest_update(digest, __machine_id_hashable,
-			    __machine_id_hashable_length);
+	ret = digest_update(digest, hashable, length);
 	if (ret)
 		goto out;
 

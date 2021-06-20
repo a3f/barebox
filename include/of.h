@@ -324,6 +324,7 @@ struct device_node *of_find_node_by_chosen(const char *propname,
 					   const char **options);
 struct device_node *of_get_stdoutpath(unsigned int *);
 int of_device_is_stdout_path(struct device *dev, unsigned int *baudrate);
+struct device_node *of_get_machineidpath(void);
 const char *of_get_model(void);
 void *of_flatten_dtb(struct device_node *node);
 int of_add_memory(struct device_node *node, bool dump);
@@ -402,6 +403,11 @@ static inline int of_device_is_stdout_path(struct device *dev,
 					   unsigned int *baudrate)
 {
 	return 0;
+}
+
+static inline struct device_node *of_get_machineidpath(void)
+{
+	return NULL;
 }
 
 static inline const char *of_get_model(void)
