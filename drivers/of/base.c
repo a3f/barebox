@@ -2778,6 +2778,17 @@ int of_device_is_stdout_path(struct device *dev, unsigned int *baudrate)
 	return true;
 }
 
+struct device_node *of_get_machineidpath(void)
+{
+	const char *name;
+
+	name = of_get_property(of_chosen, "barebox,machine-id-path", NULL);
+	if (!name)
+		return NULL;
+
+	return of_find_node_by_path_or_alias(NULL, name);
+}
+
 /**
  * of_add_initrd - add initrd properties to the devicetree
  * @root - the root node of the tree
