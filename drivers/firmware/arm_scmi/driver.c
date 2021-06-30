@@ -1254,6 +1254,7 @@ static int __init scmi_driver_init(void)
 	scmi_base_register();
 
 	scmi_reset_register();
+	scmi_clock_register();
 
 	return platform_driver_register(&scmi_driver);
 }
