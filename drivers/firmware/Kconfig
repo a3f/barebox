@@ -25,7 +25,7 @@ config FIRMWARE_ZYNQMP_FPGA
 config ARM_SCMI_PROTOCOL
 	tristate "ARM System Control and Management Interface (SCMI) Message Protocol"
 	depends on ARM || COMPILE_TEST
-	depends on ARM_SMCCC
+	depends on ARM_SMCCC || MAILBOX
 	help
 	  ARM System Control and Management Interface (SCMI) protocol is a
 	  set of operating system-independent software interfaces that are

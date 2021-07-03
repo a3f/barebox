@@ -3,6 +3,7 @@ scmi-bus-y = bus.o
 scmi-driver-y = driver.o
 scmi-transport-y = shmem.o
 scmi-transport-$(CONFIG_ARM_SMCCC) += smc.o
+scmi-transport-$(CONFIG_MAILBOX) += mailbox.o
 scmi-protocols-y = base.o reset.o clock.o voltage.o
 
 scmi-module-objs := $(scmi-bus-y) $(scmi-driver-y) $(scmi-protocols-y) \

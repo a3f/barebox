@@ -311,6 +311,10 @@ struct scmi_desc {
 	int max_msg_size;
 };
 
+#ifdef CONFIG_MAILBOX
+extern const struct scmi_desc scmi_mailbox_desc;
+#endif
+
 #ifdef CONFIG_ARM_SMCCC
 extern const struct scmi_desc scmi_smc_desc;
 #endif
