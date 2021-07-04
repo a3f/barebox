@@ -15,6 +15,8 @@
 #include <bootsource.h>
 #include <dt-bindings/pinctrl/stm32-pinfunc.h>
 
+#define STM32_RCC_TZCR 0x0
+
 /* Package = bit 27:29 of OTP16
  * - 100: LBGA448  (FFI) => AA = LFBGA 18x18mm 448 balls p. 0.8mm
  * - 011: LBGA354  (LCI) => AB = LFBGA 16x16mm 359 balls p. 0.8mm
@@ -182,6 +184,45 @@ static int stm32mp15_fixup_pkg(struct device_node *root, void *_pkg)
 	return fixup_pinctrl(root, "st,stm32mp157-z-pinctrl", pkg);
 }
 
+static bool tzen;
+static bool mckprot;
+
+static int stm32mp15_fixup_scmi(struct device_node *root, void *_ctx)
+{
+	struct device_node *firmware, *child;
+	u32 func_id;
+	int ret;
+
+	firmware = of_get_child_by_name(root, "firmware");
+
+	for_each_child_of_node(firmware, child) {
+		if (!of_device_is_compatible(child, "arm,scmi-smc"))
+			continue;
+
+		ret = of_property_read_u32(child, "arm,smc-id", &func_id);
+		if (ret)
+			continue;
+
+		if ((tzen && func_id == 0x82002000) || (mckprot && func_id == 0x82002001))
+			of_device_enable(child);
+	}
+
+	return 0;
+}
+
+static int stm32mp15_use_scmi(void)
+{
+	int ret;
+
+	ret = of_register_fixup(stm32mp15_fixup_scmi, NULL);
+	if (ret)
+		return ret;
+
+
+	pr_info("enabling SCMI due to RCC[TZEN=%u, MCKPROT=%u]\n", tzen, mckprot);
+	return 0;
+}
+
 static int setup_cpu_type(void)
 {
 	const char *cputypestr, *cpupkgstr, *cpurevstr;
@@ -292,8 +333,17 @@ static int setup_cpu_type(void)
 			return ret;
 	}
 
-	if (pkgfixupctx)
-		return of_register_fixup(stm32mp15_fixup_pkg, (void*)pkgfixupctx);
+	if (pkgfixupctx) {
+		ret = of_register_fixup(stm32mp15_fixup_pkg, (void*)pkgfixupctx);
+		if (ret)
+			return ret;
+	}
+
+	tzen = readl(STM32_RCC_BASE + STM32_RCC_TZCR) & BIT(0);
+	mckprot = readl(STM32_RCC_BASE + STM32_RCC_TZCR) & BIT(1);
+
+	if (tzen || mckprot)
+		return stm32mp15_use_scmi();
 
 	return 0;
 }
