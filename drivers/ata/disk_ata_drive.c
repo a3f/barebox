@@ -245,6 +245,7 @@ static int ata_port_init(struct ata_port *port)
 
 	port->blk.num_blocks = ata_id_n_sectors(port->id);
 	port->blk.blockbits = SECTOR_SHIFT;
+	priv->blk.type = BLK_TYPE_ATA;
 
 	rc = blockdevice_register(&port->blk);
 	if (rc != 0) {

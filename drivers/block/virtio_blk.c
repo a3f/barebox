@@ -104,6 +104,7 @@ static int virtio_blk_probe(struct virtio_device *vdev)
 	virtio_cread(vdev, struct virtio_blk_config, capacity, &cap);
 	priv->blk.num_blocks = cap;
 	priv->blk.ops = &virtio_blk_ops;
+	priv->blk.type = BLK_TYPE_VIRTUAL;
 
 	ret = blockdevice_register(&priv->blk);
 	if (ret)

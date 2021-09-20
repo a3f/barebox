@@ -449,3 +449,25 @@ int block_write(struct block_device *blk, void *buf, sector_t block, blkcnt_t nu
 
 	return ret < 0 ? ret : 0;
 }
+
+const char *blk_type_str(enum blk_type type)
+{
+	switch (type) {
+	case BLK_TYPE_UNSPEC:
+		return "unspecified";
+	case BLK_TYPE_SD:
+		return "SD";
+	case BLK_TYPE_MMC:
+		return "MMC";
+	case BLK_TYPE_VIRTUAL:
+		return "virtual";
+	case BLK_TYPE_ATA:
+		return "ATA";
+	case BLK_TYPE_USB:
+		return "USB";
+	case BLK_TYPE_NVME:
+		return "NVMe";
+	default:
+		return "unknown";
+	}
+}
