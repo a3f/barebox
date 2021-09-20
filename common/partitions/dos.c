@@ -163,6 +163,20 @@ out:
 	return;
 }
 
+static int get_bootable(const struct partition_entry *p)
+{
+	int ret = 0;
+
+	if (IS_ENABLED(CONFIG_EFI)) {
+		if (p->type == 0xef)
+			ret |= PART_BOOTABLE_ESP;
+		if (p->boot_indicator == 0x80)
+			ret |= PART_BOOTABLE_LEGACY;
+	}
+
+	return ret;
+}
+
 /**
  * Check if a DOS like partition describes this block device
  * @param blk Block device to register to
@@ -197,6 +211,7 @@ static void dos_partition(void *buf, struct block_device *blk,
 			pd->parts[n].first_sec = pentry.first_sec;
 			pd->parts[n].size = pentry.size;
 			pd->parts[n].dos_partition_type = pentry.dos_partition_type;
+			pd->parts[n].flags |= get_bootable(&table[i]);
 			if (signature)
 				sprintf(pd->parts[n].partuuid, "%08x-%02d",
 						signature, i + 1);

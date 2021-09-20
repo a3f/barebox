@@ -20,6 +20,9 @@ struct partition {
 	char partuuid[MAX_UUID_STR];
 	uint64_t first_sec;
 	uint64_t size;
+#define PART_BOOTABLE_ESP		0x1
+#define PART_BOOTABLE_LEGACY		0x2
+	int flags;
 };
 
 struct partition_desc {

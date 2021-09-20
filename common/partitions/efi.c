@@ -431,6 +431,22 @@ static void part_set_efi_name(gpt_entry *pte, char *dest)
 	dest[i] = 0;
 }
 
+static const efi_guid_t system_guid = PARTITION_SYSTEM_GUID;
+
+static int get_bootable(gpt_entry *p)
+{
+	int ret = 0;
+
+	if (IS_ENABLED(CONFIG_EFI)) {
+		if (!efi_guidcmp(p->partition_type_guid, system_guid))
+			ret |=  PART_BOOTABLE_ESP;
+		if (p->attributes.legacy_bios_bootable)
+			ret |=  PART_BOOTABLE_LEGACY;
+	}
+
+	return ret;
+}
+
 static void efi_partition(void *buf, struct block_device *blk,
 			  struct partition_desc *pd)
 {
@@ -464,6 +480,7 @@ static void efi_partition(void *buf, struct block_device *blk,
 		}
 
 		pentry = &pd->parts[pd->used_entries];
+		pentry->flags |= get_bootable(&ptes[i]);
 		pentry->first_sec = le64_to_cpu(ptes[i].starting_lba);
 		pentry->size = le64_to_cpu(ptes[i].ending_lba) - pentry->first_sec;
 		pentry->size++;
