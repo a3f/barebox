@@ -574,6 +574,8 @@ extern struct list_head cdev_list;
 #define DEVFS_IS_CHARACTER_DEV		(1U << 3)
 #define DEVFS_PARTITION_FROM_TABLE	(1U << 4)
 #define DEVFS_IS_MCI_MAIN_PART_DEV	(1U << 5)
+#define DEVFS_PART_BOOTABLE_ESP		(1U << 6)
+#define DEVFS_PART_BOOTABLE_LEGACY	(1U << 7)
 
 struct cdev *devfs_add_partition(const char *devname, loff_t offset,
 		loff_t size, unsigned int flags, const char *name);

@@ -50,6 +50,11 @@ static int register_one_partition(struct block_device *blk,
 
 	cdev->flags |= DEVFS_PARTITION_FROM_TABLE;
 
+	if (part->flags & PART_BOOTABLE_ESP)
+		cdev->flags |= DEVFS_PART_BOOTABLE_ESP;
+	if (part->flags & PART_BOOTABLE_LEGACY)
+		cdev->flags |= DEVFS_PART_BOOTABLE_LEGACY;
+
 	cdev->dos_partition_type = part->dos_partition_type;
 	strcpy(cdev->uuid, part->partuuid);
 
@@ -132,6 +137,8 @@ int parse_partition_table(struct block_device *blk)
 
 	if (!pdesc->used_entries)
 		goto on_error;
+
+	blk->cdev.filetype = parser->type;
 
 	/* at least one partition description found */
 	for (i = 0; i < pdesc->used_entries; i++) {
