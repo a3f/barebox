@@ -2,6 +2,7 @@
 
 hostprogs-always-$(CONFIG_ARCH_IMX_IMXIMAGE)	+= imx-image
 hostprogs-always-$(CONFIG_ARCH_IMX_USBLOADER)	+= imx-usb-loader
+hostprogs-always-$(CONFIG_ARCH_IMX8M)		+= imx8m-parse-ddrcfg
 
 HOSTCFLAGS_imx-usb-loader.o = `pkg-config --cflags libusb-1.0`
 HOSTLDLIBS_imx-usb-loader  = `pkg-config --libs libusb-1.0`
@@ -10,6 +11,7 @@ imx-usb-loader-target-userccflags += `$(CROSS_PKG_CONFIG) --cflags libusb-1.0`
 imx-usb-loader-target-userldlibs += `$(CROSS_PKG_CONFIG) --libs libusb-1.0`
 
 HOSTCFLAGS_imx.o = -I$(srctree)/arch/arm/mach-imx/include
+HOSTCFLAGS_imx8m-parse-ddrcfg.o = -I$(srctree)/arch/arm/mach-imx/include
 imx-target-userccflags += -I$(srctree)/arch/arm/mach-imx/include
 HOSTCFLAGS_imx-image.o = -I$(srctree) -I$(srctree)/arch/arm/mach-imx/include
 HOSTCFLAGS_imx-usb-loader.o += -I$(srctree) -I$(srctree)/arch/arm/mach-imx/include

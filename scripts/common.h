@@ -7,4 +7,6 @@ int write_file(const char *filename, const void *buf, size_t size);
 int read_full(int fd, void *buf, size_t size);
 int write_full(int fd, const void *buf, size_t size);
 
+char format_size_exact(unsigned long long *size);
+
 #endif /* __COMMON_H */

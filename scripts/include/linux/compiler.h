@@ -19,6 +19,10 @@
 # define __maybe_unused		__attribute__((unused))
 #endif
 
+#ifndef __noreturn
+# define __noreturn		__attribute__((noreturn))
+#endif
+
 #ifndef __packed
 # define __packed		__attribute__((__packed__))
 #endif

@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <sys/mman.h>
+#include <linux/sizes.h>
 
 #include "common.h"
 
@@ -161,4 +162,24 @@ int write_full(int fd, const void *buf, size_t size)
 	}
 
 	return insize;
+}
+
+char format_size_exact(unsigned long long *size)
+{
+	if (*size % SZ_1G == 0) {
+		*size /= SZ_1G;
+		return 'G';
+	}
+
+	if (*size % SZ_1M == 0) {
+		*size /= SZ_1M;
+		return 'M';
+	}
+
+	if (*size % SZ_1K == 0) {
+		*size /= SZ_1K;
+		return 'K';
+	}
+
+	return 'B';
 }

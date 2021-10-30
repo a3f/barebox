@@ -14,6 +14,8 @@ typedef int16_t __s16;
 typedef uint8_t __u8;
 typedef int8_t __s8;
 
+typedef __u64 resource_size_t;
+
 #ifndef __linux__
 typedef long long loff_t;
 #endif
