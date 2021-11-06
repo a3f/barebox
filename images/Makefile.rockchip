@@ -13,6 +13,7 @@ image-$(CONFIG_MACH_PHYTEC_SOM_RK3288) += barebox-rk3288-phycore-som.img
 
 pblb-$(CONFIG_MACH_RK3568_EVB) += start_rk3568_evb
 image-$(CONFIG_MACH_RK3568_EVB) += barebox-rk3568-evb.img
+OPTS_barebox-rk3568-evb.img = -s rk3568
 
 pblb-$(CONFIG_MACH_RK3568_BPI_R2PRO) += start_rk3568_bpi_r2pro
 image-$(CONFIG_MACH_RK3568_BPI_R2PRO) += barebox-rk3568-bpi-r2pro.img
@@ -30,7 +31,7 @@ pblb-$(CONFIG_MACH_RADXA_CM3) += start_radxa-cm3-io.img
 image-$(CONFIG_MACH_RADXA_CM3) += barebox-radxa-cm3-io.img
 
 quiet_cmd_rkimg_image = RK-IMG $@
-      cmd_rkimg_image = $(objtree)/scripts/rkimage -o $@ $(word 2,$^) $(word 1,$^)
+      cmd_rkimg_image = $(objtree)/scripts/rkimage $(OPTS_$(@F)) -o $@ $(word 2,$^) $(word 1,$^)
 
 $(obj)/barebox-rk3568-evb.img: $(obj)/start_rk3568_evb.pblb \
                 $(board)/rockchip-rk3568-evb/sdram-init.bin
