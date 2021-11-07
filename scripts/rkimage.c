@@ -36,6 +36,22 @@ static struct soc_info {
 	const char *name;
 	int (*handler)(enum rksoc, const char *outfile, int argc, char *argv[]);
 } socs[] = {
+	[RK3036] = { "rk3036", handle_rk30 },
+	[RK3066] = { "rk3066", handle_rk30 },
+	[RK3128] = { "rk3128", handle_rk30 },
+	[PX3SE]  = { "px3se",  handle_rk30 },
+	[RK3188] = { "rk3188", handle_rk30 },
+	[RK322x] = { "rk322x", handle_rk30 },
+	[RK3288] = { "rk3288", handle_rk30 },
+	[RK3308] = { "rk3308", handle_rk30 },
+	[RK3328] = { "rk3328", handle_rk30 },
+	[RK3368] = { "rk3368", handle_rk30 },
+	[RK3399] = { "rk3399", handle_rk30 },
+	[RK3326] = { "rk3326", handle_rk30 },
+	[PX30]   = { "px30",   handle_rk30 },
+	[RV1108] = { "rv1108", handle_rk30 },
+	[RV1126] = { "rv1126", handle_rk30 },
+	[RK1808] = { "rk1808", handle_rk30 },
 	[RK3568] = { "rk3568", handle_rk3568 },
 };
 
@@ -69,7 +85,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if (i < 0 || !outfile) {
+	if (!outfile) {
 		usage(argv[0]);
 		exit(0);
 	}
