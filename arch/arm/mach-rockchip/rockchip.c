@@ -39,6 +39,16 @@ static int rockchip_init(void)
 		return rk3588_init();
 	}
 
+	if (of_machine_is_compatible("rockchip,rk3399")) {
+		__rockchip_soc = 3399;
+		return rk3399_init(false);
+	}
+
+	if (of_machine_is_compatible("rockchip,rk3399pro")) {
+		__rockchip_soc = 3399;
+		return rk3399_init(true);
+	}
+
 	return 0;
 }
 postcore_initcall(rockchip_init);

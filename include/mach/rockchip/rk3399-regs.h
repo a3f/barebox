@@ -3,6 +3,8 @@
 #ifndef __MACH_RK3399_REGS_H
 #define __MACH_RK3399_REGS_H
 
+#include <io.h>
+
 /* UART */
 #define RK3399_UART0_BASE	0xff180000
 #define RK3399_UART1_BASE	0xff190000
@@ -11,7 +13,7 @@
 #define RK3399_UART4_BASE	0xff370000
 
 #define RK3399_PMUGRF_BASE	0xff320000
-#define RK3399_IRAM_BASE	0xff8c0000
+#define RK3399_IRAM_BASE	IOMEM(0xff8c0000)
 #define RK3399_STIMER_BASE	0xff8680a0
 
 #endif
