@@ -142,6 +142,7 @@ include $(srctree)/images/Makefile.ath79
 include $(srctree)/images/Makefile.bcm283x
 include $(srctree)/images/Makefile.bcm47xx
 include $(srctree)/images/Makefile.clps711x
+include $(srctree)/images/Makefile.v7m
 include $(srctree)/images/Makefile.imx
 include $(srctree)/images/Makefile.loongson
 include $(srctree)/images/Makefile.malta
