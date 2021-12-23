@@ -8,5 +8,7 @@ obj-pbl-$(CONFIG_ARCH_RK3399) += rk3399.o
 obj-pbl-$(CONFIG_ARCH_RK3568) += rk3568.o
 obj-pbl-$(CONFIG_ARCH_RK3588) += rk3588.o
 obj-$(CONFIG_ARCH_ROCKCHIP_V8) += bootm.o
+obj-$(CONFIG_ARCH_ROCKCHIP_BOOTM_RKNS) += bootm-rkns.o
+obj-$(CONFIG_ARCH_ROCKCHIP_BOOTM_RK30) += bootm-rk30.o
 obj-pbl-$(CONFIG_ARCH_ROCKCHIP_V8) += dmc.o
 obj-$(CONFIG_BAREBOX_UPDATE) += bbu.o

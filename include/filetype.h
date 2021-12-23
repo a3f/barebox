@@ -57,6 +57,7 @@ enum filetype {
 	filetype_zynq_image,
 	filetype_mxs_sd_image,
 	filetype_rockchip_rkns_image,
+	filetype_rockchip_rk30_image,
 	filetype_fip,
 	filetype_qemu_fw_cfg,
 	filetype_nxp_fspi_image,
