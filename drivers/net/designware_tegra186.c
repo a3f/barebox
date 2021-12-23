@@ -14,7 +14,7 @@
 #include <net.h>
 #include <linux/reset.h>
 
-#include "designware_eqos.h"
+#include "designware_common.h"
 
 /* These registers are Tegra186-specific */
 #define EQOS_TEGRA186_REGS_BASE 0x8800
@@ -40,9 +40,9 @@ struct eqos_tegra186 {
 	int phy_reset_gpio;
 };
 
-static inline struct eqos_tegra186 *to_tegra186(struct eqos *eqos)
+static inline struct eqos_tegra186 *to_tegra186(struct dwc_common *dwc)
 {
-	return eqos->priv;
+	return dwc->priv;
 }
 
 enum { CLK_SLAVE_BUS, CLK_MASTER_BUS, CLK_RX, CLK_PTP_REF, CLK_TX };
@@ -84,9 +84,9 @@ static int eqos_reset_tegra186(struct eqos_tegra186 *priv, bool reset)
 	return reset_control_deassert(priv->rst);
 }
 
-static int eqos_calibrate_pads_tegra186(struct eqos *eqos)
+static int eqos_calibrate_pads_tegra186(struct dwc_common *dwc)
 {
-	struct eqos_tegra186 *priv = to_tegra186(eqos);
+	struct eqos_tegra186 *priv = to_tegra186(dwc);
 	u32 active;
 	int ret;
 
@@ -102,7 +102,7 @@ static int eqos_calibrate_pads_tegra186(struct eqos *eqos)
 				 active & EQOS_AUTO_CAL_STATUS_ACTIVE,
 				 10000);
 	if (ret) {
-		eqos_err(eqos, "calibrate didn't start\n");
+		dwc_err(dwc, "calibrate didn't start\n");
 		goto failed;
 	}
 
@@ -110,7 +110,7 @@ static int eqos_calibrate_pads_tegra186(struct eqos *eqos)
 				 !(active & EQOS_AUTO_CAL_STATUS_ACTIVE),
 				 10000);
 	if (ret) {
-		eqos_err(eqos, "calibrate didn't finish\n");
+		dwc_err(dwc, "calibrate didn't finish\n");
 		goto failed;
 	}
 
@@ -121,9 +121,9 @@ failed:
 	return ret;
 }
 
-static int eqos_calibrate_link_tegra186(struct eqos *eqos, unsigned speed)
+static int eqos_calibrate_link_tegra186(struct dwc_common *dwc, unsigned speed)
 {
-	struct eqos_tegra186 *priv = to_tegra186(eqos);
+	struct eqos_tegra186 *priv = to_tegra186(dwc);
 	int ret = 0;
 	unsigned long rate;
 	bool calibrate;
@@ -146,7 +146,7 @@ static int eqos_calibrate_link_tegra186(struct eqos *eqos, unsigned speed)
 	}
 
 	if (calibrate) {
-		ret = eqos_calibrate_pads_tegra186(eqos);
+		ret = eqos_calibrate_pads_tegra186(dwc);
 		if (ret)
 			return ret;
 	} else {
@@ -156,21 +156,21 @@ static int eqos_calibrate_link_tegra186(struct eqos *eqos, unsigned speed)
 
 	ret = clk_set_rate(priv->clks[CLK_TX].clk, rate);
 	if (ret < 0) {
-		eqos_err(eqos, "clk_set_rate(tx_clk, %lu) failed: %d\n", rate, ret);
+		dwc_err(dwc, "clk_set_rate(tx_clk, %lu) failed: %d\n", rate, ret);
 		return ret;
 	}
 
 	return 0;
 }
 
-static unsigned long eqos_get_csr_clk_rate_tegra186(struct eqos *eqos)
+static unsigned long eqos_get_csr_clk_rate_tegra186(struct dwc_common *dwc)
 {
-	return clk_get_rate(to_tegra186(eqos)->clks[CLK_SLAVE_BUS].clk);
+	return clk_get_rate(to_tegra186(dwc)->clks[CLK_SLAVE_BUS].clk);
 }
 
 static int eqos_set_ethaddr_tegra186(struct eth_device *edev, const unsigned char *mac)
 {
-	struct eqos *eqos = edev->priv;
+	struct dwc_common *dwc = edev->priv;
 
 	/*
 	 * This function may be called before start() or after stop(). At that
@@ -196,20 +196,20 @@ static int eqos_set_ethaddr_tegra186(struct eth_device *edev, const unsigned cha
 	 */
 
 	if (!edev->active) {
-		memcpy(eqos->macaddr, mac, 6);
+		memcpy(dwc->macaddr, mac, 6);
 		return 0;
 	}
 
-	return eqos_set_ethaddr(edev, mac);
+	return dwc_common_set_ethaddr(edev, mac);
 }
 
-static int eqos_init_tegra186(struct device *dev, struct eqos *eqos)
+static int eqos_init_tegra186(struct device *dev, struct dwc_common *dwc)
 {
-	struct eqos_tegra186 *priv = to_tegra186(eqos);
+	struct eqos_tegra186 *priv = to_tegra186(dwc);
 	int phy_reset;
 	int ret;
 
-	priv->tegra186_regs = IOMEM(eqos->regs + EQOS_TEGRA186_REGS_BASE);
+	priv->tegra186_regs = IOMEM(dwc->regs + EQOS_TEGRA186_REGS_BASE);
 
 	priv->rst = reset_control_get(dev, "eqos");
 	if (IS_ERR(priv->rst)) {
@@ -231,19 +231,19 @@ static int eqos_init_tegra186(struct device *dev, struct eqos *eqos)
 
 	ret = clk_bulk_enable(priv->num_clks, priv->clks);
 	if (ret < 0) {
-		eqos_err(eqos, "clk_bulk_enable() failed: %s\n", strerror(-ret));
+		dwc_err(dwc, "clk_bulk_enable() failed: %s\n", strerror(-ret));
 		goto release_res;
 	}
 
 	ret = eqos_clks_set_rate_tegra186(priv);
 	if (ret < 0) {
-		eqos_err(eqos, "clks_set_rate() failed: %s\n", strerror(-ret));
+		dwc_err(dwc, "clks_set_rate() failed: %s\n", strerror(-ret));
 		goto err_stop_clks;
 	}
 
 	eqos_reset_tegra186(priv, false);
 	if (ret < 0) {
-		eqos_err(eqos, "reset(0) failed: %s\n", strerror(-ret));
+		dwc_err(dwc, "reset(0) failed: %s\n", strerror(-ret));
 		goto err_stop_clks;
 	}
 
@@ -259,22 +259,22 @@ release_res:
 
 static void eqos_adjust_link_tegra186(struct eth_device *edev)
 {
-	struct eqos *eqos = edev->priv;
+	struct dwc_common *dwc = edev->priv;
 	unsigned speed = edev->phydev->speed;
 	int ret;
 
-	eqos_adjust_link(edev);
+	dwc_common_adjust_link(edev);
 
-	ret = eqos_calibrate_link_tegra186(eqos, speed);
+	ret = eqos_calibrate_link_tegra186(dwc, speed);
 	if (ret < 0) {
-		eqos_err(eqos, "eqos_calibrate_link_tegra186() failed: %d\n", ret);
+		dwc_err(dwc, "eqos_calibrate_link_tegra186() failed: %d\n", ret);
 		return;
 	}
 }
 
-static const struct eqos_ops tegra186_ops = {
+static const struct dwc_common_ops tegra186_ops = {
 	.init = eqos_init_tegra186,
-	.get_ethaddr = eqos_get_ethaddr,
+	.get_ethaddr = dwc_common_get_ethaddr,
 	.set_ethaddr = eqos_set_ethaddr_tegra186,
 	.adjust_link = eqos_adjust_link_tegra186,
 	.get_csr_clk_rate = eqos_get_csr_clk_rate_tegra186,
@@ -285,14 +285,14 @@ static const struct eqos_ops tegra186_ops = {
 
 static int eqos_probe_tegra186(struct device *dev)
 {
-	return eqos_probe(dev, &tegra186_ops, xzalloc(sizeof(struct eqos_tegra186)));
+	return dwc_common_probe(dev, &tegra186_ops, xzalloc(sizeof(struct eqos_tegra186)));
 }
 
 static void eqos_remove_tegra186(struct device *dev)
 {
 	struct eqos_tegra186 *priv = to_tegra186(dev->priv);
 
-	eqos_remove(dev);
+	dwc_common_remove(dev);
 
 	eqos_reset_tegra186(priv, true);
 

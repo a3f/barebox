@@ -60,6 +60,10 @@ config DRIVER_NET_DAVINCI_EMAC
 	depends on ARCH_OMAP3
 	select PHYLIB
 
+config DRIVER_NET_DESIGNWARE_COMMON
+	select PHYLIB
+	bool
+
 config DRIVER_NET_DESIGNWARE
 	bool "Designware DWMAC1000 Ethernet driver support" if COMPILE_TEST
 	depends on HAS_DMA
@@ -102,7 +106,7 @@ config DRIVER_NET_DESIGNWARE_STARFIVE
 config DRIVER_NET_DESIGNWARE_EQOS
 	bool "Designware EQOS (GMAC4) Ethernet driver support" if COMPILE_TEST
 	depends on HAS_DMA && OFTREE
-	select PHYLIB
+	select DRIVER_NET_DESIGNWARE_COMMON
 	help
 	  This option enables support for the Synopsys
 	  Designware Ethernet Quality-of-Service (GMAC4).

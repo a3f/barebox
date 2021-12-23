@@ -228,7 +228,7 @@ static int eqos_mdio_wait_idle(struct eqos *eqos)
 
 static int eqos_mdio_read(struct mii_bus *bus, int addr, int reg)
 {
-	struct eqos *eqos = bus->priv;
+	struct eqos *eqos = container_of(bus->priv, struct eqos, dwc);
 	u32 miiaddr = MII_BUSY;
 	int ret;
 
@@ -239,7 +239,7 @@ static int eqos_mdio_read(struct mii_bus *bus, int addr, int reg)
 	}
 
 	miiaddr |= EQOS_MDIO_ADDR(addr) | EQOS_MDIO_REG(reg);
-	miiaddr |= EQOS_MDIO_CLK_CSR(eqos->ops->clk_csr);
+	miiaddr |= EQOS_MDIO_CLK_CSR(eqos->dwc.ops->clk_csr);
 	miiaddr |= EQOS_MDIO_ADDR_GOC_READ << EQOS_MDIO_ADDR_GOC_SHIFT;
 
 	writel(0, &eqos->mac_regs->mdio_data);
@@ -256,7 +256,7 @@ static int eqos_mdio_read(struct mii_bus *bus, int addr, int reg)
 
 static int eqos_mdio_write(struct mii_bus *bus, int addr, int reg, u16 data)
 {
-	struct eqos *eqos = bus->priv;
+	struct eqos *eqos = container_of(bus->priv, struct eqos, dwc);
 	u32 miiaddr = MII_BUSY;
 	int ret;
 
@@ -267,7 +267,7 @@ static int eqos_mdio_write(struct mii_bus *bus, int addr, int reg, u16 data)
 	}
 
 	miiaddr |= EQOS_MDIO_ADDR(addr) | EQOS_MDIO_REG(reg);
-	miiaddr |= EQOS_MDIO_CLK_CSR(eqos->ops->clk_csr);
+	miiaddr |= EQOS_MDIO_CLK_CSR(eqos->dwc.ops->clk_csr);
 	miiaddr |= EQOS_MDIO_ADDR_GOC_WRITE << EQOS_MDIO_ADDR_GOC_SHIFT;
 
 	writel(data, &eqos->mac_regs->mdio_data);
@@ -313,12 +313,12 @@ static inline void eqos_set_mii_speed_10(struct eqos *eqos)
 			EQOS_MAC_CONFIGURATION_FES, EQOS_MAC_CONFIGURATION_PS);
 }
 
-void eqos_adjust_link(struct eth_device *edev)
+void eqos_adjust_link(struct dwc_common *dwc, struct phy_device *phydev)
 {
-	struct eqos *eqos = edev->priv;
-	unsigned speed = edev->phydev->speed;
+	struct eqos *eqos = container_of(dwc, struct eqos, dwc);
+	unsigned speed = phydev->speed;
 
-	if (edev->phydev->duplex)
+	if (phydev->duplex)
 		eqos_set_full_duplex(eqos);
 	else
 		eqos_set_half_duplex(eqos);
@@ -334,22 +334,17 @@ void eqos_adjust_link(struct eth_device *edev)
 		eqos_set_mii_speed_10(eqos);
 		break;
 	default:
-		eqos_warn(eqos, "invalid speed %d\n", speed);
+		dwc_warn(&eqos->dwc, "invalid speed %d\n", speed);
 		return;
 	}
 }
 
-int eqos_get_ethaddr(struct eth_device *edev, unsigned char *mac)
+int eqos_set_ethaddr(struct dwc_common *dwc, const unsigned char *mac)
 {
-	return -EOPNOTSUPP;
-}
-
-int eqos_set_ethaddr(struct eth_device *edev, const unsigned char *mac)
-{
-	struct eqos *eqos = edev->priv;
+	struct eqos *eqos = container_of(dwc, struct eqos, dwc);
 	__le32 mac_hi, mac_lo;
 
-	memcpy(eqos->macaddr, mac, ETH_ALEN);
+	memcpy(dwc->macaddr, mac, ETH_ALEN);
 
 	/* Update the MAC address */
 	memcpy(&mac_hi, &mac[4], 2);
@@ -401,7 +396,8 @@ static int phy_resume(struct phy_device *phydev)
 
 static int eqos_start(struct eth_device *edev)
 {
-	struct eqos *eqos = edev->priv;
+	struct dwc_common *dwc = edev->priv;
+	struct eqos *eqos = container_of(dwc, struct eqos, dwc);
 	u32 val, tx_fifo_sz, rx_fifo_sz, tqs, rqs, pbl;
 	unsigned long last_rx_desc;
 	unsigned long rate;
@@ -410,7 +406,7 @@ static int eqos_start(struct eth_device *edev)
 	int i;
 
 	ret = phy_device_connect(edev, &eqos->miibus, eqos->phy_addr,
-				 eqos->ops->adjust_link, 0, eqos->interface);
+				 dwc->ops->adjust_link, 0, dwc->interface);
 	if (ret)
 		return ret;
 
@@ -420,15 +416,15 @@ static int eqos_start(struct eth_device *edev)
 				 !(mode_set & EQOS_DMA_MODE_SWR),
 				 100 * USEC_PER_MSEC);
 	if (ret) {
-		eqos_err(eqos, "EQOS_DMA_MODE_SWR stuck: 0x%08x\n", mode_set);
+		dwc_err(dwc, "EQOS_DMA_MODE_SWR stuck: 0x%08x\n", mode_set);
 		return ret;
 	}
 
 	/* Reset above clears MAC address */
-	eqos_set_ethaddr(edev, eqos->macaddr);
+	eqos_set_ethaddr(dwc, dwc->macaddr);
 
 	/* Required for accurate time keeping with EEE counters */
-	rate = eqos->ops->get_csr_clk_rate(eqos);
+	rate = dwc->ops->get_csr_clk_rate(dwc);
 
 	val = (rate / USEC_PER_SEC) - 1; /* -1 because the data sheet says so */
 	writel(val, &eqos->mac_regs->us_tic_counter);
@@ -532,7 +528,7 @@ static int eqos_start(struct eth_device *edev)
 	clrsetbits_le32(&eqos->mac_regs->rxq_ctrl0,
 			EQOS_MAC_RXQ_CTRL0_RXQ0EN_MASK <<
 			EQOS_MAC_RXQ_CTRL0_RXQ0EN_SHIFT,
-			eqos->ops->config_mac <<
+			dwc->ops->config_mac <<
 			EQOS_MAC_RXQ_CTRL0_RXQ0EN_SHIFT);
 
 	/* Set TX flow control parameters */
@@ -647,7 +643,7 @@ static int eqos_start(struct eth_device *edev)
 
 static void eqos_stop(struct eth_device *edev)
 {
-	struct eqos *eqos = edev->priv;
+	struct eqos *eqos = container_of(edev->priv, struct eqos, dwc);
 	int i;
 
 	/* Disable TX DMA */
@@ -686,7 +682,7 @@ static void eqos_stop(struct eth_device *edev)
 
 static int eqos_send(struct eth_device *edev, void *packet, int length)
 {
-	struct eqos *eqos = edev->priv;
+	struct eqos *eqos = container_of(edev->priv, struct eqos, dwc);
 	struct eqos_desc *tx_desc;
 	dma_addr_t dma;
 	u32 des3;
@@ -719,14 +715,14 @@ static int eqos_send(struct eth_device *edev, void *packet, int length)
 	dma_unmap_single(edev->parent, dma, length, DMA_TO_DEVICE);
 
 	if (ret == -ETIMEDOUT)
-		eqos_dbg(eqos, "TX timeout\n");
+		dwc_dbg(&eqos->dwc, "TX timeout\n");
 
 	return ret;
 }
 
 static int eqos_recv(struct eth_device *edev)
 {
-	struct eqos *eqos = edev->priv;
+	struct eqos *eqos = container_of(edev->priv, struct eqos, dwc);
 	struct eqos_desc *rx_desc;
 	void *frame;
 	int length;
@@ -816,8 +812,8 @@ static int eqos_init(struct device *dev, struct eqos *eqos)
 		return ret;
 	}
 
-	if (eqos->ops->init)
-		ret = eqos->ops->init(dev, eqos);
+	if (eqos->dwc.ops->init)
+		ret = eqos->dwc.ops->init(dev, &eqos->dwc);
 
 	return ret;
 }
@@ -826,7 +822,7 @@ static void eqos_probe_dt(struct device *dev, struct eqos *eqos)
 {
 	struct device_node *child;
 
-	eqos->interface = of_get_phy_mode(dev->of_node);
+	eqos->dwc.interface = of_get_phy_mode(dev->of_node);
 	eqos->phy_addr = -1;
 
 	/* Set MDIO bus device node, if present. */
@@ -839,7 +835,7 @@ static void eqos_probe_dt(struct device *dev, struct eqos *eqos)
 	}
 }
 
-int eqos_probe(struct device *dev, const struct eqos_ops *ops, void *priv)
+struct eqos *eqos_probe(struct device *dev, const struct dwc_common_ops *ops, void *priv)
 {
 	struct device_node *np = dev->of_node;
 	struct mii_bus *miibus;
@@ -852,20 +848,20 @@ int eqos_probe(struct device *dev, const struct eqos_ops *ops, void *priv)
 
 	iores = dev_request_mem_resource(dev, 0);
 	if (IS_ERR(iores))
-		return PTR_ERR(iores);
-	eqos->regs = IOMEM(iores->start);
+		return ERR_CAST(iores);
+	eqos->dwc.regs = IOMEM(iores->start);
 
-	eqos->mac_regs = eqos->regs + EQOS_MAC_REGS_BASE;
-	eqos->mtl_regs = eqos->regs + EQOS_MTL_REGS_BASE;
-	eqos->dma_regs = eqos->regs + EQOS_DMA_REGS_BASE;
-	eqos->ops = ops;
-	eqos->priv = priv;
+	eqos->mac_regs = eqos->dwc.regs + EQOS_MAC_REGS_BASE;
+	eqos->mtl_regs = eqos->dwc.regs + EQOS_MTL_REGS_BASE;
+	eqos->dma_regs = eqos->dwc.regs + EQOS_DMA_REGS_BASE;
+	eqos->dwc.ops = ops;
+	eqos->dwc.priv = priv;
 
 	eqos_probe_dt(dev, eqos);
 
-	edev = &eqos->netdev;
+	edev = &eqos->dwc.netdev;
 
-	dev->priv = edev->priv = eqos;
+	dev->priv = edev->priv = &eqos->dwc;
 
 	edev->parent = dev;
 	edev->open = eqos_start;
@@ -880,7 +876,7 @@ int eqos_probe(struct device *dev, const struct eqos_ops *ops, void *priv)
 	miibus->parent = edev->parent;
 	miibus->read = eqos_mdio_read;
 	miibus->write = eqos_mdio_write;
-	miibus->priv = eqos;
+	miibus->priv = &eqos->dwc;
 
 	miibus->dev.of_node = of_get_compatible_child(np, "snps,dwmac-mdio");
 	if (!miibus->dev.of_node)
@@ -888,24 +884,28 @@ int eqos_probe(struct device *dev, const struct eqos_ops *ops, void *priv)
 
 	ret = eqos_init(dev, eqos);
 	if (ret)
-		return ret;
+		return ERR_PTR(ret);
 
 	ret = eqos_phy_reset(dev, eqos);
 	if (ret)
-		return ret;
+		return ERR_PTR(ret);
 
 	ret = mdiobus_register(miibus);
 	if (ret)
-		return ret;
+		return ERR_PTR(ret);
 
-	return eth_register(edev);
+	ret = eth_register(edev);
+	if (ret)
+		return ERR_PTR(ret);
+
+	return eqos;
 }
 
-void eqos_remove(struct device *dev)
+void eqos_remove(struct dwc_common *dwc)
 {
-	struct eqos *eqos = dev->priv;
+	struct eqos *eqos = container_of(dwc, struct eqos, dwc);
 
-	eth_unregister(&eqos->netdev);
+	eth_unregister(&dwc->netdev);
 
 	mdiobus_unregister(&eqos->miibus);
 
