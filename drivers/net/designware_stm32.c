@@ -12,7 +12,7 @@
 #include <linux/clk.h>
 #include <mfd/syscon.h>
 
-#include "designware_eqos.h"
+#include "designware_common.h"
 
 #define SYSCFG_PMCR_ETH_CLK_SEL		BIT(16)
 #define SYSCFG_PMCR_ETH_REF_CLK_SEL	BIT(17)
@@ -52,9 +52,9 @@ struct eqos_stm32 {
 	int eth_ref_clk_sel_reg;
 };
 
-static inline struct eqos_stm32 *to_stm32(struct eqos *eqos)
+static inline struct eqos_stm32 *to_stm32(struct dwc_common *dwc)
 {
-	return eqos->priv;
+	return dwc->priv;
 }
 
 enum { CLK_STMMACETH, CLK_MAX_RX, CLK_MAX_TX, };
@@ -64,9 +64,9 @@ static const struct clk_bulk_data stm32_clks[] = {
 	[CLK_MAX_TX]    = { .id = "mac-clk-tx" },
 };
 
-static unsigned long eqos_get_csr_clk_rate_stm32(struct eqos *eqos)
+static unsigned long eqos_get_csr_clk_rate_stm32(struct dwc_common *dwc)
 {
-	return clk_get_rate(to_stm32(eqos)->clks[CLK_STMMACETH].clk);
+	return clk_get_rate(to_stm32(dwc)->clks[CLK_STMMACETH].clk);
 }
 
 static int eqos_set_mode_stm32(struct eqos_stm32 *priv, phy_interface_t interface)
@@ -112,10 +112,10 @@ static int eqos_set_mode_stm32(struct eqos_stm32 *priv, phy_interface_t interfac
 	return 0;
 }
 
-static int eqos_init_stm32(struct device *dev, struct eqos *eqos)
+static int eqos_init_stm32(struct device *dev, struct dwc_common *dwc)
 {
 	struct device_node *np = dev->of_node;
-	struct eqos_stm32 *priv = to_stm32(eqos);
+	struct eqos_stm32 *priv = to_stm32(dwc);
 	struct clk_bulk_data *eth_ck;
 	int ret;
 
@@ -141,7 +141,7 @@ static int eqos_init_stm32(struct device *dev, struct eqos *eqos)
 		return -EINVAL;
 	}
 
-	ret = eqos_set_mode_stm32(priv, eqos->interface);
+	ret = eqos_set_mode_stm32(priv, dwc->interface);
 	if (ret)
 		dev_warn(dev, "Configuring syscfg failed: %s\n", strerror(-ret));
 
@@ -166,11 +166,11 @@ static int eqos_init_stm32(struct device *dev, struct eqos *eqos)
 	return clk_bulk_enable(priv->num_clks, priv->clks);
 }
 
-static struct eqos_ops stm32_ops = {
+static struct dwc_common_ops stm32_ops = {
 	.init = eqos_init_stm32,
-	.get_ethaddr = eqos_get_ethaddr,
-	.set_ethaddr = eqos_set_ethaddr,
-	.adjust_link = eqos_adjust_link,
+	.get_ethaddr = dwc_common_get_ethaddr,
+	.set_ethaddr = dwc_common_set_ethaddr,
+	.adjust_link = dwc_common_adjust_link,
 	.get_csr_clk_rate = eqos_get_csr_clk_rate_stm32,
 
 	.clk_csr = EQOS_MDIO_ADDR_CR_250_300,
@@ -179,14 +179,14 @@ static struct eqos_ops stm32_ops = {
 
 static int eqos_probe_stm32(struct device *dev)
 {
-	return eqos_probe(dev, &stm32_ops, xzalloc(sizeof(struct eqos_stm32)));
+	return dwc_common_probe(dev, &stm32_ops, xzalloc(sizeof(struct eqos_stm32)));
 }
 
 static void eqos_remove_stm32(struct device *dev)
 {
 	struct eqos_stm32 *priv = to_stm32(dev->priv);
 
-	eqos_remove(dev);
+	dwc_common_remove(dev);
 
 	clk_bulk_disable(priv->num_clks, priv->clks);
 	clk_bulk_put(priv->num_clks, priv->clks);

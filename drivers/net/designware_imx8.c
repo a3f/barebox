@@ -35,9 +35,14 @@ static const struct clk_bulk_data imx8_clks[] = {
 	[CLK_TX]        = { .id = "tx" },
 };
 
-static unsigned long eqos_get_csr_clk_rate_imx8(struct eqos *eqos)
+static inline struct eqos_imx8_priv *to_eqos_imx8(struct dwc_common *dwc)
 {
-	struct eqos_imx8_priv *priv = eqos->priv;
+	return dwc->priv;
+}
+
+static unsigned long eqos_get_csr_clk_rate_imx8(struct dwc_common *dwc)
+{
+	struct eqos_imx8_priv *priv = to_eqos_imx8(dwc);
 
 	return clk_get_rate(priv->clks[CLK_PCLK].clk);
 }
@@ -45,8 +50,8 @@ static unsigned long eqos_get_csr_clk_rate_imx8(struct eqos *eqos)
 
 static void eqos_adjust_link_imx8(struct eth_device *edev)
 {
-	struct eqos *eqos = edev->priv;
-	struct eqos_imx8_priv *priv = eqos->priv;
+	struct dwc_common *dwc = edev->priv;
+	struct eqos_imx8_priv *priv = to_eqos_imx8(dwc);
 	unsigned long rate;
 	int ret;
 
@@ -71,19 +76,19 @@ static void eqos_adjust_link_imx8(struct eth_device *edev)
 		dev_err(priv->dev, "set TX clk rate %ld failed %d\n",
 			rate, ret);
 
-	eqos_adjust_link(edev);
+	dwc_common_adjust_link(edev);
 }
 
-static void eqos_imx8_set_interface_mode(struct eqos *eqos)
+static void eqos_imx8_set_interface_mode(struct dwc_common *dwc)
 {
-	struct eqos_imx8_priv *priv = eqos->priv;
+	struct eqos_imx8_priv *priv = to_eqos_imx8(dwc);
 	struct device_node *np = priv->dev->device_node;
 	int val;
 
 	if (!of_device_is_compatible(np, "nxp,imx8mp-dwmac-eqos"))
 		return;
 
-	switch (eqos->interface) {
+	switch (dwc->interface) {
 	case PHY_INTERFACE_MODE_MII:
 		val = GPR_ENET_QOS_INTF_SEL_MII;
 		break;
@@ -109,10 +114,10 @@ static void eqos_imx8_set_interface_mode(struct eqos *eqos)
 			   GPR_ENET_QOS_INTF_MODE_MASK, val);
 }
 
-static int eqos_init_imx8(struct device *dev, struct eqos *eqos)
+static int eqos_init_imx8(struct device *dev, struct dwc_common *dwc)
 {
 	struct device_node *np = dev->device_node;
-	struct eqos_imx8_priv *priv = eqos->priv;
+	struct eqos_imx8_priv *priv = to_eqos_imx8(dwc);
 	int ret;
 
 	priv->dev = dev;
@@ -148,15 +153,15 @@ static int eqos_init_imx8(struct device *dev, struct eqos *eqos)
 		return ret;
 	}
 
-	eqos_imx8_set_interface_mode(eqos);
+	eqos_imx8_set_interface_mode(dwc);
 
 	return 0;
 }
 
-static struct eqos_ops imx8_ops = {
+static struct dwc_common_ops imx8_ops = {
 	.init = eqos_init_imx8,
-	.get_ethaddr = eqos_get_ethaddr,
-	.set_ethaddr = eqos_set_ethaddr,
+	.get_ethaddr = dwc_common_get_ethaddr,
+	.set_ethaddr = dwc_common_set_ethaddr,
 	.adjust_link = eqos_adjust_link_imx8,
 	.get_csr_clk_rate = eqos_get_csr_clk_rate_imx8,
 
@@ -166,15 +171,15 @@ static struct eqos_ops imx8_ops = {
 
 static int eqos_probe_imx8(struct device *dev)
 {
-	return eqos_probe(dev, &imx8_ops, xzalloc(sizeof(struct eqos_imx8_priv)));
+	return dwc_common_probe(dev, &imx8_ops, xzalloc(sizeof(struct eqos_imx8_priv)));
 }
 
 static void eqos_remove_imx8(struct device *dev)
 {
 	struct eqos *eqos = dev->priv;
-	struct eqos_imx8_priv *priv = eqos->priv;
+	struct eqos_imx8_priv *priv = eqos->dwc.priv;
 
-	eqos_remove(dev);
+	dwc_common_remove(dev);
 
 	clk_bulk_disable(priv->num_clks, priv->clks);
 	clk_bulk_put(priv->num_clks, priv->clks);

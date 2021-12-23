@@ -12,15 +12,17 @@
 #include <linux/time.h>
 #include <linux/clk.h>
 
-#include "designware_eqos.h"
+#include "designware_common.h"
+
+struct eqos_rk_gmac;
 
 struct rk_gmac_ops {
-	void (*set_to_rgmii)(struct eqos *eqos,
+	void (*set_to_rgmii)(struct eqos_rk_gmac *priv,
 			     int tx_delay, int rx_delay);
-	void (*set_to_rmii)(struct eqos *eqos);
-	void (*set_rmii_speed)(struct eqos *eqos, int speed);
-	void (*set_rgmii_speed)(struct eqos *eqos, int speed);
-	void (*integrated_phy_powerup)(struct eqos *eqos);
+	void (*set_to_rmii)(struct eqos_rk_gmac *priv);
+	void (*set_rmii_speed)(struct eqos_rk_gmac *priv, int speed);
+	void (*set_rgmii_speed)(struct eqos_rk_gmac *priv, int speed);
+	void (*integrated_phy_powerup)(struct eqos_rk_gmac *priv);
 	const u32 *regs;
 	int *required_clkids;
 };
@@ -59,9 +61,9 @@ static const struct clk_bulk_data rk_gmac_clks[] = {
 	[CLK_PTP_REF]     = { .id = "ptp_ref" },
 };
 
-static inline struct eqos_rk_gmac *to_rk_gmac(struct eqos *eqos)
+static inline struct eqos_rk_gmac *to_rk_gmac(struct dwc_common *dwc)
 {
-	return eqos->priv;
+	return dwc->priv;
 }
 
 #define HIWORD_UPDATE(val, mask, shift) \
@@ -91,17 +93,16 @@ static inline struct eqos_rk_gmac *to_rk_gmac(struct eqos *eqos)
 #define RK3568_GMAC_CLK_RX_DL_CFG(val)	HIWORD_UPDATE(val, 0x7F, 8)
 #define RK3568_GMAC_CLK_TX_DL_CFG(val)	HIWORD_UPDATE(val, 0x7F, 0)
 
-static unsigned long eqos_get_csr_clk_rate_rk_gmac(struct eqos *eqos)
+static unsigned long eqos_get_csr_clk_rate_rk_gmac(struct dwc_common *dwc)
 {
-	struct eqos_rk_gmac *priv = to_rk_gmac(eqos);
+	struct eqos_rk_gmac *priv = to_rk_gmac(dwc);
 
 	return clk_get_rate(priv->clks[CLK_STMMACETH].clk);
 }
 
-static void rk3568_set_to_rgmii(struct eqos *eqos,
+static void rk3568_set_to_rgmii(struct eqos_rk_gmac *priv,
 				int tx_delay, int rx_delay)
 {
-	struct eqos_rk_gmac *priv = to_rk_gmac(eqos);
 	struct device *dev = priv->dev;
 	u32 offset_con0, offset_con1;
 
@@ -125,9 +126,8 @@ static void rk3568_set_to_rgmii(struct eqos *eqos,
 		     RK3568_GMAC_CLK_TX_DL_CFG(tx_delay));
 }
 
-static void rk3568_set_to_rmii(struct eqos *eqos)
+static void rk3568_set_to_rmii(struct eqos_rk_gmac *priv)
 {
-	struct eqos_rk_gmac *priv = to_rk_gmac(eqos);
 	struct device *dev = priv->dev;
 	u32 offset_con1;
 
@@ -143,9 +143,8 @@ static void rk3568_set_to_rmii(struct eqos *eqos)
 		     RK3568_GMAC_PHY_INTF_SEL_RMII);
 }
 
-static void rk3568_set_gmac_speed(struct eqos *eqos, int speed)
+static void rk3568_set_gmac_speed(struct eqos_rk_gmac *priv, int speed)
 {
-	struct eqos_rk_gmac *priv = to_rk_gmac(eqos);
 	struct device *dev = priv->dev;
 	unsigned long rate;
 	int ret;
@@ -188,33 +187,33 @@ static const struct rk_gmac_ops rk3568_ops = {
 	}
 };
 
-static int rk_gmac_powerup(struct eqos *eqos)
+static int rk_gmac_powerup(struct dwc_common *dwc)
 {
-	struct eqos_rk_gmac *priv = to_rk_gmac(eqos);
+	struct eqos_rk_gmac *priv = to_rk_gmac(dwc);
 	struct device *dev = priv->dev;
 
 	/*rmii or rgmii*/
-	switch (eqos->interface) {
+	switch (dwc->interface) {
 	case PHY_INTERFACE_MODE_RGMII:
 		dev_dbg(dev, "init for RGMII\n");
-		priv->ops->set_to_rgmii(eqos, priv->tx_delay,
+		priv->ops->set_to_rgmii(priv, priv->tx_delay,
 					    priv->rx_delay);
 		break;
 	case PHY_INTERFACE_MODE_RGMII_ID:
 		dev_dbg(dev, "init for RGMII_ID\n");
-		priv->ops->set_to_rgmii(eqos, 0, 0);
+		priv->ops->set_to_rgmii(priv, 0, 0);
 		break;
 	case PHY_INTERFACE_MODE_RGMII_RXID:
 		dev_dbg(dev, "init for RGMII_RXID\n");
-		priv->ops->set_to_rgmii(eqos, priv->tx_delay, 0);
+		priv->ops->set_to_rgmii(priv, priv->tx_delay, 0);
 		break;
 	case PHY_INTERFACE_MODE_RGMII_TXID:
 		dev_dbg(dev, "init for RGMII_TXID\n");
-		priv->ops->set_to_rgmii(eqos, 0, priv->rx_delay);
+		priv->ops->set_to_rgmii(priv, 0, priv->rx_delay);
 		break;
 	case PHY_INTERFACE_MODE_RMII:
 		dev_dbg(dev, "init for RMII\n");
-		priv->ops->set_to_rmii(eqos);
+		priv->ops->set_to_rmii(priv);
 		break;
 	default:
 		dev_err(dev, "NO interface defined!\n");
@@ -225,21 +224,21 @@ static int rk_gmac_powerup(struct eqos *eqos)
 
 static void eqos_rk_adjust_link(struct eth_device *edev)
 {
-	struct eqos *eqos = edev->priv;
-	struct eqos_rk_gmac *priv = to_rk_gmac(eqos);
+	struct dwc_common *dwc = edev->priv;
+	struct eqos_rk_gmac *priv = to_rk_gmac(dwc);
 
-	if (phy_interface_mode_is_rgmii(eqos->interface))
-		priv->ops->set_rgmii_speed(eqos, edev->phydev->speed);
+	if (phy_interface_mode_is_rgmii(dwc->interface))
+		priv->ops->set_rgmii_speed(priv, edev->phydev->speed);
 	else
-		priv->ops->set_rmii_speed(eqos, edev->phydev->speed);
+		priv->ops->set_rmii_speed(priv, edev->phydev->speed);
 
-	eqos_adjust_link(edev);
+	dwc_common_adjust_link(edev);
 }
 
-static int eqos_init_rk_gmac(struct device *dev, struct eqos *eqos)
+static int eqos_init_rk_gmac(struct device *dev, struct dwc_common *dwc)
 {
 	struct device_node *np = dev->of_node;
-	struct eqos_rk_gmac *priv = to_rk_gmac(eqos);
+	struct eqos_rk_gmac *priv = to_rk_gmac(dwc);
 	int i = 0, ret, *clkid;
 	const char *strings;
 
@@ -299,15 +298,15 @@ static int eqos_init_rk_gmac(struct device *dev, struct eqos *eqos)
 		return ret;
 	}
 
-	rk_gmac_powerup(eqos);
+	rk_gmac_powerup(dwc);
 
 	return 0;
 }
 
-static struct eqos_ops rk_gmac_ops = {
+static struct dwc_common_ops rk_gmac_ops = {
 	.init = eqos_init_rk_gmac,
-	.get_ethaddr = eqos_get_ethaddr,
-	.set_ethaddr = eqos_set_ethaddr,
+	.get_ethaddr = dwc_common_get_ethaddr,
+	.set_ethaddr = dwc_common_set_ethaddr,
 	.adjust_link = eqos_rk_adjust_link,
 	.get_csr_clk_rate = eqos_get_csr_clk_rate_rk_gmac,
 
@@ -317,7 +316,7 @@ static struct eqos_ops rk_gmac_ops = {
 
 static int rk_gmac_probe(struct device *dev)
 {
-	return eqos_probe(dev, &rk_gmac_ops, xzalloc(sizeof(struct eqos_rk_gmac)));
+	return dwc_common_probe(dev, &rk_gmac_ops, xzalloc(sizeof(struct eqos_rk_gmac)));
 }
 
 static __maybe_unused struct of_device_id rk_gmac_compatible[] = {
@@ -333,7 +332,7 @@ MODULE_DEVICE_TABLE(of, rk_gmac_compatible);
 static struct driver rk_gmac_driver = {
 	.name = "eqos-rockchip",
 	.probe = rk_gmac_probe,
-	.remove = eqos_remove,
+	.remove = dwc_common_remove,
 	.of_compatible = DRV_OF_COMPAT(rk_gmac_compatible),
 };
 device_platform_driver(rk_gmac_driver);
