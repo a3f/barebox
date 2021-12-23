@@ -42,7 +42,6 @@ struct dwc_common {
 	void __iomem *regs;
 	phy_interface_t interface;
 
-	bool started;
 	bool eqos;
 };
 
