@@ -32,7 +32,6 @@ struct eqos {
 };
 
 struct device;
-int eqos_reset(struct eqos *priv);
 struct eqos *eqos_probe(struct device *dev, const struct dwc_common_ops *ops, void *priv);
 void eqos_remove(struct dwc_common *dwc);
 
