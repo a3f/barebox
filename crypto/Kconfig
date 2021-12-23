@@ -11,6 +11,9 @@ config CRC_ITU_T
 config CRC7
 	bool
 
+config RC4
+	bool
+
 menuconfig DIGEST
 	bool "Digest"
 
