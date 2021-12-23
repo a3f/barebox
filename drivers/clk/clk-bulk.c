@@ -39,7 +39,7 @@ static int __clk_bulk_get(struct device *dev, int num_clks,
 			ret = PTR_ERR(clks[i].clk);
 			clks[i].clk = NULL;
 
-			if (ret == -ENOENT && optional)
+			if ((ret == -ENOENT || ret == -EINVAL) && optional)
 				continue;
 
 			if (ret != -EPROBE_DEFER)
