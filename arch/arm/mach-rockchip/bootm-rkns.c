@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-#define pr_fmt(fmt) "rockchip-bootm-barebox: " fmt
+#define pr_fmt(fmt) "bootm-rkns: " fmt
 
 #include <bootm.h>
 #include <common.h>
@@ -113,11 +113,11 @@ static struct image_handler image_handler_rkns_barebox_image = {
 	.filetype = filetype_rockchip_rkns_image,
 };
 
-static int rockchip_register_barebox_image_handler(void)
+static int rockchip_register_barebox_rkns_image_handler(void)
 {
 	if (rockchip_soc() < 0)
 		return 0;
 
 	return register_image_handler(&image_handler_rkns_barebox_image);
 }
-late_initcall(rockchip_register_barebox_image_handler);
+late_initcall(rockchip_register_barebox_rkns_image_handler);

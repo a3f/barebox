@@ -12,6 +12,13 @@ config RK_TIMER
 	hex
 	default 1
 
+config ARCH_ROCKCHIP_BOOTM_RKNS
+	bool
+
+config ARCH_ROCKCHIP_BOOTM_RK30
+	bool
+	select RC4
+
 config ARCH_ROCKCHIP_V7
 	bool
 	select CPU_V7
@@ -37,6 +44,7 @@ config ARCH_RK3399
 	bool
 	select ARCH_ROCKCHIP_V8
 	select ARCH_HAS_RESET_CONTROLLER
+	select ARCH_ROCKCHIP_BOOTM_RK30
 
 config ARCH_RK3399PRO
 	bool
@@ -46,11 +54,13 @@ config ARCH_RK3568
 	bool
 	select ARCH_ROCKCHIP_V8
 	select HW_HAS_PCI
+	select ARCH_ROCKCHIP_BOOTM_RKNS
 
 config ARCH_RK3588
 	bool
 	select ARCH_ROCKCHIP_V8
 	select HW_HAS_PCI
+	select ARCH_ROCKCHIP_BOOTM_RKNS
 
 comment "select Rockchip boards:"
 

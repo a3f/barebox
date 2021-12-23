@@ -15,6 +15,7 @@
 #define RK_SPL_HDR_SIZE		4
 
 #define RK_SIGNATURE		0x0ff0aa55
+#define RK_SIGNATURE_RC4	0xfcdc8c3b
 
 #define RK_BOOTROM_RC4_KEY	(unsigned char[16]) { \
 	124, 78, 3, 4, 85, 5, 9, 7, 45, 44, 123, 56, 23, 13, 23, 17 }

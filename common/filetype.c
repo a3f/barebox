@@ -19,6 +19,7 @@
 #include <elf.h>
 
 #include <mach/imx/imx-header.h>
+#include <mach/rockchip/rkimage-rk30.h>
 
 struct filetype_str {
 	const char *name;	/* human readable filetype */
@@ -77,6 +78,7 @@ static const struct filetype_str filetype_str[] = {
 	[filetype_zynq_image] = { "Zynq image", "zynq-image" },
 	[filetype_mxs_sd_image] = { "i.MX23/28 SD card image", "mxs-sd-image" },
 	[filetype_rockchip_rkns_image] = { "Rockchip boot image", "rk-image" },
+	[filetype_rockchip_rk30_image] = { "Rockchip RK30 (old) boot image", "rk30-image" },
 	[filetype_fip] = { "TF-A Firmware Image Package", "fip" },
 };
 
@@ -416,6 +418,9 @@ enum filetype file_detect_type(const void *_buf, size_t bufsize)
 
 	if (buf[8] == 0xAA995566 && buf[9] == 0x584C4E58)
 		return filetype_zynq_image;
+
+	if (buf[0] == cpu_to_le32(RK_SIGNATURE_RC4))
+		return filetype_rockchip_rk30_image;
 
 	return filetype_unknown;
 }
