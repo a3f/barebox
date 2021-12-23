@@ -14,7 +14,6 @@
 #include <io.h>
 #include <net.h>
 #include <of_net.h>
-#include <platform_data/eth-designware.h>
 #include <linux/phy.h>
 #include <linux/err.h>
 #include "designware.h"
@@ -447,7 +446,6 @@ struct dw_eth_dev *dwc_drv_probe(struct device *dev)
 	struct eth_device *edev;
 	struct mii_bus *miibus;
 	void __iomem *base;
-	struct dwc_ether_platform_data *pdata = dev->platform_data;
 	int ret;
 	struct dw_eth_drvdata *drvdata;
 
@@ -466,15 +464,9 @@ struct dw_eth_dev *dwc_drv_probe(struct device *dev)
 		dev_warn(dev, "No drvdata specified\n");
 	}
 
-	if (pdata) {
-		priv->phy_addr = pdata->phy_addr;
-		priv->interface = pdata->interface;
-		priv->fix_mac_speed = pdata->fix_mac_speed;
-	} else {
-		ret = dwc_probe_dt(dev, priv);
-		if (ret)
-			return ERR_PTR(ret);
-	}
+	ret = dwc_probe_dt(dev, priv);
+	if (ret)
+		return ERR_PTR(ret);
 
 	iores = dev_request_mem_resource(dev, 0);
 	if (IS_ERR(iores))
