@@ -10,12 +10,12 @@
 #include <net.h>
 #include <linux/types.h>
 
+#include "designware_common.h"
+
 struct dw_eth_dev {
-	struct eth_device netdev;
+	struct dwc_common dwc;
 	struct mii_bus miibus;
 
-	void (*fix_mac_speed)(int speed);
-	u8 macaddr[6];
 	u32 tx_currdescnum;
 	u32 rx_currdescnum;
 
@@ -31,16 +31,6 @@ struct dw_eth_dev {
 	struct eth_mac_regs *mac_regs_p;
 	struct eth_dma_regs *dma_regs_p;
 	int phy_addr;
-	phy_interface_t interface;
-	int enh_desc;
-
-	struct reset_control	*rst;
-};
-
-struct dw_eth_drvdata {
-	bool enh_desc;
-	void (*fix_mac_speed)(int speed);
-	void *priv;
 };
 
 static inline dma_addr_t tx_dma_addr(struct dw_eth_dev *priv,
@@ -57,8 +47,11 @@ static inline dma_addr_t rx_dma_addr(struct dw_eth_dev *priv,
 		+ ((u8 *)desc - (u8 *)priv->rx_mac_descrtable_cpu);
 }
 
-struct dw_eth_dev *dwc_drv_probe(struct device *dev);
-void dwc_drv_remove(struct device *dev);
+struct device;
+struct dw_eth_dev *dwc_drv_probe(struct device *dev, const struct dwc_common_ops *ops, void *_priv);
+void dwc_drv_remove(struct dwc_common *dwc);
+void dwc_adjust_link(struct dwc_common *dwc, struct phy_device *phydev);
+int dwc_ether_set_ethaddr(struct dwc_common *dwc, const unsigned char *mac);
 
 #define CONFIG_TX_DESCR_NUM	16
 #define CONFIG_RX_DESCR_NUM	16

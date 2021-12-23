@@ -8,6 +8,7 @@
 #include <of.h>
 
 #include "designware_common.h"
+#include "designware.h"
 #include "designware_eqos.h"
 
 int dwc_common_probe(struct device *dev, const struct dwc_common_ops *ops, void *priv)
@@ -32,6 +33,9 @@ int dwc_common_probe(struct device *dev, const struct dwc_common_ops *ops, void 
 		return 0;
 	}
 
+	if (IS_ENABLED(CONFIG_DRIVER_NET_DESIGNWARE) && !is_eqos)
+		return PTR_ERR_OR_ZERO(dwc_drv_probe(dev, ops, priv));
+
 	return -ENODEV;
 }
 
@@ -51,6 +55,8 @@ int dwc_common_set_ethaddr(struct eth_device *edev, const unsigned char *mac)
 
 	if (dwc_is_eqos(dwc))
 		return eqos_set_ethaddr(dwc, mac);
+	else
+		return dwc_ether_set_ethaddr(dwc, mac);
 
 	return 0;
 }
@@ -61,6 +67,8 @@ void dwc_common_adjust_link(struct eth_device *edev)
 
 	if (dwc_is_eqos(dwc))
 		eqos_adjust_link(dwc, edev->phydev);
+	else
+		dwc_adjust_link(dwc, edev->phydev);
 }
 
 void dwc_common_remove(struct device *dev)
@@ -69,4 +77,6 @@ void dwc_common_remove(struct device *dev)
 
 	if (dwc_is_eqos(dwc))
 		eqos_remove(dwc);
+	else
+		dwc_drv_remove(dwc);
 }
