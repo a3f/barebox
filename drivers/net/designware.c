@@ -30,7 +30,7 @@
 
 static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	u64 start;
 	u32 miiaddr;
@@ -43,7 +43,7 @@ static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 	start = get_time_ns();
 	while (readl(&mac_p->miiaddr) & MII_BUSY) {
 		if (is_timeout(start, 10 * MSECOND)) {
-			dev_err(&priv->netdev.dev, "MDIO timeout\n");
+			dwc_err(&priv->dwc, "MDIO timeout\n");
 			return -EIO;
 		}
 	}
@@ -52,7 +52,7 @@ static int dwc_ether_mii_read(struct mii_bus *dev, int addr, int reg)
 
 static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	u64 start;
 	u32 miiaddr;
@@ -66,7 +66,7 @@ static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 	start = get_time_ns();
 	while (readl(&mac_p->miiaddr) & MII_BUSY) {
 		if (is_timeout(start, 10 * MSECOND)) {
-			dev_err(&priv->netdev.dev, "MDIO timeout\n");
+			dwc_err(&priv->dwc, "MDIO timeout\n");
 			return -EIO;
 		}
 	}
@@ -79,20 +79,21 @@ static int dwc_ether_mii_write(struct mii_bus *dev, int addr, int reg, u16 val)
 
 static int mac_reset(struct eth_device *dev)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
+	struct dwc_common *dwc = &priv->dwc;
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 	u64 start;
 
 	writel(readl(&dma_p->busmode) | DMAMAC_SRST, &dma_p->busmode);
 
-	if (priv->interface != PHY_INTERFACE_MODE_RGMII)
+	if (dwc->interface != PHY_INTERFACE_MODE_RGMII)
 		writel(MII_PORTSELECT, &mac_p->conf);
 
 	start = get_time_ns();
 	while (readl(&dma_p->busmode) & DMAMAC_SRST) {
 		if (is_timeout(start, 10 * MSECOND)) {
-			dev_err(&priv->netdev.dev, "MAC reset timeout\n");
+			dwc_err(dwc, "MAC reset timeout\n");
 			return -EIO;
 		}
 	}
@@ -101,7 +102,7 @@ static int mac_reset(struct eth_device *dev)
 
 static void tx_descs_init(struct eth_device *dev)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 	struct dmamacdescr *desc_table_p = &priv->tx_mac_descrtable_cpu[0];
 	char *txbuffs = &priv->txbuffs[0];
@@ -113,7 +114,7 @@ static void tx_descs_init(struct eth_device *dev)
 		desc_p->dmamac_addr = virt_to_phys(&txbuffs[idx * CONFIG_ETH_BUFSIZE]);
 		desc_p->dmamac_next = tx_dma_addr(priv, &desc_table_p[idx + 1]);
 
-		if (priv->enh_desc) {
+		if (priv->dwc.ops->enh_desc) {
 			desc_p->txrx_status &= ~(DESC_ENH_TXSTS_TXINT | DESC_ENH_TXSTS_TXLAST |
 					DESC_ENH_TXSTS_TXFIRST | DESC_ENH_TXSTS_TXCRCDIS |
 					DESC_ENH_TXSTS_TXCHECKINSCTRL |
@@ -137,7 +138,7 @@ static void tx_descs_init(struct eth_device *dev)
 
 static void rx_descs_init(struct eth_device *dev)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 	struct dmamacdescr *desc_table_p = &priv->rx_mac_descrtable_cpu[0];
 	char *rxbuffs = &priv->rxbuffs[0];
@@ -150,7 +151,7 @@ static void rx_descs_init(struct eth_device *dev)
 		desc_p->dmamac_next = rx_dma_addr(priv, &desc_table_p[idx + 1]);
 
 		desc_p->dmamac_cntl = MAC_MAX_FRAME_SZ;
-		if (priv->enh_desc)
+		if (priv->dwc.ops->enh_desc)
 			desc_p->dmamac_cntl |= DESC_ENH_RXCTRL_RXCHAIN;
 		else
 			desc_p->dmamac_cntl |= DESC_RXCTRL_RXCHAIN;
@@ -192,7 +193,7 @@ static int phy_resume(struct phy_device *phydev)
 
 static int dwc_ether_init(struct eth_device *dev)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 
@@ -205,7 +206,7 @@ static int dwc_ether_init(struct eth_device *dev)
 		return -1;
 
 	/* HW MAC address is lost during MAC reset */
-	dev->set_ethaddr(dev, priv->macaddr);
+	dev->set_ethaddr(dev, priv->dwc.macaddr);
 
 	writel(FIXEDBURST | PRIORXTX_41 | BURST_16, &dma_p->busmode);
 	writel(readl(&dma_p->opmode) | FLUSHTXFIFO | STOREFORWARD |
@@ -214,29 +215,26 @@ static int dwc_ether_init(struct eth_device *dev)
 	return 0;
 }
 
-static void dwc_update_linkspeed(struct eth_device *edev)
+void dwc_adjust_link(struct dwc_common *dwc, struct phy_device *phydev)
 {
-	struct dw_eth_dev *priv = edev->priv;
+	struct dw_eth_dev *priv = container_of(dwc, struct dw_eth_dev, dwc);
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	u32 conf;
 
-	if (priv->fix_mac_speed)
-		priv->fix_mac_speed(edev->phydev->speed);
-
 	conf = readl(&mac_p->conf);
-	if (edev->phydev->duplex)
+	if (phydev->duplex)
 		conf |= FULLDPLXMODE;
 	else
 		conf &= ~FULLDPLXMODE;
-	if (edev->phydev->speed == SPEED_1000)
+	if (phydev->speed == SPEED_1000)
 		conf &= ~MII_PORTSELECT;
 	else
 		conf |= MII_PORTSELECT;
 
-	if ((edev->phydev->interface != PHY_INTERFACE_MODE_MII) &&
-		(edev->phydev->interface != PHY_INTERFACE_MODE_GMII)) {
+	if ((phydev->interface != PHY_INTERFACE_MODE_MII) &&
+		(phydev->interface != PHY_INTERFACE_MODE_GMII)) {
 
-		if (edev->phydev->speed == 100)
+		if (phydev->speed == 100)
 			conf |= FES_100;
 		else
 			conf &= ~FES_100;
@@ -247,13 +245,14 @@ static void dwc_update_linkspeed(struct eth_device *edev)
 
 static int dwc_ether_open(struct eth_device *dev)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
+	struct dwc_common *dwc = &priv->dwc;
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 	int ret;
 
 	ret = phy_device_connect(dev, &priv->miibus, priv->phy_addr,
-				 dwc_update_linkspeed, 0, priv->interface);
+				 dwc->ops->adjust_link, 0, dwc->interface);
 	if (ret)
 		return ret;
 
@@ -272,12 +271,12 @@ static int dwc_ether_open(struct eth_device *dev)
 
 static int dwc_ether_send(struct eth_device *dev, void *packet, int length)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
 	struct eth_dma_regs *dma_p = priv->dma_regs_p;
 	u32 owndma, desc_num = priv->tx_currdescnum;
 	struct dmamacdescr *desc_p = &priv->tx_mac_descrtable_cpu[desc_num];
 
-	owndma = priv->enh_desc ? DESC_ENH_TXSTS_OWNBYDMA : DESC_TXSTS_OWNBYDMA;
+	owndma = priv->dwc.ops->enh_desc ? DESC_ENH_TXSTS_OWNBYDMA : DESC_TXSTS_OWNBYDMA;
 	/* Check if the descriptor is owned by CPU */
 	if (desc_p->txrx_status & owndma) {
 		dev_err(&dev->dev, "CPU not owner of tx frame\n");
@@ -288,7 +287,7 @@ static int dwc_ether_send(struct eth_device *dev, void *packet, int length)
 	dma_sync_single_for_device(dev->parent, desc_p->dmamac_addr, length,
 				   DMA_TO_DEVICE);
 
-	if (priv->enh_desc) {
+	if (priv->dwc.ops->enh_desc) {
 		desc_p->txrx_status |= DESC_ENH_TXSTS_TXFIRST | DESC_ENH_TXSTS_TXLAST;
 		desc_p->dmamac_cntl &= ~(DESC_ENH_TXCTRL_SIZE1MASK);
 		desc_p->dmamac_cntl |= (length << DESC_ENH_TXCTRL_SIZE1SHFT) &
@@ -321,7 +320,7 @@ static int dwc_ether_send(struct eth_device *dev, void *packet, int length)
 
 static int dwc_ether_rx(struct eth_device *dev)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
 	u32 desc_num = priv->rx_currdescnum;
 	struct dmamacdescr *desc_p = &priv->rx_mac_descrtable_cpu[desc_num];
 
@@ -382,21 +381,15 @@ static int dwc_ether_rx(struct eth_device *dev)
 
 static void dwc_ether_halt (struct eth_device *dev)
 {
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dev->priv, struct dw_eth_dev, dwc);
 
 	mac_reset(dev);
 	priv->tx_currdescnum = priv->rx_currdescnum = 0;
 }
 
-static int dwc_ether_get_ethaddr(struct eth_device *dev, u8 adr[6])
+int dwc_ether_set_ethaddr(struct dwc_common *dwc, const unsigned char *adr)
 {
-	/* we have no EEPROM */
-	return -1;
-}
-
-static int dwc_ether_set_ethaddr(struct eth_device *dev, const unsigned char *adr)
-{
-	struct dw_eth_dev *priv = dev->priv;
+	struct dw_eth_dev *priv = container_of(dwc, struct dw_eth_dev, dwc);
 	struct eth_mac_regs *mac_p = priv->mac_regs_p;
 	u32 macid_lo, macid_hi;
 
@@ -405,7 +398,7 @@ static int dwc_ether_set_ethaddr(struct eth_device *dev, const unsigned char *ad
 	macid_hi = adr[4] + (adr[5] << 8);
 	writel(macid_hi, &mac_p->macaddr0hi);
 	writel(macid_lo, &mac_p->macaddr0lo);
-	memcpy(priv->macaddr, adr, 6);
+	memcpy(priv->dwc.macaddr, adr, 6);
 	return 0;
 }
 
@@ -426,7 +419,7 @@ static int dwc_probe_dt(struct device *dev, struct dw_eth_dev *priv)
 		return -ENODEV;
 
 	priv->phy_addr = -1;
-	priv->interface = of_get_phy_mode(dev->of_node);
+	priv->dwc.interface = of_get_phy_mode(dev->of_node);
 
 	/* Set MDIO bus device node, if present. */
 	for_each_child_of_node(dev->of_node, child) {
@@ -439,7 +432,7 @@ static int dwc_probe_dt(struct device *dev, struct dw_eth_dev *priv)
 	return 0;
 }
 
-struct dw_eth_dev *dwc_drv_probe(struct device *dev)
+struct dw_eth_dev *dwc_drv_probe(struct device *dev, const struct dwc_common_ops *ops, void *_priv)
 {
 	struct resource *iores;
 	struct dw_eth_dev *priv;
@@ -447,22 +440,12 @@ struct dw_eth_dev *dwc_drv_probe(struct device *dev)
 	struct mii_bus *miibus;
 	void __iomem *base;
 	int ret;
-	struct dw_eth_drvdata *drvdata;
 
 	dma_set_mask(dev, DMA_BIT_MASK(32));
 
 	priv = xzalloc(sizeof(struct dw_eth_dev));
-
-	ret = dev_get_drvdata(dev, (const void **)&drvdata);
-	if (ret)
-		return ERR_PTR(ret);
-
-	if (drvdata) {
-		priv->enh_desc = drvdata->enh_desc;
-		priv->fix_mac_speed = drvdata->fix_mac_speed;
-	} else {
-		dev_warn(dev, "No drvdata specified\n");
-	}
+	priv->dwc.ops = ops;
+	priv->dwc.priv = _priv;
 
 	ret = dwc_probe_dt(dev, priv);
 	if (ret)
@@ -494,23 +477,26 @@ struct dw_eth_dev *dwc_drv_probe(struct device *dev)
 	priv->txbuffs = dma_alloc(TX_TOTAL_BUFSIZE);
 	priv->rxbuffs = dma_alloc(RX_TOTAL_BUFSIZE);
 
-	edev = &priv->netdev;
+	edev = &priv->dwc.netdev;
 	miibus = &priv->miibus;
-	edev->priv = priv;
 
-	dev->priv = edev;
+	dev->priv = edev->priv = &priv->dwc;
+
 	edev->parent = dev;
 	edev->open = dwc_ether_open;
 	edev->send = dwc_ether_send;
 	edev->recv = dwc_ether_rx;
 	edev->halt = dwc_ether_halt;
-	edev->get_ethaddr = dwc_ether_get_ethaddr;
-	edev->set_ethaddr = dwc_ether_set_ethaddr;
+	edev->get_ethaddr = ops->get_ethaddr;
+	edev->set_ethaddr = ops->set_ethaddr;
 
 	miibus->parent = dev;
 	miibus->read = dwc_ether_mii_read;
 	miibus->write = dwc_ether_mii_write;
-	miibus->priv = priv;
+	miibus->priv = &priv->dwc;
+
+	if (ops->init)
+		ret = ops->init(dev, &priv->dwc);
 
 	mdiobus_register(miibus);
 	eth_register(edev);
@@ -518,9 +504,7 @@ struct dw_eth_dev *dwc_drv_probe(struct device *dev)
 	return priv;
 }
 
-void dwc_drv_remove(struct device *dev)
+void dwc_drv_remove(struct dwc_common *dwc)
 {
-	struct eth_device *edev = dev->priv;
-
-	dwc_ether_halt(edev);
+	dwc_ether_halt(&dwc->netdev);
 }

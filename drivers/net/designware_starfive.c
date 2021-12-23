@@ -9,7 +9,7 @@
 #include <linux/clk.h>
 #include <mfd/syscon.h>
 #include <soc/starfive/sysmain.h>
-#include "designware.h"
+#include "designware_common.h"
 
 /*
  * GMAC_GTXCLK
@@ -33,7 +33,7 @@
 #define CLKGEN_25M_DIV                 0x14
 #define CLKGEN_2_5M_DIV                0xc8
 
-static void dwmac_fixed_speed(int speed)
+static void starfive_dwc_adjust_link(struct eth_device *edev)
 {
 	/* TODO: move this into clk driver */
 	void __iomem *addr = IOMEM(CLKGEN_GMAC_GTXCLK_ADDR);
@@ -41,7 +41,7 @@ static void dwmac_fixed_speed(int speed)
 
 	value = readl(addr) & (~0x000000FF);
 
-	switch (speed) {
+	switch (edev->phydev->speed) {
 	case SPEED_1000: value |= CLKGEN_125M_DIV; break;
 	case SPEED_100:  value |= CLKGEN_25M_DIV;  break;
 	case SPEED_10:   value |= CLKGEN_2_5M_DIV; break;
@@ -49,16 +49,12 @@ static void dwmac_fixed_speed(int speed)
 	}
 
 	writel(value, addr);
+
+	dwc_common_adjust_link(edev);
 }
 
-static struct dw_eth_drvdata starfive_drvdata = {
-	.enh_desc = 1,
-	.fix_mac_speed = dwmac_fixed_speed,
-};
-
-static int starfive_dwc_ether_probe(struct device *dev)
+static int starfive_dwc_ether_init(struct device *dev, struct dwc_common *dwc)
 {
-	struct dw_eth_dev *dwc;
 	struct regmap *regmap;
 	int ret;
 	struct clk_bulk_data clks[] = {
@@ -86,10 +82,6 @@ static int starfive_dwc_ether_probe(struct device *dev)
 	if (ret)
 		return ret;
 
-	dwc = dwc_drv_probe(dev);
-	if (IS_ERR(dwc))
-		return PTR_ERR(dwc);
-
 	if (phy_interface_mode_is_rgmii(dwc->interface)) {
 		regmap_update_bits(regmap, SYSMAIN_GMAC_PHY_INTF_SEL, 0x7, 0x1);
 		regmap_write(regmap, SYSMAIN_GMAC_GTXCLK_DLYCHAIN_SEL, 0x4);
@@ -98,8 +90,21 @@ static int starfive_dwc_ether_probe(struct device *dev)
 	return 0;
 }
 
+static const struct dwc_common_ops starfive_ops = {
+	.init = starfive_dwc_ether_init,
+	.get_ethaddr = dwc_common_get_ethaddr,
+	.set_ethaddr = dwc_common_set_ethaddr,
+	.adjust_link = starfive_dwc_adjust_link,
+	.enh_desc = 1,
+};
+
+static int starfive_dwc_ether_probe(struct device *dev)
+{
+	return dwc_common_probe(dev, &starfive_ops, NULL);
+}
+
 static struct of_device_id starfive_dwc_ether_compatible[] = {
-	{ .compatible = "starfive,stmmac", .data = &starfive_drvdata },
+	{ .compatible = "starfive,stmmac" },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, starfive_dwc_ether_compatible);

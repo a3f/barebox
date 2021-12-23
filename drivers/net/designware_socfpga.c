@@ -15,7 +15,7 @@
 #include <of_net.h>
 #include <linux/reset.h>
 #include <mfd/syscon.h>
-#include "designware.h"
+#include "designware_common.h"
 
 #define SYSMGR_EMACGRP_CTRL_PHYSEL_ENUM_GMII_MII 	0x0
 #define SYSMGR_EMACGRP_CTRL_PHYSEL_ENUM_RGMII		0x1
@@ -33,17 +33,22 @@
 
 struct socfpga_dwc_dev;
 struct socfpga_dwmac_ops {
-	int (*set_phy_mode)(struct socfpga_dwc_dev *dwmac_priv);
+	int (*set_phy_mode)(struct dwc_common *dwc);
 };
 
 struct socfpga_dwc_dev {
-	struct dw_eth_dev *priv;
+	struct reset_control	*rst;
 	u32		   reg_offset;
 	u32		   reg_shift;
 	void __iomem	  *sys_mgr_base;
 	bool		   f2h_ptp_ref_clk;
 	const struct	   socfpga_dwmac_ops *ops;
 };
+
+static inline struct socfpga_dwc_dev *to_socfpga(struct dwc_common *dwc)
+{
+	return dwc->priv;
+}
 
 static int socfpga_set_phy_mode_common(int phymode, u32 *val)
 {
@@ -63,21 +68,21 @@ static int socfpga_set_phy_mode_common(int phymode, u32 *val)
 	return 0;
 };
 
-static int socfpga_gen5_set_phy_mode(struct socfpga_dwc_dev *dwc_dev)
+static int socfpga_gen5_set_phy_mode(struct dwc_common *dwc)
 {
-	struct dw_eth_dev *eth_dev = dwc_dev->priv;
-	int phymode = eth_dev->interface;
+	struct socfpga_dwc_dev *dwc_dev = to_socfpga(dwc);
+	int phymode = dwc->interface;
 	u32 reg_offset = dwc_dev->reg_offset;
 	u32 reg_shift = dwc_dev->reg_shift;
 	u32 ctrl, val;
 
 	if (socfpga_set_phy_mode_common(phymode, &val)) {
-		dev_err(&eth_dev->netdev.dev, "bad phy mode %d\n", phymode);
+		dwc_err(dwc, "bad phy mode %d\n", phymode);
 		return -EINVAL;
 	}
 
 	/* Assert reset to the enet controller before changing the phy mode */
-	reset_control_assert(eth_dev->rst);
+	reset_control_assert(dwc_dev->rst);
 
 	ctrl = readl(dwc_dev->sys_mgr_base + reg_offset);
 	ctrl &= ~(SYSMGR_EMACGRP_CTRL_PHYSEL_MASK << reg_shift);
@@ -103,26 +108,26 @@ static int socfpga_gen5_set_phy_mode(struct socfpga_dwc_dev *dwc_dev)
 	/* Deassert reset for the phy configuration to be sampled by
 	 * the enet controller, and operation to start in requested mode
 	 */
-	reset_control_deassert(eth_dev->rst);
+	reset_control_deassert(dwc_dev->rst);
 
 	return 0;
 }
 
-static int socfpga_gen10_set_phy_mode(struct socfpga_dwc_dev *dwc_dev)
+static int socfpga_gen10_set_phy_mode(struct dwc_common *dwc)
 {
-	struct dw_eth_dev *eth_dev = dwc_dev->priv;
-	int phymode = eth_dev->interface;
+	struct socfpga_dwc_dev *dwc_dev = to_socfpga(dwc);
+	int phymode = dwc->interface;
 	u32 reg_offset = dwc_dev->reg_offset;
 	u32 reg_shift = dwc_dev->reg_shift;
 	u32 ctrl, val;
 
 	if (socfpga_set_phy_mode_common(phymode, &val)) {
-		dev_err(&eth_dev->netdev.dev, "bad phy mode %d\n", phymode);
+		dwc_err(dwc, "bad phy mode %d\n", phymode);
 		return -EINVAL;
 	}
 
 	/* Assert reset to the enet controller before changing the phy mode */
-	reset_control_assert(eth_dev->rst);
+	reset_control_assert(dwc_dev->rst);
 
 	ctrl = readl(dwc_dev->sys_mgr_base + reg_offset);
 	ctrl &= ~(SYSMGR_EMACGRP_CTRL_PHYSEL_MASK << reg_shift);
@@ -148,7 +153,7 @@ static int socfpga_gen10_set_phy_mode(struct socfpga_dwc_dev *dwc_dev)
 	/* Deassert reset for the phy configuration to be sampled by
 	 * the enet controller, and operation to start in requested mode
 	 */
-	reset_control_deassert(eth_dev->rst);
+	reset_control_deassert(dwc_dev->rst);
 
 	return 0;
 }
@@ -187,35 +192,20 @@ static int socfpga_dwc_probe_dt(struct device *dev,
 	return 0;
 }
 
-static int socfpga_dwc_ether_probe(struct device *dev)
+static int socfpga_dwc_ether_init(struct device *dev, struct dwc_common *dwc)
 {
-	struct socfpga_dwc_dev *dwc_dev;
-	struct dw_eth_dev *priv;
-	struct dw_eth_drvdata *drvdata;
+	struct socfpga_dwc_dev *dwc_dev = to_socfpga(dwc);
 	int ret;
 
-	dwc_dev = xzalloc(sizeof(*dwc_dev));
-
-	ret = dev_get_drvdata(dev, (const void **)&drvdata);
-	if (ret)
-		return ret;
-
-	if (drvdata && drvdata->priv)
-		dwc_dev->ops = (struct socfpga_dwmac_ops *)drvdata->priv;
-	else
+	dwc_dev->ops = device_get_match_data(dev);
+	if (!dwc_dev->ops)
 		return -EINVAL;
 
-        priv = dwc_drv_probe(dev);
-	if (IS_ERR(priv))
-		return PTR_ERR(priv);
-
-	priv->rst = reset_control_get(dev, NULL);
-	if (IS_ERR(priv->rst)) {
+	dwc_dev->rst = reset_control_get(dev, NULL);
+	if (IS_ERR(dwc_dev->rst)) {
 		dev_err(dev, "Invalid reset lines.\n");
-		return PTR_ERR(priv->rst);
+		return PTR_ERR(dwc_dev->rst);
 	}
-
-	dwc_dev->priv = priv;
 
 	dwc_dev->sys_mgr_base = syscon_base_lookup_by_phandle(dev->of_node,
 							      "altr,sysmgr-syscon");
@@ -228,34 +218,39 @@ static int socfpga_dwc_ether_probe(struct device *dev)
 	if (ret)
 		return ret;
 
-	return dwc_dev->ops->set_phy_mode(dwc_dev);
+	return dwc_dev->ops->set_phy_mode(dwc);
 }
 
-static struct socfpga_dwmac_ops socfpga_gen5_ops = {
+static const struct dwc_common_ops socfpga_ops = {
+	.init = socfpga_dwc_ether_init,
+	.get_ethaddr = dwc_common_get_ethaddr,
+	.set_ethaddr = dwc_common_set_ethaddr,
+	.adjust_link = dwc_common_adjust_link,
+	.enh_desc = 1,
+};
+
+static int socfpga_dwc_ether_probe(struct device *dev)
+{
+	return dwc_common_probe(dev, &socfpga_ops,
+				xzalloc(sizeof(struct socfpga_dwc_dev)));
+}
+
+static const struct socfpga_dwmac_ops socfpga_gen5_ops = {
 	.set_phy_mode = socfpga_gen5_set_phy_mode,
 };
 
-static const struct dw_eth_drvdata socfpga_gen5_drvdata = {
-	.enh_desc = 1,
-	.priv = &socfpga_gen5_ops,
-};
-
-static struct socfpga_dwmac_ops socfpga_gen10_ops = {
+static const struct socfpga_dwmac_ops socfpga_gen10_ops = {
 	.set_phy_mode = socfpga_gen10_set_phy_mode,
-};
-static const struct dw_eth_drvdata socfpga_gen10_drvdata = {
-	.enh_desc = 1,
-	.priv = &socfpga_gen10_ops,
 };
 
 static __maybe_unused struct of_device_id socfpga_dwc_ether_compatible[] = {
 	{
 		.compatible = "altr,socfpga-stmmac",
-		.data = &socfpga_gen5_drvdata,
+		.data = &socfpga_gen5_ops,
 	},
 	{
 		.compatible = "altr,socfpga-stmmac-a10-s10",
-		.data = &socfpga_gen10_drvdata,
+		.data = &socfpga_gen10_ops,
 	},
 	{
 		/* sentinel */
@@ -266,7 +261,7 @@ MODULE_DEVICE_TABLE(of, socfpga_dwc_ether_compatible);
 static struct driver socfpga_dwc_ether_driver = {
 	.name = "socfpga_designware_eth",
 	.probe = socfpga_dwc_ether_probe,
-	.remove	= dwc_drv_remove,
+	.remove	= dwc_common_remove,
 	.of_compatible = DRV_OF_COMPAT(socfpga_dwc_ether_compatible),
 };
 device_platform_driver(socfpga_dwc_ether_driver);

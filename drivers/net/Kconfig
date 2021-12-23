@@ -67,8 +67,8 @@ config DRIVER_NET_DESIGNWARE_COMMON
 config DRIVER_NET_DESIGNWARE
 	bool "Designware DWMAC1000 Ethernet driver support" if COMPILE_TEST
 	depends on HAS_DMA
-	select PHYLIB
 	depends on OFTREE
+	select DRIVER_NET_DESIGNWARE_COMMON
 	help
 	  This option is selected by platform glue drivers that contain
 	  a DWMAC1000-compatible Ethernet IP.
