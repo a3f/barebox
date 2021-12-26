@@ -56,7 +56,7 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 	pg_start = runtime_address(input_data);
 	pg_end = runtime_address(input_data_end);
 
-	if (IS_ENABLED(CONFIG_PBL_RELOCATABLE)) {
+	if (IS_ENABLED(CONFIG_PBL_RELOCATABLE) && !IS_ENABLED(CONFIG_PBL_XIP)) {
 		/*
 		 * If we run from inside the memory just relocate the binary
 		 * to the current address. Otherwise it may be a readonly location.
