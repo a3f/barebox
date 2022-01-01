@@ -11,6 +11,7 @@
 #include <malloc.h>
 #include <io.h>
 #include <of.h>
+#include <of_pci.h>
 #include <of_address.h>
 #include <init.h>
 #include <linux/pci.h>
@@ -121,52 +122,6 @@ static const struct pci_ops pci_generic_ecam_ops = {
 	.write = pci_generic_ecam_write_config,
 };
 
-static inline bool is_64bit(const struct resource *res)
-{
-	return res->flags & IORESOURCE_MEM_64;
-}
-
-static int pcie_ecam_parse_dt(struct generic_ecam_pcie *ecam)
-{
-	struct device *dev = ecam->pci.parent;
-	struct device_node *np = dev->of_node;
-	struct of_pci_range_parser parser;
-	struct of_pci_range range;
-	struct resource res;
-
-	if (of_pci_range_parser_init(&parser, np)) {
-		dev_err(dev, "missing \"ranges\" property\n");
-		return -EINVAL;
-	}
-
-	for_each_of_pci_range(&parser, &range) {
-		of_pci_range_to_resource(&range, np, &res);
-
-		switch (res.flags & IORESOURCE_TYPE_BITS) {
-		case IORESOURCE_IO:
-			memcpy(&ecam->io, &res, sizeof(res));
-			ecam->io.name = "I/O";
-			break;
-
-		case IORESOURCE_MEM:
-			if (res.flags & IORESOURCE_PREFETCH) {
-				memcpy(&ecam->prefetch, &res, sizeof(res));
-				ecam->prefetch.name = "PREFETCH";
-			} else {
-				/* Choose 32-bit mappings over 64-bit ones if possible */
-				if (ecam->mem.name && !is_64bit(&ecam->mem) && is_64bit(&res))
-					break;
-
-				memcpy(&ecam->mem, &res, sizeof(res));
-				ecam->mem.name = "MEM";
-			}
-			break;
-		}
-	}
-
-	return 0;
-}
-
 static int pcie_ecam_probe(struct device *dev)
 {
 	struct generic_ecam_pcie *ecam;
@@ -186,7 +141,7 @@ static int pcie_ecam_probe(struct device *dev)
 	ecam->pci.io_resource = &ecam->io;
 	ecam->pci.mem_pref_resource = &ecam->prefetch;
 
-	ret = pcie_ecam_parse_dt(ecam);
+	ret = of_pci_parse_ranges(dev->of_node, &ecam->io, &ecam->mem, &ecam->prefetch);
 	if (ret)
 		return ret;
 
