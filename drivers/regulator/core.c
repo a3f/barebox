@@ -514,6 +514,14 @@ static struct regulator_dev *regulator_by_name(const char *name)
 	return NULL;
 }
 
+void regulator_put(struct regulator *r)
+{
+	if (IS_ERR_OR_NULL(r))
+		return;
+	list_del(&r->list);
+	free(r);
+}
+
 struct regulator *regulator_get_name(const char *name)
 {
 	struct regulator_dev *rdev;
