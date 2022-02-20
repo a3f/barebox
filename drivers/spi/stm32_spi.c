@@ -226,6 +226,7 @@ struct stm32_spi_cfg {
 	void (*set_bpw)(struct stm32_spi_priv *priv);
 	int (*set_mode)(struct stm32_spi_priv *priv, enum spi_comm_type comm_type);
 	int (*set_number_of_data)(struct stm32_spi_priv *priv, u32 length);
+	const struct spi_controller_mem_ops *mem_ops;
 	int (*transfer_one)(struct stm32_spi_priv *priv,
 			    struct spi_transfer *t);
 	unsigned int baud_rate_div_min;
@@ -981,6 +982,24 @@ static void stm32h7_spi_config(struct stm32_spi_priv *priv)
 		     STM32H7_SPI_CFG2_MASTER | STM32H7_SPI_CFG2_SSM | STM32H7_SPI_CFG2_AFCNTR);
 }
 
+static int stm32h7_spi_adjust_op_size(struct spi_mem *mem, struct spi_mem_op *op)
+{
+	if (op->data.nbytes > STM32H7_SPI_TSIZE_MAX)
+		op->data.nbytes = STM32H7_SPI_TSIZE_MAX;
+
+	return 0;
+}
+
+static int stm32_spi_exec_op(struct spi_mem *mem, const struct spi_mem_op *op)
+{
+	return -ENOTSUPP;
+}
+
+static const struct spi_controller_mem_ops stm32h7_spi_mem_ops = {
+	.adjust_op_size = stm32h7_spi_adjust_op_size,
+	.exec_op = stm32_spi_exec_op,
+};
+
 static int stm32_spi_probe(struct device_d *dev)
 >>>>>>> c695ea9d0f2d (spi: stm32: separate STM32H7 specifics from STM32-generic code)
 {
@@ -1003,7 +1022,7 @@ static int stm32_spi_probe(struct device_d *dev)
 
 	master->setup = stm32_spi_setup;
 	master->transfer = stm32_spi_transfer;
-	master->mem_ops = &stm32_spi_mem_ops;
+	master->mem_ops = priv->cfg->mem_ops;
 
 	master->bus_num = -1;
 	stm32_spi_dt_probe(priv);
@@ -1061,6 +1080,7 @@ static const struct stm32_spi_cfg stm32h7_spi_cfg = {
 	.set_bpw = stm32h7_spi_set_bpw,
 	.set_mode = stm32h7_spi_set_mode,
 	.set_number_of_data = stm32h7_spi_number_of_data,
+	.mem_ops = &stm32h7_spi_mem_ops,
 	.transfer_one = stm32h7_spi_transfer_one,
 	.baud_rate_div_min = STM32H7_MBR_DIV_MIN,
 	.baud_rate_div_max = STM32H7_MBR_DIV_MAX,
