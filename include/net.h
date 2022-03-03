@@ -452,6 +452,26 @@ static inline int is_valid_ether_addr(const u8 *addr)
 	return !is_multicast_ether_addr(addr) && !is_zero_ether_addr(addr);
 }
 
+#define for_each_seq_ethaddr(eth_addr, eth_base, eth_count) \
+	for (eth_addr = *eth_count ? eth_base : NULL; eth_addr; eth_addr = eth_addr_seq_next(eth_base, eth_count))
+
+static inline const u8 *eth_addr_seq_next(u8 eth_base[6], unsigned *eth_count)
+{
+	__be64 eth_addr64 = 0;
+	void *eth_addr = (u8 *)&eth_addr64 + 2;
+
+	if (eth_count && --(*eth_count) <= 0)
+		return NULL;
+
+	memcpy(eth_addr, eth_base, ETH_ALEN);
+
+	eth_addr64 = cpu_to_be64(be64_to_cpu(eth_addr64) + 1);
+
+	memcpy(eth_base, eth_addr, ETH_ALEN);
+
+	return eth_base;
+}
+
 typedef void rx_handler_f(void *ctx, char *packet, unsigned int len);
 
 struct eth_device *eth_get_byname(const char *name);
