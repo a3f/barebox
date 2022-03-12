@@ -1479,6 +1479,13 @@ config DEBUG_SUN20I
 	depends on SOC_ALLWINNER_SUN20I
 	select DEBUG_LL_NS16550
 
+config DEBUG_SEMIHOSTING_WRITEC
+	bool "ARM semihosting console"
+	depends on ARCH_V7M
+	help
+	  Say Y here if you want low-level debugging support
+	  using ARM semihosting writec for v7m (Cortex-M0-3).
+
 endchoice
 
 config DEBUG_LL_NS16550
