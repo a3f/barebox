@@ -174,6 +174,7 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 	ENTRY_FUNCTION_WITHSTACK(name, 0, arg0, arg1, arg2)
 
 #else
+#ifndef ENTRY_FUNCTION_WITHSTACK
 #define ENTRY_FUNCTION_WITHSTACK(name, stack_top, arg0, arg1, arg2)	\
 	static void ____##name(ulong, ulong, ulong);			\
 	ENTRY_FUNCTION(name, arg0, arg1, arg2)				\
@@ -184,6 +185,7 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 	}								\
 	static void noinline ____##name					\
 		(ulong arg0, ulong arg1, ulong arg2)
+#endif
 
 #define ENTRY_FUNCTION(name, arg0, arg1, arg2)				\
 	void name(ulong r0, ulong r1, ulong r2);			\
