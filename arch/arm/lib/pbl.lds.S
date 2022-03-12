@@ -57,7 +57,7 @@ SECTIONS
 
 	_etext = .;			/* End of text and rodata section */
 
-	. = ALIGN(4);
+	. = ALIGN(8);
 	.__rwdata_start : { *(.__rwdata_start) }
 	.data : { *(.data*) }
 
@@ -70,6 +70,7 @@ SECTIONS
 
 	BAREBOX_RELOCATION_TABLE
 
+	. = ALIGN(8);
 	.__got_start :  { *(.__got_start) }
 	.got : { *(.got*) }
 	.__got_stop :  { *(.__got_stop) }
@@ -81,6 +82,7 @@ SECTIONS
 	.bss : { *(.bss*) }
 	.__bss_stop :  { *(.__bss_stop) }
 
+	. = ALIGN(8);
 	.__rwdata_stop : { *(.__rwdata_stop) }
 
 	_end = .;
