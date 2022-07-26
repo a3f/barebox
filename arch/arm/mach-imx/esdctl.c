@@ -3,16 +3,21 @@
 
 /* esdctl.c - i.MX sdram controller functions */
 
+#ifdef __BAREBOX__
 #include <common.h>
 #include <io.h>
-#include <errno.h>
-#include <linux/sizes.h>
 #include <init.h>
 #include <of.h>
-#include <linux/err.h>
-#include <linux/bitfield.h>
 #include <asm/barebox-arm.h>
 #include <asm/memory.h>
+#endif
+#include <errno.h>
+#include <linux/sizes.h>
+#include <linux/err.h>
+#include <linux/compiler.h>
+#include <linux/kernel.h>
+#include <linux/bitfield.h>
+#include <linux/bitops.h>
 #include <mach/esdctl.h>
 #include <mach/esdctl-v4.h>
 #include <mach/imx6-mmdc.h>
@@ -28,23 +33,6 @@
 #include <mach/vf610-ddrmc.h>
 #include <mach/imx8m-regs.h>
 #include <mach/imx7-regs.h>
-
-struct imx_esdctl_data {
-	unsigned long base0;
-	unsigned long base1;
-	int (*add_mem)(void *esdctlbase, struct imx_esdctl_data *);
-};
-
-static int imx_esdctl_disabled;
-
-/*
- * Boards can disable SDRAM detection if it doesn't work for them. In
- * this case arm_add_mem_device has to be called by board code.
- */
-void imx_esdctl_disable(void)
-{
-	imx_esdctl_disabled = 1;
-}
 
 /*
  * v1 - found on i.MX1
@@ -182,82 +170,6 @@ static inline u64 __imx6_mmdc_sdram_size(void __iomem *mmdcbase, int cs)
 	return memory_sdram_size(cols, rows, banks, width);
 }
 
-static int add_mem(unsigned long base0, unsigned long size0,
-		unsigned long base1, unsigned long size1)
-{
-	int ret0 = 0, ret1 = 0;
-
-	debug("%s: cs0 base: 0x%08lx cs0 size: 0x%08lx\n", __func__, base0, size0);
-	debug("%s: cs1 base: 0x%08lx cs1 size: 0x%08lx\n", __func__, base1, size1);
-
-	if (base0 + size0 == base1 && size1 > 0) {
-		/*
-		 * concatenate both chip selects to a single bank
-		 */
-		return arm_add_mem_device("ram0", base0, size0 + size1);
-	}
-
-	if (size0)
-		ret0 = arm_add_mem_device("ram0", base0, size0);
-
-	if (size1)
-		ret1 = arm_add_mem_device(size0 ? "ram1" : "ram0", base1, size1);
-
-	return ret0 ? ret0 : ret1;
-}
-
-/*
- * On i.MX27, i.MX31 and i.MX35 the second chipselect is enabled by reset default.
- * This setting makes it impossible to detect the correct SDRAM size on
- * these SoCs. We disable the chipselect if this reset default setting is
- * found. This of course leads to incorrect SDRAM detection on boards which
- * really have this reset default as a valid setting. If you have such a
- * board drop a mail to search for a solution.
- */
-#define ESDCTL1_RESET_DEFAULT 0x81120080
-
-static inline void imx_esdctl_v2_disable_default(void __iomem *esdctlbase)
-{
-	u32 ctlval = readl(esdctlbase + IMX_ESDCTL1);
-
-	if (ctlval == ESDCTL1_RESET_DEFAULT) {
-		ctlval &= ~(1 << 31);
-		writel(ctlval, esdctlbase + IMX_ESDCTL1);
-	}
-}
-
-static int imx_esdctl_v1_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
-{
-	return add_mem(data->base0, imx_v1_sdram_size(esdctlbase, 0),
-			data->base1, imx_v1_sdram_size(esdctlbase, 1));
-}
-
-static int imx_esdctl_v2_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
-{
-	return add_mem(data->base0, imx_v2_sdram_size(esdctlbase, 0),
-			data->base1, imx_v2_sdram_size(esdctlbase, 1));
-}
-
-static int imx_esdctl_v2_bug_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
-{
-	imx_esdctl_v2_disable_default(esdctlbase);
-
-	return add_mem(data->base0, imx_v2_sdram_size(esdctlbase, 0),
-			data->base1, imx_v2_sdram_size(esdctlbase, 1));
-}
-
-static int imx_esdctl_v3_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
-{
-	return add_mem(data->base0, imx_v3_sdram_size(esdctlbase, 0),
-			data->base1, imx_v3_sdram_size(esdctlbase, 1));
-}
-
-static int imx_esdctl_v4_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
-{
-	return add_mem(data->base0, imx_v4_sdram_size(esdctlbase, 0),
-			data->base1, imx_v4_sdram_size(esdctlbase, 1));
-}
-
 /*
  * On i.MX6 the adress space reserved for SDRAM is 0x10000000 to 0xFFFFFFFF
  * which makes the maximum supported RAM size 0xF0000000.
@@ -283,12 +195,6 @@ static inline resource_size_t imx6_mmdc_sdram_size(void __iomem *mmdcbase)
 	return size;
 }
 
-static int imx6_mmdc_add_mem(void *mmdcbase, struct imx_esdctl_data *data)
-{
-	return arm_add_mem_device("ram0", data->base0,
-			   imx6_mmdc_sdram_size(mmdcbase));
-}
-
 static inline resource_size_t vf610_ddrmc_sdram_size(void __iomem *ddrmc)
 {
 	const u32 cr01 = readl(ddrmc + DDRMC_CR(1));
@@ -303,12 +209,6 @@ static inline resource_size_t vf610_ddrmc_sdram_size(void __iomem *ddrmc)
 	width = (cr78 & DDRMC_CR78_REDUC) ? sizeof(u8) : sizeof(u16);
 
 	return memory_sdram_size(cols, rows, banks, width);
-}
-
-static int vf610_ddrmc_add_mem(void *mmdcbase, struct imx_esdctl_data *data)
-{
-	return arm_add_mem_device("ram0", data->base0,
-			   vf610_ddrmc_sdram_size(mmdcbase));
 }
 
 #define DDRC_ADDRMAP(n)				(0x200 + 4 * (n))
@@ -510,18 +410,6 @@ static resource_size_t imx8m_ddrc_sdram_size(void __iomem *ddrc, unsigned buswid
 				   reduced_adress_space, mstr);
 }
 
-static int imx8m_ddrc_add_mem(void *mmdcbase, struct imx_esdctl_data *data)
-{
-	return arm_add_mem_device("ram0", data->base0,
-			   imx8m_ddrc_sdram_size(mmdcbase, 32));
-}
-
-static int imx8mn_ddrc_add_mem(void *mmdcbase, struct imx_esdctl_data *data)
-{
-	return arm_add_mem_device("ram0", data->base0,
-			   imx8m_ddrc_sdram_size(mmdcbase, 16));
-}
-
 static resource_size_t imx7d_ddrc_sdram_size(void __iomem *ddrc)
 {
 	const u32 addrmap[DDRC_ADDRMAP_LENGTH] = {
@@ -560,6 +448,127 @@ static resource_size_t imx7d_ddrc_sdram_size(void __iomem *ddrc)
 				   11, ARRAY_AND_SIZE(col_b),
 				   15, ARRAY_AND_SIZE(row_b),
 				   reduced_adress_space, mstr);
+}
+
+#ifdef __BAREBOX__
+
+struct imx_esdctl_data {
+	unsigned long base0;
+	unsigned long base1;
+	int (*add_mem)(void *esdctlbase, struct imx_esdctl_data *);
+};
+
+static int imx_esdctl_disabled;
+
+/*
+ * Boards can disable SDRAM detection if it doesn't work for them. In
+ * this case arm_add_mem_device has to be called by board code.
+ */
+void imx_esdctl_disable(void)
+{
+	imx_esdctl_disabled = 1;
+}
+
+
+static int add_mem(unsigned long base0, unsigned long size0,
+		unsigned long base1, unsigned long size1)
+{
+	int ret0 = 0, ret1 = 0;
+
+	debug("%s: cs0 base: 0x%08lx cs0 size: 0x%08lx\n", __func__, base0, size0);
+	debug("%s: cs1 base: 0x%08lx cs1 size: 0x%08lx\n", __func__, base1, size1);
+
+	if (base0 + size0 == base1 && size1 > 0) {
+		/*
+		 * concatenate both chip selects to a single bank
+		 */
+		return arm_add_mem_device("ram0", base0, size0 + size1);
+	}
+
+	if (size0)
+		ret0 = arm_add_mem_device("ram0", base0, size0);
+
+	if (size1)
+		ret1 = arm_add_mem_device(size0 ? "ram1" : "ram0", base1, size1);
+
+	return ret0 ? ret0 : ret1;
+}
+
+/*
+ * On i.MX27, i.MX31 and i.MX35 the second chipselect is enabled by reset default.
+ * This setting makes it impossible to detect the correct SDRAM size on
+ * these SoCs. We disable the chipselect if this reset default setting is
+ * found. This of course leads to incorrect SDRAM detection on boards which
+ * really have this reset default as a valid setting. If you have such a
+ * board drop a mail to search for a solution.
+ */
+#define ESDCTL1_RESET_DEFAULT 0x81120080
+
+static inline void imx_esdctl_v2_disable_default(void __iomem *esdctlbase)
+{
+	u32 ctlval = readl(esdctlbase + IMX_ESDCTL1);
+
+	if (ctlval == ESDCTL1_RESET_DEFAULT) {
+		ctlval &= ~(1 << 31);
+		writel(ctlval, esdctlbase + IMX_ESDCTL1);
+	}
+}
+
+static int imx_esdctl_v1_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
+{
+	return add_mem(data->base0, imx_v1_sdram_size(esdctlbase, 0),
+			data->base1, imx_v1_sdram_size(esdctlbase, 1));
+}
+
+static int imx_esdctl_v2_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
+{
+	return add_mem(data->base0, imx_v2_sdram_size(esdctlbase, 0),
+			data->base1, imx_v2_sdram_size(esdctlbase, 1));
+}
+
+static int imx_esdctl_v2_bug_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
+{
+	imx_esdctl_v2_disable_default(esdctlbase);
+
+	return add_mem(data->base0, imx_v2_sdram_size(esdctlbase, 0),
+			data->base1, imx_v2_sdram_size(esdctlbase, 1));
+}
+
+static int imx_esdctl_v3_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
+{
+	return add_mem(data->base0, imx_v3_sdram_size(esdctlbase, 0),
+			data->base1, imx_v3_sdram_size(esdctlbase, 1));
+}
+
+static int imx_esdctl_v4_add_mem(void *esdctlbase, struct imx_esdctl_data *data)
+{
+	return add_mem(data->base0, imx_v4_sdram_size(esdctlbase, 0),
+			data->base1, imx_v4_sdram_size(esdctlbase, 1));
+}
+
+
+static int vf610_ddrmc_add_mem(void *mmdcbase, struct imx_esdctl_data *data)
+{
+	return arm_add_mem_device("ram0", data->base0,
+			   vf610_ddrmc_sdram_size(mmdcbase));
+}
+
+static int imx6_mmdc_add_mem(void *mmdcbase, struct imx_esdctl_data *data)
+{
+	return arm_add_mem_device("ram0", data->base0,
+			   imx6_mmdc_sdram_size(mmdcbase));
+}
+
+static int imx8m_ddrc_add_mem(void *mmdcbase, struct imx_esdctl_data *data)
+{
+	return arm_add_mem_device("ram0", data->base0,
+			   imx8m_ddrc_sdram_size(mmdcbase, 32));
+}
+
+static int imx8mn_ddrc_add_mem(void *mmdcbase, struct imx_esdctl_data *data)
+{
+	return arm_add_mem_device("ram0", data->base0,
+			   imx8m_ddrc_sdram_size(mmdcbase, 16));
 }
 
 static int imx7d_ddrc_add_mem(void *mmdcbase, struct imx_esdctl_data *data)
@@ -962,4 +971,4 @@ void __noreturn imx7d_barebox_entry(void *boarddata)
 			  boarddata);
 }
 
-
+#endif

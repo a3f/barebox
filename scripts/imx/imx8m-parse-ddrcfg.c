@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 		mmdc[addr / sizeof(u32)] = p[1];
 	}
 
-	size = imx8m_ddrc_sdram_size(mmdc);
+	size = imx8m_ddrc_sdram_size(mmdc, 16);
 	printf("cols = %u, rows = %u, banks = %u, width = %u => size = %lluM\n",
 	       cols, rows, banks, width, size / 1024 / 1024);
 
