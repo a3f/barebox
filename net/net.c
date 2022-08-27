@@ -695,18 +695,30 @@ bad:
 	return 0;
 }
 
-int net_receive(struct eth_device *edev, unsigned char *pkt, int len)
+static int ip_receive(struct eth_device *edev, unsigned char *pkt, int len)
 {
 	struct ethernet *et = (struct ethernet *)pkt;
 	int et_protlen = ntohs(et->et_protlen);
+
+	switch (et_protlen) {
+	case PROT_ARP:
+		return net_handle_arp(edev, pkt, len);
+	case PROT_IP:
+		return net_handle_ip(edev, pkt, len);
+	}
+
+	pr_debug("%s: got unknown protocol type: %d\n", __func__, et_protlen);
+	return 1;
+}
+
+int net_receive(struct eth_device *edev, unsigned char *pkt, int len)
+{
 	int ret;
 
 	led_trigger_network(LED_TRIGGER_NET_RX);
 
-	if (len < ETHER_HDR_SIZE) {
-		ret = 0;
-		goto out;
-	}
+	if (len < ETHER_HDR_SIZE)
+		return 0;
 
 	if (edev->rx_monitor)
 		edev->rx_monitor(edev, pkt, len);
@@ -722,20 +734,7 @@ int net_receive(struct eth_device *edev, unsigned char *pkt, int len)
 		}
 	}
 
-	switch (et_protlen) {
-	case PROT_ARP:
-		ret = net_handle_arp(edev, pkt, len);
-		break;
-	case PROT_IP:
-		ret = net_handle_ip(edev, pkt, len);
-		break;
-	default:
-		pr_debug("%s: got unknown protocol type: %d\n", __func__, et_protlen);
-		ret = 1;
-		break;
-	}
-out:
-	return ret;
+	return ip_receive(edev, pkt, len);
 }
 
 static int net_init(void)
