@@ -43,4 +43,7 @@ config NET_FASTBOOT
 	  This option adds support for the UDP variant of the Fastboot
 	  protocol.
 
+
+source "net/lwip/Kconfig"
+
 endif

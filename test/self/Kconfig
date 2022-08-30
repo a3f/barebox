@@ -64,4 +64,10 @@ config SELFTEST_FS_RAMFS
 	bool "ramfs selftest"
 	depends on FS_RAMFS
 
+config SELFTEST_LWIP
+	bool "lwIP selftest"
+	depends on LWIP
+	help
+	  lwIP unit tests
+
 endif

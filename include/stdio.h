@@ -3,6 +3,7 @@
 #define __STDIO_H
 
 #include <stdarg.h>
+#include <stdc/stdio.h>
 #include <console.h>
 #include <printk.h>
 

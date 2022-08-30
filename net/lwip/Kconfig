@@ -1,0 +1,134 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+config LWIP
+	bool "lwIP TCP/IP stack"
+	help
+	  lwIP is a widely used open-source TCP/IP stack and much
+	  more featureful than barebox' normal
+
+
+if LWIP
+
+config LWIP_OS_FULL
+	def_bool n
+	help
+	  sets NO_SYS == 0, which means a full operating
+	  system environment is provided.
+
+config LWIP_EXAMPLE
+	bool "lwIP example command"
+	depends on COMMAND_SUPPORT
+
+config LWIP_CORE
+	def_bool y
+	help
+	  lwIP core functionality
+
+config LWIP_CORE4
+	bool "lwIP IPv4"
+	help
+	  lwIP IPv4 core support
+
+config LWIP_CORE6
+	bool "lwIP IPv6"
+	help
+	  lwIP IPv6 core support
+
+config LWIP_API
+	bool "lwIP sequential/socket API" if COMPILE_TEST
+	depends on LWIP_OS_FULL
+	help
+	  This is selected by code requiring access to sequential
+	  and socket APIs.
+
+config LWIP_NETIF
+	bool "lwIP generic network interface API" if COMPILE_TEST
+	depends on LWIP_OS_FULL
+	help
+	  lwIP generic network interface functions (TCP/IP, Bridge support,
+	  SLIP).
+
+config LWIP_6LOWPAN
+	bool "lwIP 6LowPan support" if COMPILE_TEST
+	help
+	  IPv6 over Low-Power Wireless Personal Area Networks.
+	  This currently serves no purpose.
+
+config LWIP_PPP
+	bool "lwIP PPP support" if COMPILE_TEST
+	depends on LWIP_OS_FULL
+	help
+	  The Point-to-Point Protocol is a layer 2 protocol for routers
+	  to talk to each other.
+
+config LWIP_SNMPv3
+	bool "lwIP Simple Network Management Protocol support" if COMPILE_TEST
+	help
+	  This enabled build of a SNMP (Simple Network Management Protocol) agent,
+	  a protocol used widely for networking monitoring.
+
+config LWIP_HTTP
+	bool "lwIP HTTP support" if COMPILE_TEST
+	help
+	  The Hypertext Transfer Protocol (HTTP) is an application layer
+	  protocol for data transfer on the World Wide Web. This enables
+	  both server and client support.
+
+config LWIP_MAKEFSDATA
+	bool "lwIP MAKEFSDATA HTTP server" if COMPILE_TEST
+	help
+          MAKEFSDATA HTTP server host utility, unsute what that is.
+
+config LWIP_IPERF
+	bool "lwIP Iperf server" if COMPILE_TEST
+	help
+          Iperf is a tool for network performance measurement.
+
+config LWIP_SMTP
+	bool "lwIP SMTP client" if COMPILE_TEST
+	help
+	  The Simple Mail Transfer Protocol (SMTP) is an internet standard
+	  communication protocol for electronic mail transmission.
+	  This adds client-side support.
+
+config LWIP_SNTP
+	bool "lwIP SNTP client" if COMPILE_TEST
+	help
+	  The Simple Network Time Protocol (SNTP) is a less complex
+	  implementation of the Network Time Protocol that does not
+	  require storage of state over extended periods of time.
+	  This adds client-side support.
+
+config LWIP_MDNS
+	bool "lwIP mDNS responder" if COMPILE_TEST
+	help
+	  multicast DNS allows resolving hostnames to IP address
+	  within smaller networks lacking a local name server.
+
+config LWIP_NETBIOS
+	bool "lwIP NetBIOS name server" if COMPILE_TEST
+	help
+	  The Network Basic Input/Output System allows for
+	  communication of files and printers over a LAN.
+
+config LWIP_TFTP
+	bool "lwIP TFTP server" if COMPILE_TEST
+	help
+	  The trivial file transfer protocol is a common protocol
+	  for network boot on embedded systems. This adds server-side
+	  support, not client-side.
+
+config LWIP_MQTT
+	bool "lwIP MQTT client" if COMPILE_TEST
+	help
+	  MQTT is a lightweight publish-subscribe machine-to-machine
+	  network protocol.
+
+config LWIP_MBEDTLS
+	bool "Mbed-TLS support" if COMPILE_TEST
+	help
+	  Mbed TLS implements cryptographic primitives, X.509 certificate
+	  manipulation and the SSL/TLS and DTLS protocols. This adds
+	  the necessary glue for interoperation with lwIP.
+
+endif

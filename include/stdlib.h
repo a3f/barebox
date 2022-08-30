@@ -2,6 +2,7 @@
 #ifndef __STDLIB_H
 #define __STDLIB_H
 
+#include <linux/kernel.h>
 #include <types.h>
 
 #define RAND_MAX 32767
@@ -30,6 +31,26 @@ static inline u32 random32(void)
 static inline u32 prandom_u32_max(u32 ep_ro)
 {
 	return (u32)(((u64) random32() * ep_ro) >> 32);
+}
+
+static inline void abort(void)
+{
+	panic("abort() called");
+}
+
+static inline int strtol(const char *nptr, char **endptr, int base)
+{
+	return simple_strtol(nptr, endptr, base);
+}
+
+static inline int atol(const char *ptr)
+{
+	return simple_strtol(ptr, NULL, 10);
+}
+
+static inline int atoi(const char *ptr)
+{
+	return atol(ptr);
 }
 
 #endif /* __STDLIB_H */

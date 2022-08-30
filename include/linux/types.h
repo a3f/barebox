@@ -14,7 +14,6 @@
 
 typedef __u32 __kernel_dev_t;
 
-typedef __kernel_fd_set		fd_set;
 typedef __kernel_dev_t		dev_t;
 typedef __kernel_ino_t		ino_t;
 typedef __kernel_mode_t		mode_t;
@@ -22,7 +21,6 @@ typedef unsigned short		umode_t;
 typedef __kernel_off_t		off_t;
 typedef __kernel_pid_t		pid_t;
 typedef __kernel_daddr_t	daddr_t;
-typedef __kernel_key_t		key_t;
 typedef __kernel_suseconds_t	suseconds_t;
 typedef _Bool			bool;
 typedef unsigned long		uintptr_t;
