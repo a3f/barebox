@@ -2408,6 +2408,12 @@ config CMD_STACKSMASH
 	  This commands trashes the stack to test stackprotector and
 	  guard page. This command does not return.
 
+config CMD_OPTEE_XTEST
+	bool
+	prompt "op-tee testsuite"
+	select CONSTRUCTORS
+	depends on OPTEE_DEVFS
+
 # end Miscellaneous commands
 endmenu
 

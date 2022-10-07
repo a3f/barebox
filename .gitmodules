@@ -1,0 +1,6 @@
+[submodule "commands/optee-xtest/optee_test"]
+	path = commands/optee-xtest/optee_test
+	url = ssh://intern@intern.scm.pengutronix.de/downstream/optee-test
+[submodule "lib/optee/optee_client"]
+	path = lib/optee/optee_client
+	url = ssh://intern@intern.scm.pengutronix.de/downstream/optee-client
