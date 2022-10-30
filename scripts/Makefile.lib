@@ -160,6 +160,11 @@ ifeq ($(CONFIG_DEBUG_PBL),y)
 PBL_CPPFLAGS   += -DDEBUG
 endif
 
+ifneq ($(CONFIG_PBL_FULLY_PIC),)
+include scripts/Makefile.pic
+PBL_CPPFLAGS	+= $(picflags-y)
+endif
+
 # If building barebox in a separate objtree expand all occurrences
 # of -Idir to -I$(srctree)/dir except for absolute paths (starting with '/').
 

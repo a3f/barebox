@@ -1,0 +1,78 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# The stub may be linked into the kernel proper or into a separate boot binary,
+# but in either case, it executes before the kernel does (with MMU disabled) so
+# things like ftrace and stack-protector are likely to cause trouble if left
+# enabled, even if doing so doesn't break the build.
+#
+picflags-$(CONFIG_X86_64)	:= -mcmodel=small
+picflags-$(CONFIG_X86)		+= -fPIC -fno-asynchronous-unwind-tables
+
+picflags-$(CONFIG_ARM)		:= -fpic $(call cc-option,-mno-single-pic-base)
+
+picflags-y			+= -include $(srctree)/include/linux/hidden.h \
+				   -D__fully_pic__ -D__DISABLE_EXPORTS
+
+# Even when -mbranch-protection=none is set, Clang will generate a
+# .note.gnu.property for code-less object files (like lib/ctype.c),
+# so work around this by explicitly removing the unwanted section.
+# https://bugs.llvm.org/show_bug.cgi?id=46480
+PICCOPY_FLAGS-y			+= --remove-section=.note.gnu.property
+
+#
+# For x86, bootloaders like systemd-boot or grub-efi do not zero-initialize the
+# .bss section, so the .bss section of the EFI stub needs to be included in the
+# .data section of the compressed kernel to ensure initialization. Rename the
+# .bss section here so it's easy to pick out in the linker script.
+#
+PICCOPY_FLAGS-$(CONFIG_X86)	+= --rename-section .bss=.bss.efistub,load,alloc
+PICCOPY_RELOC-$(CONFIG_X86_32)	:= R_386_32
+PICCOPY_RELOC-$(CONFIG_X86_64)	:= R_X86_64_64
+
+#
+# ARM discards the .data section because it disallows r/w data in the
+# decompressor. So move our .data to .data.efistub and .bss to .bss.efistub,
+# which are preserved explicitly by the decompressor linker script.
+#
+PICCOPY_FLAGS-$(CONFIG_ARM)	+= --rename-section .data=.data.efistub	\
+				   --rename-section .bss=.bss.efistub,load,alloc
+PICCOPY_RELOC-$(CONFIG_ARM)	:= R_ARM_ABS
+
+#
+# arm64 puts the stub in the kernel proper, which will unnecessarily retain all
+# code indefinitely unless it is annotated as __init/__initdata/__initconst etc.
+# So let's apply the __init annotations at the section level, by prefixing
+# the section names directly. This will ensure that even all the inline string
+# literals are covered.
+# The fact that the stub and the kernel proper are essentially the same binary
+# also means that we need to be extra careful to make sure that the stub does
+# not rely on any absolute symbol references, considering that the virtual
+# kernel mapping that the linker uses is not active yet when the stub is
+# executing. So build all C dependencies of the EFI stub into libstub, and do
+# a verification pass to see if any absolute relocations exist in any of the
+# object files.
+#
+PICCOPY_FLAGS-$(CONFIG_ARM64)	+= --prefix-alloc-sections=.init \
+				   --prefix-symbols=__efistub_
+PICCOPY_RELOC-$(CONFIG_ARM64)	:= R_AARCH64_ABS
+
+# For RISC-V, we don't need anything special other than arm64. Keep all the
+# symbols in .init section and make sure that no absolute symbols references
+# doesn't exist.
+PICCOPY_FLAGS-$(CONFIG_RISCV)	+= --prefix-alloc-sections=.init \
+				   --prefix-symbols=__efistub_
+PICCOPY_RELOC-$(CONFIG_RISCV)	:= R_RISCV_HI20
+
+# Strip debug sections and some other sections that may legally contain
+# absolute relocations, so that we can inspect the remaining sections for
+# such relocations. If none are found, regenerate the output object, but
+# this time, use objcopy and leave all sections in place.
+#
+quiet_cmd_piccopy = PICCOPY $@
+      cmd_piccopy =							\
+	$(STRIP) --strip-debug -o $@ $<;				\
+	if $(OBJDUMP) -r $@ | grep $(PICCOPY_RELOC-y); then		\
+		echo "$@: absolute symbol references not allowed in the EFI stub" >&2; \
+		/bin/false;						\
+	fi;								\
+	$(OBJCOPY) $(PICCOPY_FLAGS-y) $< $@

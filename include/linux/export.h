@@ -4,7 +4,7 @@
 
 #define THIS_MODULE	0
 
-#ifdef CONFIG_MODULES
+#if defined(CONFIG_MODULES) && !defined(__DISABLE_EXPORTS)
 
 struct kernel_symbol
 {
