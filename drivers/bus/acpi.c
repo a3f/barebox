@@ -84,7 +84,7 @@ static struct sig_desc {
 	{ /* sentinel */ }
 };
 
-static struct acpi_sdt *acpi_get_dev_sdt(struct device_d *dev)
+static struct acpi_sdt *acpi_get_dev_sdt(struct device *dev)
 {
 	int i;
 
@@ -96,7 +96,7 @@ static struct acpi_sdt *acpi_get_dev_sdt(struct device_d *dev)
 	return NULL;
 }
 
-static void acpi_devinfo(struct device_d *dev)
+static void acpi_devinfo(struct device *dev)
 {
 	struct acpi_sdt *sdt = acpi_get_dev_sdt(dev);
 	struct sig_desc *sig_desc;
@@ -120,7 +120,7 @@ static void acpi_devinfo(struct device_d *dev)
 	printf("CreatorRevision: %u\n", sdt->creator_revision);
 }
 
-static int acpi_register_device(struct device_d *dev, struct acpi_sdt *sdt)
+static int acpi_register_device(struct device *dev, struct acpi_sdt *sdt)
 {
 	int ret;
 
@@ -136,10 +136,10 @@ static int acpi_register_device(struct device_d *dev, struct acpi_sdt *sdt)
 	return 0;
 }
 
-static struct device_d *acpi_add_device(struct bus_type *bus,
+static struct device *acpi_add_device(struct bus_type *bus,
 					acpi_sig_t signature)
 {
-	struct device_d *dev;
+	struct device *dev;
 
 	dev = xzalloc(sizeof(*dev));
 
@@ -203,7 +203,7 @@ static int acpi_register_devices(struct bus_type *bus)
 	return 0;
 }
 
-static int acpi_bus_match(struct device_d *dev, struct driver_d *drv)
+static int acpi_bus_match(struct device *dev, struct driver_d *drv)
 {
 	struct acpi_driver *acpidrv = to_acpi_driver(drv);
 	struct acpi_sdt *sdt = acpi_get_dev_sdt(dev);
@@ -211,12 +211,12 @@ static int acpi_bus_match(struct device_d *dev, struct driver_d *drv)
 	return acpi_sigcmp(acpidrv->signature, sdt->signature);
 }
 
-static int acpi_bus_probe(struct device_d *dev)
+static int acpi_bus_probe(struct device *dev)
 {
 	return dev->driver->probe(dev);
 }
 
-static void acpi_bus_remove(struct device_d *dev)
+static void acpi_bus_remove(struct device *dev)
 {
 	if (dev->driver->remove)
 		dev->driver->remove(dev);
