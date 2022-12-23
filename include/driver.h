@@ -10,6 +10,7 @@
 #include <linux/ioport.h>
 #include <of.h>
 #include <filetype.h>
+#include <notifier.h>
 
 #define FORMAT_DRIVER_NAME_ID	"%s%d"
 
@@ -428,10 +429,32 @@ struct bus_type {
 	struct list_head list;
 	struct list_head device_list;
 	struct list_head driver_list;
+
+	/*
+	 * the bus notifier list for anything that cares about things
+	 * on this bus.
+	 */
+	struct notifier_head bus_notifier;
 };
 
 int bus_register(struct bus_type *bus);
 int device_match(struct device *dev, struct driver *drv);
+
+/*
+ * Bus notifiers: Get notified of addition/removal of devices
+ * and binding/unbinding of drivers to devices.
+ */
+struct notifier_block;
+
+extern int bus_register_notifier(struct bus_type *bus,
+				 struct notifier_block *nb);
+extern int bus_unregister_notifier(struct bus_type *bus,
+				   struct notifier_block *nb);
+
+/* Notifers below are called with the target struct device *
+ * as an argument.
+ */
+#define BUS_NOTIFY_BOUND_DRIVER		0x00000005 /* driver bound to device */
 
 extern struct list_head bus_list;
 

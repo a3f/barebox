@@ -35,4 +35,9 @@ int clock_notifier_call_chain(void);
 		.blocks = LIST_HEAD_INIT((name).blocks),	\
 	};
 
+static inline void INIT_NOTIFIER_HEAD(struct notifier_head *nb)
+{
+	INIT_LIST_HEAD(&nb->blocks);
+}
+
 #endif /* __NOTIFIER_H */
