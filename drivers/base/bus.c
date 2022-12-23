@@ -41,11 +41,24 @@ int bus_register(struct bus_type *bus)
 
 	INIT_LIST_HEAD(&bus->device_list);
 	INIT_LIST_HEAD(&bus->driver_list);
+	INIT_NOTIFIER_HEAD(&bus->bus_notifier);
 
 	list_add_tail(&bus->list, &bus_list);
 
 	return 0;
 }
+
+int bus_register_notifier(struct bus_type *bus, struct notifier_block *nb)
+{
+	return notifier_chain_register(&bus->bus_notifier, nb);
+}
+EXPORT_SYMBOL_GPL(bus_register_notifier);
+
+int bus_unregister_notifier(struct bus_type *bus, struct notifier_block *nb)
+{
+	return notifier_chain_unregister(&bus->bus_notifier, nb);
+}
+EXPORT_SYMBOL_GPL(bus_unregister_notifier);
 
 int device_match(struct device *dev, struct driver *drv)
 {

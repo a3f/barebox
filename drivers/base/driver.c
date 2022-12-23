@@ -28,6 +28,7 @@
 #include <complete.h>
 #include <pinctrl.h>
 #include <featctrl.h>
+#include <notifier.h>
 #include <linux/clk/clk-conf.h>
 
 #ifdef CONFIG_DEBUG_PROBES
@@ -120,8 +121,12 @@ int device_probe(struct device *dev)
 	list_add(&dev->active, &active_device_list);
 
 	ret = dev->bus->probe(dev);
-	if (ret == 0)
+	if (ret == 0) {
+		if (depth == 1)
+			notifier_call_chain(&dev->bus->bus_notifier,
+					    BUS_NOTIFY_BOUND_DRIVER, dev);
 		goto out;
+	}
 
 	if (ret == -EPROBE_DEFER) {
 		list_del(&dev->active);
