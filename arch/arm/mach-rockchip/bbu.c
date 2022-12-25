@@ -11,6 +11,7 @@
 #include <ioctl.h>
 #include <environment.h>
 #include <mach/rockchip/bbu.h>
+#include <mach/rockchip/bootrom.h>
 #include <libfile.h>
 #include <linux/bitfield.h>
 #include <mach/rockchip/rk3568-regs.h>
@@ -36,16 +37,17 @@
  * leaves the previously written inactive image as a fallback in case writing the
  * first one gets interrupted.
  */
-static int rk3568_bbu_mmc_handler(struct bbu_handler *handler,
-				  struct bbu_data *data)
+static int rockchip_bbu_mmc_handler(struct bbu_handler *handler,
+				    struct bbu_data *data)
 {
 	enum filetype filetype;
-	int ret, fd, wr0, wr1;
+	int slot, ret, fd, wr0, wr1;
 	loff_t space;
 	const char *cdevname;
 
 	filetype = file_detect_type(data->image, data->len);
-	if (filetype != filetype_rockchip_rkns_image) {
+	if (filetype != filetype_rockchip_rk30_image &&
+	    filetype != filetype_rockchip_rkns_image) {
 		if (!bbu_force(data, "incorrect image type. Expected: %s, got %s",
 				file_type_to_string(filetype_rockchip_rkns_image),
 				file_type_to_string(filetype)))
@@ -63,8 +65,8 @@ static int rk3568_bbu_mmc_handler(struct bbu_handler *handler,
 	space = cdev_unallocated_space(cdev_by_name(cdevname));
 
 	if (space < IMG_OFFSET_0 + data->len) {
-		pr_err("Unallocated space on %s is too small for one image\n",
-		       data->devicefile);
+		pr_err("Unallocated space on %s is too small for one image: %lld\n",
+		       data->devicefile, space);
 		return -ENOSPC;
 	}
 
@@ -113,8 +115,8 @@ err_close:
 	return ret;
 }
 
-int rk3568_bbu_mmc_register(const char *name, unsigned long flags,
-                const char *devicefile)
+int rockchip_bbu_mmc_register(const char *name, unsigned long flags,
+			      const char *devicefile)
 {
 	struct bbu_handler *handler;
 	int ret;
@@ -124,7 +126,7 @@ int rk3568_bbu_mmc_register(const char *name, unsigned long flags,
 	handler->flags = flags;
 	handler->devicefile = devicefile;
 	handler->name = name;
-	handler->handler = rk3568_bbu_mmc_handler;
+	handler->handler = rockchip_bbu_mmc_handler;
 
 	ret = bbu_register_handler(handler);
 	if (ret)

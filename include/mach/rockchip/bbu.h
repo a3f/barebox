@@ -6,10 +6,10 @@
 #include <bbu.h>
 
 #ifdef CONFIG_BAREBOX_UPDATE
-int rk3568_bbu_mmc_register(const char *name, unsigned long flags,
+int rockchip_bbu_mmc_register(const char *name, unsigned long flags,
                 const char *devicefile);
 #else
-static inline int rk3568_bbu_mmc_register(const char *name, unsigned long flags,
+static inline int rockchip_bbu_mmc_register(const char *name, unsigned long flags,
                 const char *devicefile)
 {
 	return -ENOSYS;
