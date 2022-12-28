@@ -19,6 +19,7 @@ config DRIVER_VIDEO_FB_SSD1307
 
 config VIDEO_VPL
 	depends on OFTREE
+	select OF_GRAPH_PIPELINE
 	bool
 
 config DRIVER_VIDEO_ATMEL

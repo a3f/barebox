@@ -6,6 +6,7 @@ obj-$(CONFIG_OF_PCI) += of_pci.o
 obj-y += partition.o
 obj-y += of_net.o
 obj-y += reserved-mem.o
+obj-$(CONFIG_OF_GRAPH_PIPELINE) += graph-pipeline.o
 obj-$(CONFIG_MTD) += of_mtd.o
 obj-$(CONFIG_OF_BAREBOX_DRIVERS) += barebox.o
 obj-$(CONFIG_OF_OVERLAY) += overlay.o resolver.o of_firmware.o
