@@ -28,6 +28,9 @@ config FEATURE_CONTROLLER_FIXUP
 	  so it doesn't attempt probing these devices either.
 	  If unsure, say y.
 
+config OF_GRAPH_PIPELINE
+	bool
+
 config OF_ADDRESS_PCI
 	bool
 

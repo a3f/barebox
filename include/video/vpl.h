@@ -4,6 +4,7 @@
 #define __VIDEO_VPL_H
 
 #include <fb.h>
+#include <of_pipeline.h>
 
 #define VPL_PREPARE		0x67660001
 #define VPL_UNPREPARE		0x67660002
@@ -16,7 +17,7 @@ struct vpl {
 	int (*ioctl)(struct vpl *, unsigned int port,
 			unsigned int cmd, void *ptr);
 	struct device_node *node;
-	struct list_head list;
+	struct of_pipeline pipeline;
 };
 
 int vpl_register(struct vpl *);
