@@ -9,21 +9,31 @@
 
 #define BELL_DEFAULT_FREQUENCY	-1
 
+struct sound_card_params {
+	unsigned samplingrate;
+	unsigned bitspersample;
+	unsigned channels;
+};
+
 struct sound_card {
 	const char *name;
 	int bell_frequency;
 	int (*beep)(struct sound_card *, unsigned freq, unsigned us);
+	int (*play)(struct sound_card *card, const void *data, unsigned nsamples);
 
 	/* private */
 	struct list_head list;
 	struct list_head tune;
 	struct poller_async poller;
+	struct sound_card_params params;
 };
 
 int sound_card_register(struct sound_card *card);
 int sound_card_beep_wait(struct sound_card *card, unsigned timeout_us);
 int sound_card_beep(struct sound_card *card, int freq, unsigned int us);
 int sound_card_beep_cancel(struct sound_card *card);
+
+int sound_card_synth_beep(struct sound_card *card, unsigned freq, unsigned us);
 
 struct sound_card *sound_card_get_default(void);
 

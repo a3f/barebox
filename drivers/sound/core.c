@@ -44,6 +44,40 @@ static void sound_card_poller_cb(void *_card)
 	free(beep);
 }
 
+int sound_card_play(struct sound_card *card, const void *data, unsigned nsamples)
+{
+	if (!card->play)
+		return -ENOSYS;
+
+	return card->play(card, data, nsamples);
+}
+
+int sound_card_synth_beep(struct sound_card *card, unsigned freq, unsigned us)
+{
+	struct sound_card_params *p = &card->params;
+	size_t nsamples = div_s64(p->samplingrate * us, USEC_PER_SEC);
+	unsigned amplitude;
+	int16_t *data;
+	int ret;
+
+	if (!freq)
+		return card->play(card, NULL, 0);
+
+	data = malloc(nsamples * sizeof(*data));
+	if (!data)
+		return -ENOMEM;
+
+	amplitude = 1 << (p->bitspersample - 1); /* volume = 50% */
+
+	synth_sin(freq, amplitude, data, p->samplingrate, nsamples);
+
+	ret = card->play(card, data, nsamples);
+
+	free(data);
+
+	return ret;
+}
+
 int sound_card_register(struct sound_card *card)
 {
 	if (!card->name)
@@ -51,6 +85,11 @@ int sound_card_register(struct sound_card *card)
 
 	if (card->bell_frequency <= 0)
 		card->bell_frequency = 1000;
+
+	if (!card->beep && !card->play)
+		return -EINVAL;
+	else if (!card->beep)
+		card->beep = sound_card_synth_beep;
 
 	poller_async_register(&card->poller, card->name);
 	INIT_LIST_HEAD(&card->tune);
