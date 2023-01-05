@@ -23,10 +23,12 @@
 
 #ifndef __ASSEMBLY__
 #ifdef CONFIG_ARCH_ROCKCHIP_ATF
+void px30_atf_load_bl31(void *fdt);
 void rk3399_atf_load_bl31(void *fdt);
 void rk3568_atf_load_bl31(void *fdt);
 void rk3588_atf_load_bl31(void *fdt);
 #else
+static inline void px30_atf_load_bl31(void *fdt) { }
 static inline void rk3399_atf_load_bl31(void *fdt) { }
 static inline void rk3568_atf_load_bl31(void *fdt) { }
 static inline void rk3588_atf_load_bl31(void *fdt) { }

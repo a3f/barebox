@@ -66,6 +66,11 @@ static unsigned long load_elf64_image_phdr(const void *elf)
 		   SOC##_BAREBOX_LOAD_ADDRESS, (uintptr_t)fdt);                 \
 } while (0)                                                                     \
 
+void px30_atf_load_bl31(void *fdt)
+{
+	rockchip_atf_load_bl31(PX30, px30_bl31_bin, px30_op_tee_bin, fdt);
+}
+
 void rk3399_atf_load_bl31(void *fdt)
 {
 	rockchip_atf_load_bl31(RK3399, rk3399_bl31_bin, rk3399_op_tee_bin, fdt);

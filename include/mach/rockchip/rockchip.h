@@ -23,6 +23,15 @@ static inline int rk3288_init(void)
 }
 #endif
 
+#ifdef CONFIG_ARCH_PX30
+int px30_init(void);
+#else
+static inline int px30_init(void)
+{
+	return -ENOTSUPP;
+}
+#endif
+
 #ifdef CONFIG_ARCH_RK3399
 int rk3399_init(bool pro);
 #else
@@ -53,6 +62,7 @@ static inline int rk3588_init(void)
 }
 #endif
 
+void px30_lowlevel_init(void);
 void rk3399_lowlevel_init(void);
 void rk3568_lowlevel_init(void);
 void rk3588_lowlevel_init(void);

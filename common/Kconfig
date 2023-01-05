@@ -1442,6 +1442,13 @@ config DEBUG_ROCKCHIP_RK3399_UART
 	  Say Y here if you want kernel low-level debugging support
 	  on RK3399.
 
+config DEBUG_ROCKCHIP_PX30_UART
+	bool "PX30 Debug UART"
+	depends on ARCH_PX30
+	help
+	  Say Y here if you want kernel low-level debugging support
+	  on PX30.
+
 config DEBUG_SOCFPGA_UART0
 	bool "Use SOCFPGA UART0 for low-level debug"
 	depends on ARCH_SOCFPGA
@@ -1594,7 +1601,8 @@ config DEBUG_ROCKCHIP_UART_PORT
 				DEBUG_ROCKCHIP_RK3288_UART || \
 				DEBUG_ROCKCHIP_RK3568_UART || \
 				DEBUG_ROCKCHIP_RK3588_UART || \
-				DEBUG_ROCKCHIP_RK3399_UART
+				DEBUG_ROCKCHIP_RK3399_UART || \
+				DEBUG_ROCKCHIP_PX30_UART
 	default 2
 	depends on ARCH_ROCKCHIP
 	help
