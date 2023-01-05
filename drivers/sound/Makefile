@@ -3,4 +3,7 @@ obj-y += core.o synth.o
 obj-$(CONFIG_SOUND_SDL)		+= sdl.o
 obj-$(CONFIG_PWM_BEEPER) 	+= pwm-beeper.o
 obj-$(CONFIG_GPIO_BEEPER)	+= gpio-beeper.o
+obj-$(CONFIG_SND_SOC)		+= soc/
+obj-$(CONFIG_SIMPLE_AUDIO_CARD)	+= simple-audio-card.o
+obj-$(CONFIG_SOUND_RK817)	+= rk817_codec.o
 obj-$(CONFIG_SOUND_ROCKCHIP_I2S) += rockchip_i2s.o
