@@ -29,3 +29,4 @@ nvmem-kvx-otp-nv-y		:= kvx-otp-nv.o
 
 obj-$(CONFIG_STARFIVE_OTP)	+= starfive-otp.o
 obj-$(CONFIG_ROCKCHIP_EFUSE)	+= rockchip-efuse.o rockchip-cpuid.o
+obj-$(CONFIG_ROCKCHIP_OTP)	+= rockchip-otp.o rockchip-cpuid.o
