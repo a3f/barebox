@@ -9,35 +9,18 @@
 #include <of.h>
 #include <sound.h>
 
-#define AMPLITUDE	28000
-#define SAMPLERATE	44000ULL
-
 struct sandbox_sound {
 	struct sound_card card;
 };
 
-static int sandbox_sound_beep(struct sound_card *card, unsigned freq, unsigned duration)
+static int sandbox_sound_play(struct sound_card *card, const void *data, unsigned nsamples)
 {
-    size_t nsamples = div_s64(SAMPLERATE * duration, USEC_PER_SEC);
-    int16_t *data;
-    int ret;
+	if (!data) {
+		sdl_sound_stop();
+		return 0;
+	}
 
-    if (!freq) {
-	    sdl_sound_stop();
-	    return 0;
-    }
-
-    data = malloc(nsamples * sizeof(*data));
-    if (!data)
-	    return -ENOMEM;
-
-    synth_sin(freq, AMPLITUDE, data, SAMPLERATE, nsamples);
-    ret = sdl_sound_play(data, nsamples);
-    if (ret)
-	    ret = -EIO;
-    free(data);
-
-    return ret;
+	return sdl_sound_play(data, nsamples) ?: -EIO;
 }
 
 static int sandbox_sound_probe(struct device *dev)
@@ -50,9 +33,14 @@ static int sandbox_sound_probe(struct device *dev)
 
 	card = &priv->card;
 	card->name = "SDL-Audio";
-	card->beep = sandbox_sound_beep;
+	card->play = sandbox_sound_play;
 
-	ret = sdl_sound_init(SAMPLERATE);
+	/* Keep in-sync with arch/sandbox/os/sdl.c */
+	card->params.samplingrate = 44000;
+	card->params.bitspersample = 16;
+	card->params.channels = 1;
+
+	ret = sdl_sound_init(card->params.samplingrate);
 	if (ret) {
 		ret = -ENODEV;
 		goto free_priv;
