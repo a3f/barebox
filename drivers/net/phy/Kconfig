@@ -50,6 +50,11 @@ config MICREL_PHY
 	help
 	  Supports the KSZ9021, VSC8201, KS8001 PHYs.
 
+config MICROSEMI_PHY
+	bool "Microsemi PHYs"
+	help
+	  Currently supports VSC8530, VSC8531, VSC8540 and VSC8541 PHYs
+
 config MOTORCOMM_PHY
 	bool "Driver for Motorcomm PHYs"
 	help
