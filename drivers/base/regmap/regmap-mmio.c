@@ -303,6 +303,29 @@ struct regmap *regmap_init_mmio_clk(struct device *dev,
 	return regmap_init(dev, &regmap_mmio, ctx, config);
 }
 
+struct regmap *dev_request_regmap_mmio_clk(struct device *dev,
+					   const struct regmap_config *config,
+					   const char *reg_name,
+					   const char *clk_name)
+{
+	struct resource *res;
+	struct regmap *map;
+
+	if (reg_name)
+		res = dev_request_mem_resource_by_name(dev, reg_name);
+	else
+		res = dev_request_mem_resource(dev, 0);
+
+	if (IS_ERR(res))
+		return ERR_CAST(res);
+
+	map = regmap_init_mmio_clk(dev, clk_name, IOMEM(res->start), config);
+	if (IS_ERR(map))
+		release_region(res);
+
+	return map;
+}
+
 int regmap_mmio_attach_clk(struct regmap *map, struct clk *clk)
 {
 	struct regmap_mmio_context *ctx = map->bus_context;
