@@ -74,6 +74,70 @@ static inline struct eqos_rk_gmac *to_rk_gmac(struct dwc_common *dwc)
 #define GRF_BIT(nr)	(BIT(nr) | BIT((nr) + 16))
 #define GRF_CLR_BIT(nr)	(BIT((nr) + 16))
 
+#define PX30_GRF_GMAC_CON1		0x0904
+
+/* PX30_GRF_GMAC_CON1 */
+#define PX30_GMAC_PHY_INTF_SEL_RMII	(GRF_CLR_BIT(4) | GRF_CLR_BIT(5) | \
+					 GRF_BIT(6))
+#define PX30_GMAC_SPEED_10M		GRF_CLR_BIT(2)
+#define PX30_GMAC_SPEED_100M		GRF_BIT(2)
+
+static void px30_set_to_rmii(struct eqos_rk_gmac *priv)
+{
+	struct device *dev = priv->dev;
+
+	if (IS_ERR(priv->grf)) {
+		dev_err(dev, "%s: Missing rockchip,grf property\n", __func__);
+		return;
+	}
+
+	regmap_write(priv->grf, PX30_GRF_GMAC_CON1,
+		     PX30_GMAC_PHY_INTF_SEL_RMII);
+}
+
+static void px30_set_rmii_speed(struct eqos_rk_gmac *priv, int speed)
+{
+	struct device *dev = priv->dev;
+	struct clk *clk_mac_speed = priv->clks[CLK_MAC_SPEED].clk;
+	int ret;
+
+	if (IS_ERR(clk_mac_speed)) {
+		dev_err(dev, "%s: Missing clk_mac_speed clock\n", __func__);
+		return;
+	}
+
+	if (speed == SPEED_10) {
+		regmap_write(priv->grf, PX30_GRF_GMAC_CON1,
+			     PX30_GMAC_SPEED_10M);
+
+		ret = clk_set_rate(clk_mac_speed, 2500000);
+		if (ret)
+			dev_err(dev, "%s: set clk_mac_speed rate 2500000 failed: %d\n",
+				__func__, ret);
+	} else if (speed == SPEED_100) {
+		regmap_write(priv->grf, PX30_GRF_GMAC_CON1,
+			     PX30_GMAC_SPEED_100M);
+
+		ret = clk_set_rate(clk_mac_speed, 25000000);
+		if (ret)
+			dev_err(dev, "%s: set clk_mac_speed rate 25000000 failed: %d\n",
+				__func__, ret);
+
+	} else {
+		dev_err(dev, "unknown speed value for RMII! speed=%d", speed);
+	}
+}
+
+static __maybe_unused const struct rk_gmac_ops px30_ops = {
+	.set_to_rmii = px30_set_to_rmii,
+	.set_rmii_speed = px30_set_rmii_speed,
+	.required_clkids = (int []) {
+		CLK_STMMACETH, CLK_MAC_RX, CLK_MAC_TX,
+		CLK_MAC_ACLK, CLK_MAC_PCLK, CLK_MAC_SPEED,
+		-1
+	}
+};
+
 #define DELAY_ENABLE(soc, tx, rx) \
 	(((tx) ? soc##_GMAC_TXCLK_DLY_ENABLE : soc##_GMAC_TXCLK_DLY_DISABLE) | \
 	 ((rx) ? soc##_GMAC_RXCLK_DLY_ENABLE : soc##_GMAC_RXCLK_DLY_DISABLE))
@@ -442,6 +506,7 @@ static int rk_gmac_probe(struct device *dev)
 
 static __maybe_unused struct of_device_id rk_gmac_compatible[] = {
 #ifdef CONFIG_DRIVER_NET_DESIGNWARE
+	{ .compatible = "rockchip,px30-gmac", .data = &px30_ops },
 	{ .compatible = "rockchip,rk3399-gmac", .data = &rk3399_ops },
 #endif
 #ifdef CONFIG_DRIVER_NET_DESIGNWARE_EQOS
