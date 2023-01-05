@@ -38,8 +38,16 @@ image-$(CONFIG_MACH_RADXA_ROCK5) += barebox-rock5b.img
 pblb-$(CONFIG_MACH_RADXA_CM3) += start_radxa-cm3-io.img
 image-$(CONFIG_MACH_RADXA_CM3) += barebox-radxa-cm3-io.img
 
+pblb-$(CONFIG_MACH_PX30_IESY_OSM) += start_px30_iesy_osm
+image-$(CONFIG_MACH_PX30_IESY_OSM) += barebox-px30-iesy-osm.img
+OPTS_barebox-px30-iesy-osm.img = -s px30
+
 quiet_cmd_rkimg_image = RK-IMG $@
       cmd_rkimg_image = $(objtree)/scripts/rkimage $(OPTS_$(@F)) -o $@ $(word 2,$^) $(word 1,$^)
+
+$(obj)/barebox-px30-iesy-osm.img: $(obj)/start_px30_iesy_osm.pblb \
+                $(board)/px30-iesy-osm/sdram-init.bin
+	$(call if_changed,rkimg_image)
 
 $(obj)/barebox-radxa-rock-pi-n10.img: $(obj)/start_radxa_rock_pi_n10.pblb \
                 $(board)/radxa-rock-pi/sdram-init.bin
