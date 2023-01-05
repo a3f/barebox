@@ -25,6 +25,8 @@ firmware-$(CONFIG_ARCH_RK3588) += rk3588-bl31.bin
 firmware-$(CONFIG_ARCH_RK3588_OPTEE) += rk3588-op-tee.bin
 firmware-$(CONFIG_ARCH_RK3399) += rk3399-bl31.bin
 firmware-$(CONFIG_ARCH_RK3399_OPTEE) += rk3399-op-tee.bin
+firmware-$(CONFIG_ARCH_PX30) += px30-bl31.bin
+firmware-$(CONFIG_ARCH_PX30_OPTEE) += px30-op-tee.bin
 firmware-$(CONFIG_DRIVER_NET_FSL_FMAN) += fsl_fman_ucode_ls1046_r1.0_106_4_18.bin
 
 firmware-$(CONFIG_ARCH_LAYERSCAPE_PPA) += ppa-ls1046a.bin

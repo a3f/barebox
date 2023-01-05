@@ -99,4 +99,16 @@
 #define static_assert(expr, ...) __static_assert(expr, ##__VA_ARGS__, #expr)
 #define __static_assert(expr, msg, ...) _Static_assert(expr, msg)
 
+/*
+ * check_member() - Check the offset of a structure member
+ *
+ * @structure:	Name of structure (e.g. global_data)
+ * @member:	Name of member (e.g. baudrate)
+ * @offset:	Expected offset in bytes
+ */
+#define check_member(structure, member, offset) _Static_assert( \
+	offsetof(struct structure, member) == (offset), \
+	"`struct " #structure "` offset for `" #member "` is not " #offset)
+
+
 #endif	/* _LINUX_BUILD_BUG_H */

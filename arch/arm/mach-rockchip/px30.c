@@ -1,0 +1,237 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Copyright (c) 2016 Rockchip Electronics Co., Ltd
+ */
+
+#include <common.h>
+#include <io.h>
+#include <mach/rockchip/hardware.h>
+#include <mach/rockchip/bootrom.h>
+#include <mach/rockchip/px30-regs.h>
+#include <mach/rockchip/grf_px30.h>
+#include <mach/rockchip/stimer.h>
+#include <mach/rockchip/rockchip.h>
+
+#define PMU_PWRDN_CON			0xff000018
+#define PMUGRF_BASE			0xff010000
+#define GRF_BASE			0xff140000
+#define CRU_BASE			0xff2b0000
+#define PMUCRU_BASE			0xff2bc000
+#define VIDEO_PHY_BASE			0xff2e0000
+#define SERVICE_CORE_ADDR		0xff508000
+#define DDR_FW_BASE			0xff534000
+
+#define FW_DDR_CON			0x40
+
+#define QOS_PRIORITY			0x08
+
+#define QOS_PRIORITY_LEVEL(h, l)	((((h) & 3) << 8) | ((l) & 3))
+
+/* GRF_GPIO1AL_IOMUX */
+enum {
+	GPIO1A3_SHIFT		= 12,
+	GPIO1A3_MASK		= 0xf << GPIO1A3_SHIFT,
+	GPIO1A3_GPIO		= 0,
+	GPIO1A3_FLASH_D3,
+	GPIO1A3_EMMC_D3,
+	GPIO1A3_SFC_SIO3,
+
+	GPIO1A2_SHIFT		= 8,
+	GPIO1A2_MASK		= 0xf << GPIO1A2_SHIFT,
+	GPIO1A2_GPIO		= 0,
+	GPIO1A2_FLASH_D2,
+	GPIO1A2_EMMC_D2,
+	GPIO1A2_SFC_SIO2,
+
+	GPIO1A1_SHIFT		= 4,
+	GPIO1A1_MASK		= 0xf << GPIO1A1_SHIFT,
+	GPIO1A1_GPIO		= 0,
+	GPIO1A1_FLASH_D1,
+	GPIO1A1_EMMC_D1,
+	GPIO1A1_SFC_SIO1,
+
+	GPIO1A0_SHIFT		= 0,
+	GPIO1A0_MASK		= 0xf << GPIO1A0_SHIFT,
+	GPIO1A0_GPIO		= 0,
+	GPIO1A0_FLASH_D0,
+	GPIO1A0_EMMC_D0,
+	GPIO1A0_SFC_SIO0,
+};
+
+/* GRF_GPIO1AH_IOMUX */
+enum {
+	GPIO1A4_SHIFT		= 0,
+	GPIO1A4_MASK		= 0xf << GPIO1A4_SHIFT,
+	GPIO1A4_GPIO		= 0,
+	GPIO1A4_FLASH_D4,
+	GPIO1A4_EMMC_D4,
+	GPIO1A4_SFC_CSN0,
+};
+
+/* GRF_GPIO1BL_IOMUX */
+enum {
+	GPIO1B1_SHIFT		= 4,
+	GPIO1B1_MASK		= 0xf << GPIO1B1_SHIFT,
+	GPIO1B1_GPIO		= 0,
+	GPIO1B1_FLASH_RDY,
+	GPIO1B1_EMMC_CLKOUT,
+	GPIO1B1_SFC_CLK,
+};
+
+/* GRF_GPIO1BH_IOMUX */
+enum {
+	GPIO1B7_SHIFT		= 12,
+	GPIO1B7_MASK		= 0xf << GPIO1B7_SHIFT,
+	GPIO1B7_GPIO		= 0,
+	GPIO1B7_FLASH_RDN,
+	GPIO1B7_UART3_RXM1,
+	GPIO1B7_SPI0_CLK,
+
+	GPIO1B6_SHIFT		= 8,
+	GPIO1B6_MASK		= 0xf << GPIO1B6_SHIFT,
+	GPIO1B6_GPIO		= 0,
+	GPIO1B6_FLASH_CS1,
+	GPIO1B6_UART3_TXM1,
+	GPIO1B6_SPI0_CSN,
+};
+
+/* GRF_GPIO1CL_IOMUX */
+enum {
+	GPIO1C1_SHIFT		= 4,
+	GPIO1C1_MASK		= 0xf << GPIO1C1_SHIFT,
+	GPIO1C1_GPIO		= 0,
+	GPIO1C1_UART1_TX,
+
+	GPIO1C0_SHIFT		= 0,
+	GPIO1C0_MASK		= 0xf << GPIO1C0_SHIFT,
+	GPIO1C0_GPIO		= 0,
+	GPIO1C0_UART1_RX,
+};
+
+/* GRF_GPIO1DL_IOMUX */
+enum {
+	GPIO1D3_SHIFT		= 12,
+	GPIO1D3_MASK		= 0xf << GPIO1D3_SHIFT,
+	GPIO1D3_GPIO		= 0,
+	GPIO1D3_SDMMC_D1,
+	GPIO1D3_UART2_RXM0,
+
+	GPIO1D2_SHIFT		= 8,
+	GPIO1D2_MASK		= 0xf << GPIO1D2_SHIFT,
+	GPIO1D2_GPIO		= 0,
+	GPIO1D2_SDMMC_D0,
+	GPIO1D2_UART2_TXM0,
+};
+
+/* GRF_GPIO1DH_IOMUX */
+enum {
+	GPIO1D7_SHIFT		= 12,
+	GPIO1D7_MASK		= 0xf << GPIO1D7_SHIFT,
+	GPIO1D7_GPIO		= 0,
+	GPIO1D7_SDMMC_CMD,
+
+	GPIO1D6_SHIFT		= 8,
+	GPIO1D6_MASK		= 0xf << GPIO1D6_SHIFT,
+	GPIO1D6_GPIO		= 0,
+	GPIO1D6_SDMMC_CLK,
+
+	GPIO1D5_SHIFT		= 4,
+	GPIO1D5_MASK		= 0xf << GPIO1D5_SHIFT,
+	GPIO1D5_GPIO		= 0,
+	GPIO1D5_SDMMC_D3,
+
+	GPIO1D4_SHIFT		= 0,
+	GPIO1D4_MASK		= 0xf << GPIO1D4_SHIFT,
+	GPIO1D4_GPIO		= 0,
+	GPIO1D4_SDMMC_D2,
+};
+
+/* GRF_GPIO2BH_IOMUX */
+enum {
+	GPIO2B6_SHIFT		= 8,
+	GPIO2B6_MASK		= 0xf << GPIO2B6_SHIFT,
+	GPIO2B6_GPIO		= 0,
+	GPIO2B6_CIF_D1M0,
+	GPIO2B6_UART2_RXM1,
+
+	GPIO2B4_SHIFT		= 0,
+	GPIO2B4_MASK		= 0xf << GPIO2B4_SHIFT,
+	GPIO2B4_GPIO		= 0,
+	GPIO2B4_CIF_D0M0,
+	GPIO2B4_UART2_TXM1,
+};
+
+/* GRF_GPIO3AL_IOMUX */
+enum {
+	GPIO3A2_SHIFT		= 8,
+	GPIO3A2_MASK		= 0xf << GPIO3A2_SHIFT,
+	GPIO3A2_GPIO		= 0,
+	GPIO3A2_UART5_TX	= 4,
+
+	GPIO3A1_SHIFT		= 4,
+	GPIO3A1_MASK		= 0xf << GPIO3A1_SHIFT,
+	GPIO3A1_GPIO		= 0,
+	GPIO3A1_UART5_RX	= 4,
+};
+
+/* PMUGRF_GPIO0BL_IOMUX */
+enum {
+	GPIO0B3_SHIFT		= 6,
+	GPIO0B3_MASK		= 0x3 << GPIO0B3_SHIFT,
+	GPIO0B3_GPIO		= 0,
+	GPIO0B3_UART0_RX,
+	GPIO0B3_PMU_DEBUG1,
+
+	GPIO0B2_SHIFT		= 4,
+	GPIO0B2_MASK		= 0x3 << GPIO0B2_SHIFT,
+	GPIO0B2_GPIO		= 0,
+	GPIO0B2_UART0_TX,
+	GPIO0B2_PMU_DEBUG0,
+};
+
+/* PMUGRF_GPIO0CL_IOMUX */
+enum {
+	GPIO0C1_SHIFT		= 2,
+	GPIO0C1_MASK		= 0x3 << GPIO0C1_SHIFT,
+	GPIO0C1_GPIO		= 0,
+	GPIO0C1_PWM_3,
+	GPIO0C1_UART3_RXM0,
+	GPIO0C1_PMU_DEBUG4,
+
+	GPIO0C0_SHIFT		= 0,
+	GPIO0C0_MASK		= 0x3 << GPIO0C0_SHIFT,
+	GPIO0C0_GPIO		= 0,
+	GPIO0C0_PWM_1,
+	GPIO0C0_UART3_TXM0,
+	GPIO0C0_PMU_DEBUG3,
+};
+
+void px30_lowlevel_init(void)
+{
+	static struct px30_grf * const grf = (void *)GRF_BASE;
+
+	/* We do some SoC one time setting here. */
+	/* Disable the ddr secure region setting to make it non-secure */
+	writel(0x0, DDR_FW_BASE + FW_DDR_CON);
+
+	/* Set cpu qos priority */
+	writel(QOS_PRIORITY_LEVEL(1, 1), SERVICE_CORE_ADDR + QOS_PRIORITY);
+
+	/* Enable PD_VO (default disable at reset) */
+	rk_clrreg(PMU_PWRDN_CON, 1 << 13);
+
+	/* Disable video phy bandgap by default */
+	writel(0x82, VIDEO_PHY_BASE + 0x0000);
+	writel(0x05, VIDEO_PHY_BASE + 0x03ac);
+
+	/* Clear the force_jtag */
+	rk_clrreg(&grf->cpu_con[1], 1 << 7);
+
+	rockchip_stimer_init(PX30_STIMER_BASE);
+}
+
+int px30_init(void)
+{
+	rockchip_parse_bootrom_iram(rockchip_scratch_space());
+	return 0;
+}

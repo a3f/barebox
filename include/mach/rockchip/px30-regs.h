@@ -1,0 +1,21 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
+#ifndef __MACH_PX30_REGS_H
+#define __MACH_PX30_REGS_H
+
+#include <io.h>
+
+/* UART */
+#define PX30_UART0_BASE		IOMEM(0xff030000)
+#define PX30_UART1_BASE		IOMEM(0xff158000)
+#define PX30_UART2_BASE		IOMEM(0xff160000)
+#define PX30_UART3_BASE		IOMEM(0xff168000)
+#define PX30_UART4_BASE		IOMEM(0xff170000)
+#define PX30_UART5_BASE		IOMEM(0xff178000)
+
+#define PX30_IRAM_BASE		IOMEM(0xff0e0000)
+#define PX30_STIMER_BASE	IOMEM(0xff220020)
+#define PX30_BOOT_MODE_REG	IOMEM(0xff010200)
+
+#endif
+

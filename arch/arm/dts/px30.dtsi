@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: (GPL-2.0 OR X11)
+
+/ {
+	aliases {
+		gpio0 = &gpio0;
+		gpio1 = &gpio1;
+		gpio2 = &gpio2;
+		gpio3 = &gpio3;
+	};
+
+	chosen {
+		barebox,bootsource-mmc0 = &sdmmc;
+		barebox,bootsource-mmc1 = &emmc;
+		barebox,bootsource-mmc2 = &sdio;
+		barebox,machine-id-path = &cpu_id;
+	};
+};
