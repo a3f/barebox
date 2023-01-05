@@ -145,6 +145,15 @@ config MACH_RADXA_ROCK_PI
 	select ARCH_RK3399PRO
 	bool "Radxa Rock Pi N10 board"
 
+config MACH_PINE64_ROCKPRO64
+	select ARCH_RK3399
+	bool "Pine64 RockPro64 v2 board"
+
+config MACH_PX30_IESY_OSM
+	select ARCH_PX30
+	select ARM_USE_COMPRESSED_DTB
+	bool "iesy RPX30 OSM EVA-MI"
+
 endif
 
 comment "select board features:"

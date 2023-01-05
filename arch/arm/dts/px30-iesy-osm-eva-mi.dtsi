@@ -1,0 +1,212 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Device Tree for iesy RPX30 EVA-MI (Eval Kit)
+ *
+ * Copyright (c) 2022 iesy GmbH
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/net/mscc-phy-vsc8531.h>
+
+#include "px30-iesy-osm.dtsi"
+
+/ {
+	model = "iesy RPX30 OSM EVA-MI";
+	compatible = "iesy,rpx30-osm-eva-mi", "iesy,rpx30-osm", "rockchip,px30";
+
+	aliases {
+		mmc0 = &sdmmc;
+		mmc1 = &emmc;
+		mmc2 = &sdio;
+	};
+
+	vcc_phy: vcc-phy-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_phy";
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	user-buttons {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_buttons>;
+		autorepeat;
+
+		user-button-1 {
+			label = "User Button 1";
+			gpios = <&gpio3 RK_PD1 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_X>;
+		};
+
+		user-button-2 {
+			label = "User Button 2";
+			gpios = <&gpio3 RK_PD0 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_Z>;
+		};
+	};
+};
+
+&gmac {
+	phy-supply = <&vcc_phy>;
+	phy-handle = <&gmac0_phy>;
+	max-speed = <100>;
+	clock_in_out = "input";
+	status = "okay";
+
+	gmdio0: mdio {
+		compatible = "snps,dwmac-mdio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		gmac0_phy: ethernet-phy@0 {
+			//compatible = "ethernet-phy-id0007.0770";
+			reg = <0>;
+			vsc8531,vddmac = <1800>;
+			vsc8531,edge-slowdown = <76>;
+			vsc8531,led-0-mode = <VSC8531_LINK_100_ACTIVITY>;
+			vsc8531,led-1-mode = <VSC8531_LINK_100_ACTIVITY>;
+		};
+	};
+};
+
+&i2c0 {
+	/* EEPROM on CM006 */
+	eeprom@50 {
+		status = "okay";
+		compatible = "atmel,24c32";
+		reg = <0x50>;
+		pagesize = <32>;
+	};
+};
+
+&i2c1 {
+	status = "okay";
+};
+
+&i2c2 {
+	status = "okay";
+
+	clock-frequency = <100000>;
+
+	/* These are relatively safe rise/fall times; TODO: measure */
+	i2c-scl-falling-time-ns = <50>;
+	i2c-scl-rising-time-ns = <300>;
+};
+
+/* 2 SAR ADC inputs on BB138 */
+&saradc {
+	status = "okay";
+};
+
+/* SD card connector on BB138 */
+&sdmmc {
+	vqmmc-supply = <&vccio_sd>;
+	/* vmmc-supply = <&vcc_sd>; */
+	status = "okay";
+};
+
+/* used for reading gpu temperature */
+&tsadc {
+	pinctrl-names = "gpio", "otpout";
+	pinctrl-0 = <&tsadc_otp_gpio>;
+	pinctrl-1 = <&tsadc_otp_out>;
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&uart2 {
+	pinctrl-0 = <&uart2m1_xfer>;
+	status = "okay";
+};
+
+&u2phy {
+	status = "okay";
+};
+
+&u2phy_host {
+	status = "okay";
+};
+
+&u2phy_otg {
+	status = "okay";
+};
+
+&usb20_otg {
+	/*vbus-supply = <&usb_a_vbus_regulator>;*/
+	dr_mode = "peripheral";
+	status = "okay";
+};
+
+&usb_host0_ehci {
+	/*vbus-supply = <&usb_b_vbus_regulator>;*/
+	status = "okay";
+};
+
+&usb_host0_ohci {
+	/*vbus-supply = <&usb_b_vbus_regulator>;*/
+	status = "okay";
+};
+
+&spi1 {
+	status = "okay";
+
+	spidev@0 {
+		compatible = "linux,spidev";
+		spi-max-frequency = <10000000>;
+		reg = <0>;
+	};
+
+	spidev@1 {
+		compatible = "linux,spidev";
+		spi-max-frequency = <10000000>;
+		reg = <1>;
+	};
+};
+
+/*
+ * Inserted to avoid error messages
+ * "Looking up ...-supply property in node /power-management@ff000000/power-controller failed"
+ * @MAS: Are the specified power domains correct?
+ */
+&power {
+	pd_vi-supply = <&vdd_logic>;
+	pd_vpu-supply = <&vdd_logic>;
+	pd_gpu-supply = <&vdd_logic>;
+	pd_usb-supply = <&vdd_logic>;
+};
+
+&pinctrl {
+	gpiokeys {
+		pinctrl_buttons: buttongrp {
+			rockchip,pins =
+				<3 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>,
+				<3 RK_PD1 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	tsadc {
+		tsadc_otp_gpio: tsadc-otp-gpio {
+			rockchip,pins =
+				<0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		tsadc_otp_out: tsadc-otp-out {
+			rockchip,pins =
+				<0 RK_PA6 1 &pcfg_pull_none>;
+		};
+	};
+};
+
+/* DON'T PUT ANYTHING BELOW HERE.  PUT IT ABOVE PINCTRL */
