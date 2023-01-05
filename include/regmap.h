@@ -123,6 +123,18 @@ struct regmap *regmap_init_mmio_clk(struct device *dev, const char *clk_id,
 				    void __iomem *regs,
 				    const struct regmap_config *config);
 
+struct regmap *dev_request_regmap_mmio_clk(struct device *dev,
+				       const struct regmap_config *config,
+				       const char *reg_name,
+				       const char *clk_name);
+
+static inline struct regmap *dev_request_regmap_mmio(struct device *dev,
+						     const struct regmap_config *config,
+						     const char *reg_name)
+{
+	return dev_request_regmap_mmio_clk(dev, config, reg_name, NULL);
+}
+
 /**
  * regmap_init_i2c() - Initialise i2c register map
  *

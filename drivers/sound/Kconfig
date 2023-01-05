@@ -26,6 +26,13 @@ config GPIO_BEEPER
 	help
 	  Say Y here to get support for GPIO based beeper devices.
 
+config SOUND_ROCKCHIP_I2S
+	bool "Rockchip I2S Device Driver"
+	select SND_SOC
+	help
+	  Say Y if you want to add support for I2S driver for
+	  Rockchip I2S device.
+
 config SYNTH_SQUARES
 	bool "Synthesize square waves only"
 	help

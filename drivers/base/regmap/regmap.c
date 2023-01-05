@@ -13,6 +13,7 @@
 
 #include <common.h>
 #include <regmap.h>
+#include <driver.h>
 #include <malloc.h>
 #include <linux/log2.h>
 
