@@ -9,6 +9,7 @@
 #include <mach/rockchip/dmc.h>
 #include <mach/rockchip/rockchip.h>
 #include <mach/rockchip/bootrom.h>
+#include <mach/rockchip/rk3399-regs.h>
 #include <mach/rockchip/rk3568-regs.h>
 #include <mach/rockchip/rk3588-regs.h>
 
@@ -99,6 +100,23 @@ void __noreturn rk3568_barebox_entry(void *fdt)
 		 * device tree.
 		 */
 		rk3568_atf_load_bl31(NULL);
+	}
+
+	barebox_arm_entry(membase, memsize, fdt);
+}
+
+void __noreturn rk3399_barebox_entry(void *fdt)
+{
+	ulong membase, memsize;
+
+	membase = RK3399_DRAM_BOTTOM;
+	memsize = rk3399_ram0_size() - RK3399_DRAM_BOTTOM;
+
+	if (current_el() == 3) {
+		rk3399_lowlevel_init();
+		rockchip_store_bootrom_iram(membase, memsize, RK3399_IRAM_BASE);
+
+		rk3399_atf_load_bl31(NULL);
 		/* not reached when CONFIG_ARCH_ROCKCHIP_ATF */
 	}
 

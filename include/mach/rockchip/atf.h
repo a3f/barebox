@@ -3,6 +3,8 @@
 #ifndef __MACH_ATF_H
 #define __MACH_ATF_H
 
+#include <linux/compiler.h>
+
 /* First usable DRAM address. Lower mem is used for ATF and OP-TEE */
 #define RK3399_DRAM_BOTTOM		0xa00000
 #define RK3568_DRAM_BOTTOM		0xa00000
@@ -33,6 +35,7 @@ static inline void rk3588_atf_load_bl31(void *fdt) { }
 #endif
 #endif
 
+void __noreturn rk3399_barebox_entry(void *fdt);
 void __noreturn rk3568_barebox_entry(void *fdt);
 void __noreturn rk3588_barebox_entry(void *fdt);
 
