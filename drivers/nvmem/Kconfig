@@ -100,4 +100,13 @@ config ROCKCHIP_EFUSE
 	  This is a simple drive to dump specified values of Rockchip SoC
 	  from eFuse, such as CPU ID.
 
+config ROCKCHIP_OTP
+	tristate "Rockchip OTP controller support"
+	depends on ARCH_ROCKCHIP || COMPILE_TEST
+	depends on OFDEVICE
+	select PRINTF_HEXSTR
+	help
+	  This is a simple drive to dump specified values of Rockchip SoC
+	  from otp, such as cpu-leakage.
+
 endif
