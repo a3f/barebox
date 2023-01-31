@@ -32,6 +32,7 @@ int sound_card_register(struct sound_card *card);
 int sound_card_beep_wait(struct sound_card *card, unsigned timeout_us);
 int sound_card_beep(struct sound_card *card, int freq, unsigned int us);
 int sound_card_beep_cancel(struct sound_card *card);
+int sound_card_play(struct sound_card *card, const void *data, unsigned nsamples);
 
 int sound_card_synth_beep(struct sound_card *card, unsigned freq, unsigned us);
 
