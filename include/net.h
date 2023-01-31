@@ -422,6 +422,20 @@ static inline int is_broadcast_ether_addr(const u8 *addr)
 #define ETH_HLEN	14	/* Total octets in header.*/
 
 /**
+ * generate_ether_addr - Generates a software assigned Ethernet address
+ * @addr: Pointer to a six-byte array containing the Ethernet address
+ *
+ * Hashes the registered serial number to generate an Ethernet address
+ * (MAC) that is not multicast and has the local assigned bit set.
+ *
+ * If no barebox_set_serial_number has been called, this function
+ * behaves identically to random_ether_addr()
+ *
+ * Return true if the address is stable and false if random.
+ */
+bool generate_ether_addr(u8 addr[static ETH_ALEN]);
+
+/**
  * random_ether_addr - Generate software assigned random Ethernet address
  * @addr: Pointer to a six-byte array containing the Ethernet address
  *

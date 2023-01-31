@@ -16,6 +16,7 @@
 #include <common.h>
 #include <clock.h>
 #include <command.h>
+#include <digest.h>
 #include <environment.h>
 #include <param.h>
 #include <net.h>
@@ -25,6 +26,7 @@
 #include <init.h>
 #include <globalvar.h>
 #include <magicvar.h>
+#include <crypto/sha.h>
 #include <linux/ctype.h>
 #include <linux/err.h>
 
@@ -365,6 +367,53 @@ IPaddr_t net_get_gateway(void)
 
 static LIST_HEAD(connection_list);
 
+static int generate_ether_addr_from_serial(u8 addr[static ETH_ALEN])
+{
+	static u8 last_ethaddr[ETH_ALEN];
+	struct digest *sha256;
+	u8 hash[SHA256_DIGEST_SIZE];
+	const char *serial;
+	int ret;
+
+	if (!is_zero_ether_addr(last_ethaddr)) {
+		eth_addr_seq_next(last_ethaddr, NULL);
+		return 0;
+	}
+
+	serial = barebox_get_serial_number();
+	if (!serial)
+		return -ENODATA;
+
+	sha256 = digest_alloc("sha256");
+        if (!sha256)
+                return -EINVAL;
+
+        ret = digest_digest(sha256, serial, strlen(serial), hash);
+	if (ret)
+		return ret;
+
+	digest_free(sha256);
+
+	/* Copy 6 bytes of the hash to base the MAC address on */
+	memcpy(last_ethaddr, hash, ETH_ALEN);
+	memcpy(addr, last_ethaddr, ETH_ALEN);
+
+	addr[0] &= 0xfe;	/* clear multicast bit */
+	addr[0] |= 0x02;	/* set local assignment bit (IEEE802) */
+
+	return 0;
+}
+
+bool generate_ether_addr(u8 addr[static ETH_ALEN])
+{
+	if (IS_ENABLED(CONFIG_NET_ETHADDR_SERIAL) &&
+	    generate_ether_addr_from_serial(addr) == 0)
+		return true;
+
+	random_ether_addr(addr);
+	return false;
+}
+
 static struct net_connection *net_new(struct eth_device *edev, IPaddr_t dest,
 				      rx_handler_f *handler, void *ctx)
 {
@@ -381,9 +430,12 @@ static struct net_connection *net_new(struct eth_device *edev, IPaddr_t dest,
 
 	if (!is_valid_ether_addr(edev->ethaddr)) {
 		char str[sizeof("xx:xx:xx:xx:xx:xx")];
-		random_ether_addr(edev->ethaddr);
+		bool stable = generate_ether_addr(edev->ethaddr);
 		ethaddr_to_string(edev->ethaddr, str);
-		dev_warn(&edev->dev, "No MAC address set. Using random address %s\n", str);
+		if (stable)
+			dev_notice(&edev->dev, "No MAC address set. Using address computed from serial number %s\n", str);
+		else
+			dev_warn(&edev->dev, "No MAC address set. Using random address %s\n", str);
 		eth_set_ethaddr(edev, edev->ethaddr);
 	}
 
