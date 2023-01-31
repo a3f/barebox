@@ -117,8 +117,30 @@
 		nvmem-cells = <&reset_source>;
 	};
 
-	sound {
+	sound-card {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "sdl-sound-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,frame-master = <&link0_cpu>;
+		simple-audio-card,bitclock-master = <&link0_cpu>;
+
+		link0_cpu: cpu {
+			sound-dai = <&sound_sdl>;
+		};
+
+		link0_codec: codec {
+			sound-dai = <&sound_codec>;
+		};
+	};
+
+	sound_sdl: sound-sdl {
 		compatible = "barebox,sandbox-sound";
+		#sound-dai-cells = <0>;
+	};
+
+	sound_codec: sound-codec {
+		compatible = "barebox,dummy-codec";
+		#sound-dai-cells = <0>;
 	};
 
 	led {
