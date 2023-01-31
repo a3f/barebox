@@ -106,6 +106,16 @@ struct regmap *regmap_init(struct device *dev,
 			     void *bus_context,
 			     const struct regmap_config *config);
 
+/**
+ * regmap_name() - Return name of regmap if set
+ *
+ * @map: Regmap to query
+ *
+ * The return value will be the name of the regmap if one
+ * had been specified during initialization or NULL otherwise.
+ */
+const char *regmap_name(struct regmap *map);
+
 struct clk;
 
 /**

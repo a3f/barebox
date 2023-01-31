@@ -159,6 +159,11 @@ struct device *regmap_get_device(struct regmap *map)
 	return map->dev;
 }
 
+const char *regmap_name(struct regmap *map)
+{
+	return map->name;
+}
+
 /*
  * regmap_write - write a register in a map
  *
