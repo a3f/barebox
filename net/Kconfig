@@ -6,6 +6,22 @@ menuconfig NET
 
 if NET
 
+config NET_ETHADDR_SERIAL
+	bool
+	prompt "generate Ethernet address from serial number"
+	depends on HAVE_DIGEST_SHA256
+	help
+	  By default, barebox will generate random Ethernet addresses for
+	  interfaces that had no explicit Ethernet address set via
+	  either board code or NVMEM properties in device tree.
+
+	  Say y here, to generate the random Ethernet address only
+	  if no serial number was registered. If barebox_set_serial_number()
+	  has been called, its hash will be used instead to generate
+	  MAC addresses that are unlikely to change between subsequent
+	  runs of barebox.
+
+
 config NET_NFS
 	bool
 	prompt "nfs support"
