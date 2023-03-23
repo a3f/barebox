@@ -7,7 +7,7 @@
 #include <asm/barebox-arm.h>
 #include <mach/rockchip/bootrom.h>
 #include <mach/rockchip/hardware.h>
-#include <mach/rockchip/grf_rk3399.h>
+#include <mach/rockchip/px30-regs.h>
 #include <mach/rockchip/atf.h>
 #include <debug_ll.h>
 #include <mach/rockchip/rockchip.h>
