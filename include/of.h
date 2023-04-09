@@ -187,6 +187,7 @@ extern struct device_node *of_create_node(struct device_node *root,
 extern void of_merge_nodes(struct device_node *np, const struct device_node *other);
 extern struct device_node *of_copy_node(struct device_node *parent,
 				const struct device_node *other);
+void of_move_node(struct device_node *parent, struct device_node *node);
 extern struct device_node *of_dup(const struct device_node *root);
 extern void of_delete_node(struct device_node *node);
 
