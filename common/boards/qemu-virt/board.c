@@ -52,7 +52,7 @@ BAREBOX_DEEP_PROBE_ENABLE(virt_of_match);
  */
 static int virt_board_driver_init(void)
 {
-	struct device_node *root = of_get_root_node();
+	struct device_node *soc, *root = of_get_root_node();
 	struct device_node *overlay, *pubkey;
 	const struct of_device_id *id;
 	void (*init)(void);
@@ -65,6 +65,11 @@ static int virt_board_driver_init(void)
 		init = id->data;
 		init();
 	}
+
+	/* Rename older QEMU's /soc/flash@X to /flash@X */
+	soc = of_get_child_by_name(root, "soc");
+	if (soc)
+		of_move_node(root, of_find_node_by_name(soc, "flash"));
 
 	overlay = of_unflatten_dtb(__dtbo_flash_start, INT_MAX);
 	of_overlay_apply_tree(root, overlay);
