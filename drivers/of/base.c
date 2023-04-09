@@ -2697,6 +2697,24 @@ void of_delete_node(struct device_node *node)
 	free(node);
 }
 
+void of_move_node(struct device_node *parent, struct device_node *node)
+{
+	if (!node)
+		return;
+
+	list_del(&node->list);
+	list_del(&node->parent_list);
+
+	free(node->full_name);
+	node->full_name = basprintf("%s/%s", parent->full_name, node->name);
+
+	if (!node->parent)
+		return;
+
+	list_add(&node->list, &parent->list);
+	list_add_tail(&node->parent_list, &parent->children);
+}
+
 /*
  * of_find_node_by_chosen - Find a node given a chosen property pointing at it
  * @propname:   the name of the property containing a path or alias
