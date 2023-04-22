@@ -24,6 +24,7 @@ struct regulator_internal {
 	char *name;
 	const char *supply;
 	struct list_head consumer_list;
+	struct notifier_block nb;
 };
 
 struct regulator {
@@ -166,10 +167,33 @@ static int regulator_resolve_supply(struct regulator_dev *rdev)
 	return 0;
 }
 
+static int regulator_bus_notifier(struct notifier_block *nb,
+				  unsigned long action, void *data)
+{
+	struct device *dev = data;
+	struct regulator_internal *ri
+			= container_of(nb, struct regulator_internal, nb);
+	struct regulator_dev *rd = ri->rdev;
+	int ret;
+
+	if (dev != rd->dev || action != BUS_NOTIFY_BOUND_DRIVER)
+		return 0;
+
+	BUG_ON(!rd->boot_on && !rd->always_on);
+
+	ret = regulator_resolve_supply(rd);
+	if (!ret)
+		ret = regulator_enable_internal(ri);
+	if (ret && ret != -ENOSYS)
+		dev_warn(dev, "failed to enable regulator: %pe\n", ERR_PTR(ret));
+
+	bus_unregister_notifier(dev->bus, nb);
+	return 0;
+}
+
 static struct regulator_internal * __regulator_register(struct regulator_dev *rd, const char *name)
 {
 	struct regulator_internal *ri;
-	int ret;
 
 	ri = xzalloc(sizeof(*ri));
 	ri->rdev = rd;
@@ -182,22 +206,11 @@ static struct regulator_internal * __regulator_register(struct regulator_dev *rd
 		ri->name = xstrdup(name);
 
 	if (rd->boot_on || rd->always_on) {
-		ret = regulator_resolve_supply(ri->rdev);
-		if (ret < 0)
-			goto err;
-
-		ret = regulator_enable_internal(ri);
-		if (ret && ret != -ENOSYS)
-			goto err;
+		ri->nb.notifier_call = regulator_bus_notifier;
+		bus_register_notifier(rd->dev->bus, &ri->nb);
 	}
 
 	return ri;
-err:
-	list_del(&ri->list);
-	free(ri->name);
-	free(ri);
-
-	return ERR_PTR(ret);
 }
 
 
