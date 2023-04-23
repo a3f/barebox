@@ -33,17 +33,6 @@ struct regulator {
 	struct device *dev;
 };
 
-const char *rdev_get_name(struct regulator_dev *rdev)
-{
-	if (rdev->constraints && rdev->constraints->name)
-		return rdev->constraints->name;
-	else if (rdev->desc->name)
-		return rdev->desc->name;
-	else
-		return "";
-}
-EXPORT_SYMBOL_GPL(rdev_get_name);
-
 static int regulator_map_voltage(struct regulator_dev *rdev, int min_uV,
 				 int max_uV)
 {
