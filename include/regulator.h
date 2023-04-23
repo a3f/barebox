@@ -32,7 +32,6 @@ struct regulator_bulk_data {
  * structure contains the non-varying parts of the regulator
  * description.
  *
- * @name: Identifying name for the regulator
  * @supply_name: Identifying the supply of this regulator
  *
  * @n_voltages: Number of selectors available for ops.list_voltage().
@@ -60,7 +59,6 @@ struct regulator_bulk_data {
  */
 
 struct regulator_desc {
-	const char *name;
 	const char *supply_name;
 	unsigned n_voltages;
 	const struct regulator_ops *ops;
@@ -154,8 +152,6 @@ void regulators_print(void);
 
 #ifdef CONFIG_REGULATOR
 
-const char *rdev_get_name(struct regulator_dev *rdev);
-
 struct regulator *regulator_get(struct device *, const char *);
 void regulator_put(struct regulator *r);
 struct regulator *regulator_get_name(const char *name);
@@ -207,11 +203,6 @@ int regulator_desc_list_voltage_linear_range(const struct regulator_desc *desc,
 int regulator_list_voltage_table(struct regulator_dev *rdev,
 				  unsigned int selector);
 #else
-
-static inline const char *rdev_get_name(struct regulator_dev *rdev)
-{
-	return NULL;
-}
 
 static inline struct regulator *regulator_get(struct device *dev,
 					      const char *id)
