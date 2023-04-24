@@ -1048,7 +1048,7 @@ out:
 /**
  * efi_dp_from_file_tostr() - format barebox VFS path as EFI device path string
  *
- * Convert any barebox virtual file system path to an UEFI device path
+ * Convert any barebox virtual file system path to a full UEFI device path
  * and then return its full string representation.
  *
  * @dirfd:	directory fd
@@ -1063,7 +1063,7 @@ char *efi_dp_from_file_tostr(int dirfd, const char *path)
 
 	dp = efi_dp_from_file(dirfd, path);
 	if (dp)
-		dpstr = device_path_to_str(dp);
+		dpstr = device_path_to_str(dp, true);
 
 	efi_free_pool(dp);
 
