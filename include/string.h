@@ -3,6 +3,7 @@
 #define __STRING_H
 
 #include <linux/string.h>
+#include <linux/minmax.h>
 
 void *mempcpy(void *dest, const void *src, size_t count);
 int strtobool(const char *str, int *val);
@@ -20,5 +21,10 @@ void *__nokasan_default_memcpy(void * dest,const void *src,size_t count);
 char *parse_assignment(char *str);
 
 int strverscmp(const char *a, const char *b);
+
+static inline int strcmp_ptr(const char *a, const char *b)
+{
+	return a && b ? strcmp(a, b) : compare3(a, b);
+}
 
 #endif /* __STRING_H */

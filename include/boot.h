@@ -35,6 +35,7 @@ struct bootentry {
 	void (*release)(struct bootentry *entry);
 };
 
+int bootentries_add_entry_group(struct bootentries *entries, struct list_head *group);
 int bootentries_add_entry(struct bootentries *entries, struct bootentry *entry);
 
 int bootentry_register_provider(int (*fn)(struct bootentries *bootentries, const char *name));

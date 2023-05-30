@@ -12,6 +12,7 @@ struct blspec_entry {
 	struct cdev *cdev;
 	char *rootpath;
 	char *configpath;
+	const char *sortkey;
 };
 
 const char *blspec_entry_var_get(struct blspec_entry *entry, const char *name);

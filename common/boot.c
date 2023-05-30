@@ -16,6 +16,13 @@
 
 #include <linux/stat.h>
 
+int bootentries_add_entry_group(struct bootentries *entries, struct list_head *group)
+{
+	list_splice_tail(group, &entries->entries);
+
+	return 0;
+}
+
 int bootentries_add_entry(struct bootentries *entries, struct bootentry *entry)
 {
 	list_add_tail(&entry->list, &entries->entries);

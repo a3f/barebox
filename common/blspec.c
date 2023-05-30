@@ -15,7 +15,6 @@
 #include <libbb.h>
 #include <init.h>
 #include <bootm.h>
-#include <glob.h>
 #include <net.h>
 #include <fs.h>
 #include <of.h>
@@ -231,6 +230,7 @@ static struct blspec_entry *blspec_entry_open(struct bootentries *bootentries,
 	next = buf;
 
 	while (next && *next) {
+		const char *of_val;
 		char *name, *val;
 
 		line = next;
@@ -281,7 +281,11 @@ static struct blspec_entry *blspec_entry_open(struct bootentries *bootentries,
 			}
 		}
 
-		blspec_entry_var_set(entry, name, val);
+		of_val = blspec_entry_var_set(entry, name, val);
+
+		/* This will be read often during comparison, so we cache it */
+		if (of_val && !strcmp(name, "sort-key"))
+			entry->sortkey = of_val;
 	}
 
 	free(buf);
@@ -558,6 +562,42 @@ static struct blspec_entry *blspec_load_file(struct bootentries *bootentries,
 	return entry;
 }
 
+static int blspec_entry_verscmp(struct list_head *_a, struct list_head *_b)
+{
+	struct blspec_entry *a = list_entry(_a, struct blspec_entry, entry.list);
+	struct blspec_entry *b = list_entry(_b, struct blspec_entry, entry.list);
+	int r;
+
+        r = compare3(!a->sortkey, !b->sortkey);
+        if (r != 0)
+                return r;
+
+        if (a->sortkey && b->sortkey) {
+		const char *a_machine_id, *b_machine_id;
+		const char *a_version, *b_version;
+
+                r = strcmp(a->sortkey, b->sortkey);
+                if (r != 0)
+                        return r;
+
+		a_machine_id = blspec_entry_var_get(a, "machine-id");
+		b_machine_id = blspec_entry_var_get(b, "machine-id");
+
+                r = strcmp_ptr(a_machine_id, b_machine_id);
+                if (r != 0)
+                        return r;
+
+		a_version = blspec_entry_var_get(a, "version");
+		b_version = blspec_entry_var_get(b, "version");
+
+                r = -strverscmp(a_version, b_version);
+                if (r != 0)
+                        return r;
+        }
+
+        return -strverscmp(a->configpath, b->configpath);
+}
+
 /*
  * blspec_scan_directory - scan over a directory
  *
@@ -567,42 +607,69 @@ static struct blspec_entry *blspec_load_file(struct bootentries *bootentries,
  */
 int blspec_scan_directory(struct bootentries *bootentries, const char *root)
 {
-	glob_t globb;
+	DIR *dir;
+	struct dirent *d;
 	char *abspath;
 	int ret, found = 0;
 	const char *dirname = "loader/entries";
-	int i;
+	struct list_head direntries = LIST_HEAD_INIT(direntries);
 
 	pr_debug("%s: %s %s\n", __func__, root, dirname);
 
-	abspath = basprintf("%s/%s/*.conf", root, dirname);
+	abspath = basprintf("%s/%s", root, dirname);
 
-	ret = glob(abspath, 0, NULL, &globb);
-	if (ret) {
+	dir = opendir(abspath);
+	if (!dir) {
 		pr_debug("%s: %s: %s\n", __func__, abspath, strerror(errno));
 		ret = -errno;
 		goto err_out;
 	}
 
-	for (i = 0; i < globb.gl_pathc; i++) {
+	while ((d = readdir(dir))) {
 		struct blspec_entry *entry;
-		const char *configname = globb.gl_pathv[i];
+		char *configname;
 		struct stat s;
+		char *dot;
+
+		if (*d->d_name == '.')
+			continue;
+
+		configname = basprintf("%s/%s", abspath, d->d_name);
+
+		dot = strrchr(configname, '.');
+		if (!dot) {
+			free(configname);
+			continue;
+		}
+
+		if (strcmp(dot, ".conf")) {
+			free(configname);
+			continue;
+		}
 
 		ret = stat(configname, &s);
-		if (ret || !S_ISREG(s.st_mode))
+		if (ret) {
+			free(configname);
 			continue;
+		}
+
+		if (!S_ISREG(s.st_mode)) {
+			free(configname);
+			continue;
+		}
 
 		entry = blspec_load_file(bootentries, root, configname);
 		if (!IS_ERR(entry)) {
-			bootentries_add_entry(bootentries, &entry->entry);
+			list_add_sort(&entry->entry.list, &direntries, blspec_entry_verscmp);
 			found++;
 		}
 	}
 
 	ret = found;
 
-	globfree(&globb);
+	bootentries_add_entry_group(bootentries, &direntries);
+
+	closedir(dir);
 err_out:
 	free(abspath);
 
