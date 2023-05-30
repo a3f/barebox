@@ -245,6 +245,32 @@ int strncmp(const char * cs, const char * ct, size_t count)
 #endif
 EXPORT_SYMBOL(strncmp);
 
+/**
+ * strnncmp - Compare two length-limited strings of separate lengths
+ * @cs: One string
+ * @scount: maximum bytes to compare of cs
+ * @ct: Another string
+ * @tcount: maximum bytes to compare of ct
+ */
+int strnncmp(const char *cs, size_t scount, const char *ct, size_t tcount)
+{
+	register signed char __res = 0;
+
+	while (scount && tcount) {
+		if ((__res = *cs - *ct++) != 0 || !*cs++)
+			return __res;
+
+		scount--;
+		tcount--;
+	}
+
+	if (!scount && !tcount)
+		return 0;
+
+	return scount ? 1 : -1;
+}
+EXPORT_SYMBOL(strnncmp);
+
 #ifndef __HAVE_ARCH_STRCHR
 /**
  * strchr - Find the first occurrence of a character in a string
