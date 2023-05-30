@@ -503,18 +503,19 @@ static bool entry_is_match_machine_id(struct blspec_entry *entry)
 	return ret;
 }
 
-int blspec_scan_file(struct bootentries *bootentries, const char *root,
-		     const char *configname)
+static struct blspec_entry *blspec_load_file(struct bootentries *bootentries,
+					     const char *root,
+					     const char *configname)
 {
 	char *devname = NULL, *hwdevname = NULL;
 	struct blspec_entry *entry;
 
 	if (blspec_have_entry(bootentries, configname))
-		return -EEXIST;
+		return ERR_PTR(-EEXIST);
 
 	entry = blspec_entry_open(bootentries, configname);
 	if (IS_ERR(entry))
-		return PTR_ERR(entry);
+		return entry;
 
 	root = root ?: get_mounted_path(configname);
 	entry->rootpath = xstrdup(root);
@@ -523,12 +524,12 @@ int blspec_scan_file(struct bootentries *bootentries, const char *root,
 
 	if (!entry_is_of_compatible(entry)) {
 		blspec_entry_free(&entry->entry);
-		return -ENODEV;
+		return ERR_PTR(-ENODEV);
 	}
 
 	if (!entry_is_match_machine_id(entry)) {
 		blspec_entry_free(&entry->entry);
-		return -ENODEV;
+		return ERR_PTR(-ENODEV);
 	}
 
 	if (entry->cdev && entry->cdev->dev) {
@@ -548,8 +549,7 @@ int blspec_scan_file(struct bootentries *bootentries, const char *root,
 	entry->entry.me.type = MENU_ENTRY_NORMAL;
 	entry->entry.release = blspec_entry_free;
 
-	bootentries_add_entry(bootentries, &entry->entry);
-	return 1;
+	return entry;
 }
 
 /*
@@ -579,6 +579,7 @@ int blspec_scan_directory(struct bootentries *bootentries, const char *root)
 	}
 
 	for (i = 0; i < globb.gl_pathc; i++) {
+		struct blspec_entry *entry;
 		const char *configname = globb.gl_pathv[i];
 		struct stat s;
 
@@ -586,9 +587,11 @@ int blspec_scan_directory(struct bootentries *bootentries, const char *root)
 		if (ret || !S_ISREG(s.st_mode))
 			continue;
 
-		ret = blspec_scan_file(bootentries, root, configname);
-		if (ret > 0)
-			found += ret;
+		entry = blspec_load_file(bootentries, root, configname);
+		if (!IS_ERR(entry)) {
+			bootentries_add_entry(bootentries, &entry->entry);
+			found++;
+		}
 	}
 
 	ret = found;
@@ -818,13 +821,19 @@ static int blspec_bootentry_provider(struct bootentries *bootentries,
 		if (ret)
 			goto out;
 
-		if (S_ISDIR(s.st_mode))
+		if (S_ISDIR(s.st_mode)) {
 			ret = blspec_scan_directory(bootentries, name);
-		else if (S_ISREG(s.st_mode) && strends(name, ".conf"))
-			ret = blspec_scan_file(bootentries, NULL, name);
-		if (ret > 0)
-			found += ret;
+			if (ret > 0)
+				found += ret;
+		} else if (S_ISREG(s.st_mode) && strends(name, ".conf")) {
+			struct blspec_entry *entry;
 
+			entry = blspec_load_file(bootentries, NULL, name);
+			if (!IS_ERR(entry)) {
+				bootentries_add_entry(bootentries, &entry->entry);
+				found++;
+			}
+		}
 out:
 		free(nfspath);
 	}

@@ -23,7 +23,5 @@ int blspec_scan_devices(struct bootentries *bootentries);
 int blspec_scan_device(struct bootentries *bootentries, struct device *dev);
 int blspec_scan_devicename(struct bootentries *bootentries, const char *devname);
 int blspec_scan_directory(struct bootentries *bootentries, const char *root);
-int blspec_scan_file(struct bootentries *bootentries, const char *root,
-		     const char *configname);
 
 #endif /* __LOADER_H__ */
