@@ -137,7 +137,7 @@ extern const void *of_get_property(const struct device_node *np,
 				const char *name, int *lenp);
 extern struct device_node *of_get_cpu_node(int cpu, unsigned int *thread);
 
-extern int of_set_property(struct device_node *node, const char *p,
+extern struct property *__of_set_property(struct device_node *node, const char *p,
 			const void *val, int len, int create);
 extern int of_append_property(struct device_node *np, const char *p,
 			      const void *val, int len);
@@ -568,10 +568,10 @@ static inline struct device_node *of_get_cpu_node(int cpu,
 	return NULL;
 }
 
-static inline int of_set_property(struct device_node *node, const char *p,
+static inline struct property *__of_set_property(struct device_node *node, const char *p,
 			const void *val, int len, int create)
 {
-	return -ENOSYS;
+	return ERR_PTR(-ENOSYS);
 }
 
 static inline int of_append_property(struct device_node *np, const char *p,
@@ -1194,6 +1194,20 @@ static inline int of_property_write_u64(struct device_node *np,
 					u64 value)
 {
 	return of_property_write_u64_array(np, propname, &value, 1);
+}
+
+/**
+ * of_set_property - create a property for a given node
+ * @node - the node
+ * @name - the name of the property
+ * @val - the value for the property
+ * @len - the length of the properties value
+ * @create - if true, the property is created if not existing already
+ */
+static inline int of_set_property(struct device_node *np, const char *name, const void *val,
+				  int len, int create)
+{
+	return PTR_ERR_OR_ZERO(__of_set_property(np, name, val, len, create));
 }
 
 extern const struct of_device_id of_default_bus_match_table[];

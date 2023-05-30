@@ -2334,33 +2334,20 @@ struct property *of_copy_property(const struct device_node *src,
 }
 EXPORT_SYMBOL_GPL(of_copy_property);
 
-
-/**
- * of_set_property - create a property for a given node
- * @node - the node
- * @name - the name of the property
- * @val - the value for the property
- * @len - the length of the properties value
- * @create - if true, the property is created if not existing already
- */
-int of_set_property(struct device_node *np, const char *name, const void *val, int len,
-		int create)
+struct property *__of_set_property(struct device_node *np, const char *name, const void *val,
+				 int len, int create)
 {
 	struct property *pp = of_find_property(np, name, NULL);
 
 	if (!np)
-		return -ENOENT;
+		return ERR_PTR(-ENOENT);
 
 	if (!pp && !create)
-		return -ENOENT;
+		return ERR_PTR(-ENOENT);
 
 	of_delete_property(pp);
 
-	pp = of_new_property(np, name, val, len);
-	if (!pp)
-		return -ENOMEM;
-
-	return 0;
+	return of_new_property(np, name, val, len);
 }
 
 int of_append_property(struct device_node *np, const char *name, const void *val, int len)

@@ -26,11 +26,17 @@
 /*
  * blspec_entry_var_set - set a variable to a value
  */
-int blspec_entry_var_set(struct blspec_entry *entry, const char *name,
-		const char *val)
+static const char *blspec_entry_var_set(struct blspec_entry *entry, const char *name,
+					const char *val)
 {
-	return of_set_property(entry->node, name, val,
-			val ? strlen(val) + 1 : 0, 1);
+	struct property *pp;
+
+	pp = __of_set_property(entry->node, name, val,
+			       val ? strlen(val) + 1 : 0, 1);
+	if (IS_ERR(pp))
+		return NULL;
+
+	return of_property_get_value(pp);
 }
 
 static int blspec_overlay_fixup(struct device_node *root, void *ctx)
