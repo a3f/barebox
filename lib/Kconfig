@@ -107,7 +107,7 @@ config IMAGE_SPARSE
 	bool
 
 config STMP_DEVICE
-	bool "STMP device support" if COMPILE_TEST
+	bool "STMP device support"
 
 config FSL_QE_FIRMWARE
 	select CRC32
@@ -166,6 +166,13 @@ config PROGRESS_NOTIFIER
 	help
 	  This is selected by boards that register a notifier to visualize
 	  progress, like blinking a LED during an update.
+
+config VERSION_CMP
+	bool "version comparison utilities" if COMPILE_TEST
+	help
+	  This is selected by code that needs to compare versions
+	  in a manner compatible with
+	    https://uapi-group.org/specifications/specs/version_format_specification
 
 config PRINTF_UUID
 	bool
