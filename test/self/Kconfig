@@ -40,6 +40,7 @@ config SELFTEST_ENABLE_ALL
 	imply SELFTEST_MMU
 	imply SELFTEST_REGULATOR
 	imply SELFTEST_STRING
+	imply SELFTEST_SETJMP
 	help
 	  Selects all self-tests compatible with current configuration
 
@@ -86,5 +87,9 @@ config SELFTEST_DIGEST
 config SELFTEST_STRING
 	bool "String library selftest"
 	select VERSION_CMP
+
+config SELFTEST_SETJMP
+	bool "setjmp/longjmp library selftest"
+	depends on ARCH_HAS_SJLJ
 
 endif
