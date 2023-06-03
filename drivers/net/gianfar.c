@@ -234,7 +234,7 @@ static int gfar_set_ethaddr(struct eth_device *edev, const unsigned char *mac)
 {
 	struct gfar_private *priv = edev->priv;
 	void __iomem *regs = priv->regs;
-	char tmpbuf[MAC_ADDR_LEN];
+	char tmpbuf[8] = {};
 	uint tempval;
 	int ix;
 
