@@ -593,10 +593,11 @@ endif
 # We need some generic definitions.
 include $(srctree)/scripts/Makefile.lib
 
-# Objects we will link into barebox / subdirs we need to visit
-common-y		:= common/ drivers/ commands/ lib/ crypto/ net/ fs/ firmware/ test/
 
+# Objects we will link into barebox / subdirs we need to visit
 include $(srctree)/arch/$(SRCARCH)/Makefile
+
+common-y		+= common/ drivers/ commands/ lib/ crypto/ net/ fs/ firmware/ test/
 
 ifdef need-config
 ifdef may-sync-config
