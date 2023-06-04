@@ -75,6 +75,11 @@ RUN korg_crosstool_dl() { wget -O - https://mirrors.edge.kernel.org/pub/tools/cr
     korg_crosstool_dl x86_64 ${GCC_VERSION} powerpc-linux     && \
     korg_crosstool_dl x86_64 ${GCC_VERSION} riscv64-linux
 
+RUN curl --location --show-error --silent --output gcc-kvx.tar.gz https://github.com/kalray/build-scripts/releases/download/v4.12.0/gcc-kalray-kvx-ubuntu-22.04-v4.12.0.tar.gz \
+  && echo '41e3d446762a208fa6df017da97b3cdd873e773f3f88ef400a9e711dd8706334 gcc-kvx.tar.gz' | sha256sum --check \
+  && tar -C /opt/ -xzf gcc-kvx.tar.gz \
+  && rm gcc-kvx.tar.gz
+
 RUN wget "https://github.com/qemu/qemu/blob/v5.2.0/pc-bios/opensbi-riscv32-generic-fw_dynamic.bin?raw=true" -O /usr/share/qemu/opensbi-riscv32-generic-fw_dynamic.bin
 
 # Create our user/group
@@ -94,6 +99,7 @@ ENV CROSS_COMPILE_mips=/opt/gcc-${GCC_VERSION}-nolibc/mips-linux/bin/mips-linux-
 ENV CROSS_COMPILE_openrisc=/opt/gcc-${GCC_VERSION}-nolibc/or1k-linux/bin/or1k-linux-
 ENV CROSS_COMPILE_powerpc=/opt/gcc-${GCC_VERSION}-nolibc/powerpc-linux/bin/powerpc-linux-
 ENV CROSS_COMPILE_riscv=/opt/gcc-${GCC_VERSION}-nolibc/riscv64-linux/bin/riscv64-linux-
+ENV CROSS_COMPILE_kvx=/opt/gcc-kalray-kvx-v4.12.0/bin/kvx-elf-
 
 CMD export TESTYTEST=1
 
