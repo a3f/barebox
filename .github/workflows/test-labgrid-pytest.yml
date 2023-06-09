@@ -1,4 +1,4 @@
-name: test images with labgrid-pytest
+name: test images
 
 on: [push, pull_request]
 
@@ -11,6 +11,7 @@ jobs:
       options: --user=root --privileged -v /dev:/dev
 
     strategy:
+      fail-fast: false
       matrix:
 
         include:
@@ -34,19 +35,17 @@ jobs:
             lgenv: test/riscv/qemu@virt32_defconfig.yaml
             defconfig: virt32_defconfig
 
+          - ARCH: riscv
+            lgenv: 'test/riscv/qemu-virt64@rv64i_defconfig.yaml'
+            defconfig: rv64i_defconfig
+
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Build
       run: |
         export ARCH=${{matrix.arch}}
-
-        export CROSS_COMPILE_arm=/opt/gcc-12.2.0-nolibc/arm-linux-gnueabi/bin/arm-linux-gnueabi-
-        export CROSS_COMPILE_arm64=/opt/gcc-12.2.0-nolibc/aarch64-linux/bin/aarch64-linux-
-        export CROSS_COMPILE_mips=/opt/gcc-12.2.0-nolibc/mips-linux/bin/mips-linux-
-        export CROSS_COMPILE_powerpc=/opt/gcc-12.2.0-nolibc/powerpc-linux/bin/powerpc-linux-
-        export CROSS_COMPILE_riscv=/opt/gcc-12.2.0-nolibc/riscv32-linux/bin/riscv32-linux-
 
         ./test/generate-dummy-fw.sh
 
@@ -65,6 +64,24 @@ jobs:
         export KBUILD_OUTPUT=build-${{matrix.arch}}
 
         for i in ${{matrix.lgenv}}; do
-          echo "Testing $i"
-          labgrid-pytest --lg-env $i test/py --verbosity=1 --lg-log
+          grep -wqe QEMUDriver: "$i" || continue
+
+          cfg=$(basename $i .yaml)
+          echo "Testing $cfg"
+          labgrid-pytest --lg-env $i test/py --verbosity=1 \
+          --junitxml=$cfg.tests.xml --lg-log=log/$cfg
         done
+
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        files: ./*.tests.xml
+
+    - name: Publish Labgrid Log Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: Console Logs
+        path: log/
+        if-no-files-found: error
