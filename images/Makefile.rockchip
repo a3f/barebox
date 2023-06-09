@@ -11,6 +11,14 @@ pblb-$(CONFIG_MACH_PHYTEC_SOM_RK3288) += start_rk3288_phycore_som
 FILE_barebox-rk3288-phycore-som.img = start_rk3288_phycore_som.pblb
 image-$(CONFIG_MACH_PHYTEC_SOM_RK3288) += barebox-rk3288-phycore-som.img
 
+pblb-$(CONFIG_MACH_RADXA_ROCK_PI) += start_radxa_rock_pi_n10
+image-$(CONFIG_MACH_RADXA_ROCK_PI) += barebox-radxa-rock-pi-n10.img
+OPTS_barebox-radxa-rock-pi-n10.img = -s rk3399
+
+pblb-$(CONFIG_MACH_PINE64_ROCKPRO64) += start_pine64_rockpro64
+image-$(CONFIG_MACH_PINE64_ROCKPRO64) += barebox-pine64-rockpro64.img
+OPTS_barebox-pine64-rockpro64.img = -s rk3399
+
 pblb-$(CONFIG_MACH_RK3568_EVB) += start_rk3568_evb
 image-$(CONFIG_MACH_RK3568_EVB) += barebox-rk3568-evb.img
 OPTS_barebox-rk3568-evb.img = -s rk3568
@@ -32,6 +40,14 @@ image-$(CONFIG_MACH_RADXA_CM3) += barebox-radxa-cm3-io.img
 
 quiet_cmd_rkimg_image = RK-IMG $@
       cmd_rkimg_image = $(objtree)/scripts/rkimage $(OPTS_$(@F)) -o $@ $(word 2,$^) $(word 1,$^)
+
+$(obj)/barebox-radxa-rock-pi-n10.img: $(obj)/start_radxa_rock_pi_n10.pblb \
+                $(board)/radxa-rock-pi/sdram-init.bin
+	$(call if_changed,rkimg_image)
+
+$(obj)/barebox-pine64-rockpro64.img: $(obj)/start_pine64_rockpro64.pblb \
+                $(board)/pine64-rockpro64/sdram-init.bin
+	$(call if_changed,rkimg_image)
 
 $(obj)/barebox-rk3568-evb.img: $(obj)/start_rk3568_evb.pblb \
                 $(board)/rockchip-rk3568-evb/sdram-init.bin
