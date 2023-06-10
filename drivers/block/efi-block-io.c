@@ -146,7 +146,6 @@ static bool is_bio_usbdev(struct efi_device *efidev)
 
 static int efi_bio_probe(struct efi_device *efidev)
 {
-	int ret;
 	int instance;
 	struct efi_bio_priv *priv;
 	struct efi_block_io_media *media;
