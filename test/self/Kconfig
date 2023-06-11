@@ -92,6 +92,10 @@ config SELFTEST_SETJMP
 	bool "setjmp/longjmp library selftest"
 	depends on ARCH_HAS_SJLJ
 
+config SELFTEST_BLSPEC
+	bool "bootloader spec selftest"
+	depends on BLSPEC && DEFAULT_ENVIRONMENT
+
 config SELFTEST_REGULATOR
 	bool "Regulator selftest"
 	depends on REGULATOR && OFDEVICE
