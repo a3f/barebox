@@ -209,29 +209,60 @@ static struct blspec_entry *blspec_entry_alloc(struct bootentries *bootentries)
 	return entry;
 }
 
-/*
- * blspec_entry_open - open an entry given a path
- */
-static struct blspec_entry *blspec_entry_open(struct bootentries *bootentries,
-		const char *abspath)
+static int blspec_entry_handle_opts(const char *name,
+				    const char *val,
+				    void *priv)
 {
-	struct blspec_entry *entry;
+	struct blspec_entry *entry = priv;
+	const char *of_val;
+
+	if (!val) {
+		blspec_entry_var_set(entry, name, NULL);
+		return 0;
+	}
+
+	if (!strcmp(name, "options")) {
+		/* If there was a previous "options" key given, prepend its value
+		 * (as per spec). */
+		const char *prev_val = blspec_entry_var_get(entry, name);
+		if (prev_val) {
+			char *opts = xasprintf("%s %s", prev_val, val);
+			blspec_entry_var_set(entry, name, opts);
+			free(opts);
+			return 0;
+		}
+	}
+
+	of_val = blspec_entry_var_set(entry, name, val);
+
+	/* This will be read often during comparison, so we cache it */
+	if (of_val && !strcmp(name, "sort-key"))
+		entry->sortkey = of_val;
+
+	return 0;
+}
+
+/*
+ * blspec_process_file - invoke callback for each option
+ */
+static int blspec_parse_file(const char *abspath,
+		int (*handler)(const char *, const char *, void *),
+		void *priv)
+{
 	char *end, *line, *next;
 	char *buf;
+	int ret = 0;
 
 	pr_debug("%s: %s\n", __func__, abspath);
 
 	buf = read_file(abspath, NULL);
 	if (!buf)
-		return ERR_PTR(-errno);
-
-	entry = blspec_entry_alloc(bootentries);
+		return -errno;
 
 	next = buf;
 
 	while (next && *next) {
-		const char *of_val;
-		char *name, *val;
+		char *name;
 
 		line = next;
 
@@ -251,7 +282,9 @@ static struct blspec_entry *blspec_entry_open(struct bootentries *bootentries,
 			end++;
 
 		if (!*end) {
-			blspec_entry_var_set(entry, name, NULL);
+			ret = handler(name, NULL, priv);
+			if (ret)
+				break;
 			continue;
 		}
 
@@ -262,33 +295,32 @@ static struct blspec_entry *blspec_entry_open(struct bootentries *bootentries,
 		while (*end == ' ' || *end == '\t')
 			end++;
 
-		if (!*end) {
-			blspec_entry_var_set(entry, name, NULL);
-			continue;
-		}
-
-		val = end;
-
-		if (!strcmp(name, "options")) {
-			/* If there was a previous "options" key given, prepend its value
-			 * (as per spec). */
-			const char *prev_val = blspec_entry_var_get(entry, name);
-			if (prev_val) {
-				char *opts = xasprintf("%s %s", prev_val, val);
-				blspec_entry_var_set(entry, name, opts);
-				free(opts);
-				continue;
-			}
-		}
-
-		of_val = blspec_entry_var_set(entry, name, val);
-
-		/* This will be read often during comparison, so we cache it */
-		if (of_val && !strcmp(name, "sort-key"))
-			entry->sortkey = of_val;
+		ret = handler(name, *end ? end : NULL, priv);
+		if (ret)
+			break;
 	}
 
 	free(buf);
+
+	return ret;
+}
+
+/*
+ * blspec_entry_open - open an entry given a path
+ */
+static struct blspec_entry *blspec_entry_open(struct bootentries *bootentries,
+		const char *abspath)
+{
+	struct blspec_entry *entry;
+	int ret;
+
+	pr_debug("%s: %s\n", __func__, abspath);
+
+	entry = blspec_entry_alloc(bootentries);
+
+	ret = blspec_parse_file(abspath, blspec_entry_handle_opts, entry);
+	if (ret)
+		return ERR_PTR(ret);
 
 	return entry;
 }
