@@ -35,5 +35,6 @@ pwd_real=$(realpath $PWD)
 
 exec podman run -it -v "$PWD:$PWD:z" -v "$pwd_real:$pwd_real:z" --rm \
 	-e TERM -e ARCH -e CONFIG -e JOBS -e LOGDIR -e REGEX \
+	-e KBUILD_OUTPUT -e LG_BUILDDIR \
 	-e KCONFIG_ADD -w "$PWD" --userns=keep-id \
 	-- "$CONTAINER" "${@:-/bin/bash}"
