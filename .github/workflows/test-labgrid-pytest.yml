@@ -49,11 +49,8 @@ jobs:
 
     - name: Build
       run: |
-        export ARCH=${{matrix.arch}}
-
-        ./test/generate-dummy-fw.sh
-
-        ./MAKEALL -O build-${{matrix.arch}} -k test/kconfig/enable_self_test.kconf \
+        ./MAKEALL -a ${{matrix.arch}} -O build-${{matrix.arch}} \
+                -k test/kconfig/enable_self_test.kconf \
                 -k test/kconfig/disable_target_tools.kconf ${{matrix.defconfig}}
     - name: labgrid-pytest
       run: |
