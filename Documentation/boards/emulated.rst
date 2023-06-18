@@ -20,56 +20,51 @@ fix up the virtio mmio regions into the device tree and barebox will
 discover the devices automatically, analogously to what it does with
 VirtIO over PCI.
 
-test/emulate.pl
----------------
+labgrid-pytest
+--------------
 
-The ``emulate.pl`` script shipped with barebox can be used to easily
-start VMs. It reads a number of YAML files in ``test/$ARCH``, which
-describe some virtualized targets that barebox is known to run on.
+barebox ships with a number of Labgrid environment YAML files in
+``test/$ARCH``, which describe some virtualized targets that barebox
+is known to run on. See the labgrid docs for how to install it or
+use the barebox container by prefixing ``pytest`` invocations
+with ``./scripts/container.sh``.
 
-Controlled by command line options, these targets are built with
-tuxmake if available and loaded into the emulator for either interactive
-use or for automated testing with Labgrid ``QEMUDriver``.
-
-.. _tuxmake: https://pypi.org/project/tuxmake/
 .. _Labgrid: https://labgrid.org
-
-Install dependencies for interactive use::
-
-  cpan YAML::XS # or use e.g. libyaml-libyaml-perl on Debian
-  pip3 install tuxmake # optional
 
 Example usage::
 
   # Switch to barebox source directory
   cd barebox
 
-  # emulate x86 VM runnig the EFI payload from efi_defconfig
-  ARCH=x86 ./test/emulate.pl efi_defconfig
+  export LG_BUILDDIR=build-x86
 
-  # build all MIPS targets known to emulate.pl and exit
-  ARCH=mips ./test/emulate.pl --no-emulate
+  # emulate x86 VM runnig the EFI payload from efi_defconfig
+  scripts/container.sh ./MAKEALL -a x86 -O $LG_BUILDDIR efi_defconfig
+
+  scripts/container.sh pytest --lg-env test/x86/efi_defconfig.yaml
 
 The script can also be used with a precompiled barebox tree::
 
-  # Switch to build directory
-  export KBUILD_OUTPUT=build
+  export LG_BUILDDIR=/path/to/barebox/build
 
-  # run a barebox image built outside tuxmake on an ARM virt machine
-  ARCH=arm ./test/emulate.pl virt@multi_v7_defconfig --no-tuxmake
+  # run barebox interactively
+  pytest --lg-env test/arm/virt@multi_v7_defconfig.yaml --interactive
 
-  # run tests instead of starting emulator interactively
-  ARCH=arm ./test/emulate.pl virt@multi_v7_defconfig --no-tuxmake --test
-
-``emulate.pl`` also has some knowledge on paravirtualized devices::
+The ``pytest`` setup also has some knowledge of paravirtualized devices::
 
   # Run target and pass a block device (here /dev/virtioblk0)
-  ARCH=riscv ./test/emulate.pl --blk=rootfs.ext4 rv64i_defconfig
+  pytest --lg-env=test/arm/multi_v8_defconfig.yaml --blk=rootfs.ext4 --interactive
 
-Needed command line options can be passed directly to the
-emulator/``pytest`` as well by placing them behind ``--``::
+Extra command line options for Qemu can be passed directly by prefixing
+each option with ``--qemu``::
 
   # appends -device ? to the command line. Add -n to see the final result
-  ARCH=riscv ./test/emulate.pl rv64i_defconfig -- -device ?
+  pytest --lg-env=test/riscv/rv64i_defconfig.yaml --interactive --qemu=-device --qemu=?
 
-For a complete listing of options run ``./test/emulate.pl -h``.
+For more flexibility, the used Qemu command line can be dumped by passing
+``--dry-run`` and then used independently::
+
+  # appends -device ? to the command line. Add -n to see the final result
+  pytest --lg-env=test/riscv/rv64i_defconfig.yaml --interactive --dry-run
+
+For a complete listing of options run ``pytest -h``.
