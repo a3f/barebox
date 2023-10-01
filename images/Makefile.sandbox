@@ -10,6 +10,7 @@ LDFLAGS_main = -fsanitize=fuzzer
 sandbox-$(CONFIG_FUZZ_EXTERNAL) += fuzz-barebox
 
 fuzzer-$(CONFIG_FITIMAGE)	+= fit
+fuzzer-y			+= printf
 
 ifeq ($(CONFIG_SANDBOX),y)
 
