@@ -15,6 +15,7 @@
 #include <linux/virtio_ring.h>
 #include <linux/bug.h>
 #include <dma.h>
+#include <fuzz.h>
 
 #define vq_debug(vq, fmt, ...) \
 	dev_dbg(&vq->vdev->dev, fmt, ##__VA_ARGS__)
@@ -435,3 +436,76 @@ int virtio_notify(struct virtio_device *vdev, struct virtqueue *vq)
 {
 	return vdev->config->notify(vdev, vq);
 }
+
+static struct virtio_device *fuzz_vring_get_device(void)
+{
+	static struct virtio_device *vdev = NULL;
+	struct bus_type *bus;
+
+	if (vdev)
+		return vdev;
+
+	for_each_bus(bus) {
+		struct device *dev;
+
+		if (strcmp(bus->name, "virtio"))
+			continue;
+
+		bus_for_each_device(bus, dev) {
+			dev_dbg(dev, "selected for fuzzing\n");
+			return dev_to_virtio(dev);
+		}
+	}
+
+	return NULL;
+}
+
+static int fuzz_vring(const uint8_t *data, size_t size)
+{
+	struct virtio_device *vdev;
+	struct virtqueue *vq;
+	struct virtio_sg sg[2];
+	struct virtio_sg *sgs[2];
+	unsigned int len;
+	u8 buffer[2][32];
+
+	/* hackily hardcode vring sizes */
+	size_t num = 4;
+	size_t desc_size = (sizeof(struct vring_desc) * num);
+	size_t avail_size = (3 + num) * sizeof(u16);
+	size_t used_size = (3 * sizeof(u16)) + (sizeof(struct vring_used_elem) * num);
+
+	if (size < (desc_size + avail_size + used_size))
+		return 0;
+
+	/* prepare the scatter-gather buffer */
+	sg[0].addr = buffer[0];
+	sg[0].length = sizeof(buffer[0]);
+	sg[1].addr = buffer[1];
+	sg[1].length = sizeof(buffer[1]);
+	sgs[0] = &sg[0];
+	sgs[1] = &sg[1];
+
+	vdev = fuzz_vring_get_device();
+	if (!vdev)
+		panic("Could not find virtio device\n");
+
+	// TODO currently always fails to find vqs
+	if (virtio_find_vqs(vdev, 1, &vq))
+		panic("Could not find vqs\n");
+	if (virtqueue_add(vq, sgs, 0, 1))
+		panic("Could not add to virtqueue\n");
+	/* Simulate device writing to vring */
+	memcpy(vq->vring.desc, data, desc_size);
+	memcpy(vq->vring.avail, data + desc_size, avail_size);
+	memcpy(vq->vring.used, data + desc_size + avail_size, used_size);
+	/* Make sure there is a response */
+	if (vq->vring.used->idx == 0)
+		vq->vring.used->idx = 1;
+	virtqueue_get_buf(vq, &len);
+	if (vdev->config->del_vqs(vdev))
+		panic("Could not delete vqs\n");
+
+	return 0;
+}
+fuzz_test("vring", fuzz_vring);
