@@ -615,6 +615,9 @@ static void* block_prepare_used(control_t* control, block_header_t* block,
 		kasan_poison_shadow(&block->size, size + 2 * sizeof(size_t),
 			    KASAN_KMALLOC_REDZONE);
 		kasan_unpoison_shadow(p, used);
+
+		if (IS_ENABLED(CONFIG_INIT_ON_ALLOC_DEFAULT_ON))
+			memset(p, 0x00, size);
 	}
 	return p;
 }
@@ -1023,6 +1026,8 @@ void tlsf_free(tlsf_t tlsf, void* ptr)
 		control_t* control = tlsf_cast(control_t*, tlsf);
 		block_header_t* block = block_from_ptr(ptr);
 		tlsf_assert(!block_is_free(block) && "block already marked as free");
+		if (IS_ENABLED(CONFIG_INIT_ON_FREE_DEFAULT_ON))
+			memset(ptr, 0x00, block_size(block));
 		kasan_poison_shadow(ptr, block_size(block), 0xff);
 		block_mark_as_free(block);
 		block = block_merge_prev(control, block);

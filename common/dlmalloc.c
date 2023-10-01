@@ -6,6 +6,7 @@
 #include <memory.h>
 #include <linux/overflow.h>
 #include <linux/build_bug.h>
+#include <linux/compiler.h>
 
 #include <stdio.h>
 #include <module.h>
@@ -1152,7 +1153,7 @@ static void malloc_extend_top(INTERNAL_SIZE_T nb)
       chunk borders either a previously allocated and still in-use chunk,
       or the base of its memory arena.)
 */
-void *malloc(size_t bytes)
+static void *malloc_nonzeroed(size_t bytes)
 {
 	mchunkptr victim;	/* inspected/selected chunk */
 	INTERNAL_SIZE_T victim_size;	/* its size */
@@ -1339,6 +1340,12 @@ void *malloc(size_t bytes)
 	return chunk2mem(victim);
 }
 
+#ifdef CONFIG_INIT_ON_ALLOC_DEFAULT_ON
+void *malloc(size_t bytes) { return calloc(bytes, 1); }
+#else
+void *malloc(size_t) __alias(malloc_nonzeroed);
+#endif
+
 /*
   free() algorithm :
 
@@ -1380,6 +1387,9 @@ void free(void *mem)
 	sz = hd & ~PREV_INUSE;
 	next = chunk_at_offset(p, sz);
 	nextsz = chunksize(next);
+
+	if (IS_ENABLED(CONFIG_INIT_ON_FREE_DEFAULT_ON))
+		memset(mem, 0x00, sz);
 
 	if (next == top) { /* merge with top */
 		sz += nextsz;
@@ -1763,7 +1773,7 @@ void *calloc(size_t n, size_t elem_size)
 		return NULL;
 	}
 
-	mem = malloc(sz);
+	mem = malloc_nonzeroed(sz);
 
 	if (!mem)
 		return NULL;
