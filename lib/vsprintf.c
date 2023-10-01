@@ -21,6 +21,7 @@
 #include <wchar.h>
 #include <of.h>
 #include <efi.h>
+#include <fuzz.h>
 
 #include <common.h>
 #include <pbl.h>
@@ -991,3 +992,19 @@ char *basprintf(const char *fmt, ...)
 	return p;
 }
 EXPORT_SYMBOL(basprintf);
+
+static int __maybe_unused fuzz_printf(const uint8_t *data, size_t size)
+{
+	static bool initialized = false;
+
+	if (!initialized) {
+		printf("initializing\n");
+		initialized = true;
+	}
+
+	printf("%*ph\n", (int)size, data);
+	return 0;
+}
+#ifdef CONFIG_PRINTF_HEXSTR
+fuzz_test("printf", fuzz_printf);
+#endif
