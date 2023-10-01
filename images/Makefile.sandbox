@@ -13,6 +13,8 @@ sandbox-$(CONFIG_FUZZ_EXTERNAL) += fuzz-barebox
 FILE_../barebox = barebox
 sandbox-$(CONFIG_SANDBOX) += ../barebox
 
+fuzzer-$(CONFIG_FITIMAGE)	+= fit
+
 ifeq ($(CONFIG_SANDBOX),y)
 
 quiet_cmd_elf__ = LD      $@
