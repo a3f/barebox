@@ -23,6 +23,7 @@
 #include <rsa.h>
 #include <uncompress.h>
 #include <image-fit.h>
+#include <fuzz.h>
 
 #define FDT_MAX_DEPTH 32
 #define FDT_MAX_PATH_LEN 200
@@ -949,12 +950,16 @@ struct fit_handle *fit_open(const char *filename, bool verbose,
 	return handle;
 }
 
-void fit_close(struct fit_handle *handle)
+static void __fit_close(struct fit_handle *handle)
 {
 	if (handle->root)
 		of_delete_node(handle->root);
-
 	free(handle->fit_alloc);
+}
+
+void fit_close(struct fit_handle *handle)
+{
+	__fit_close(handle);
 	free(handle);
 }
 
@@ -995,3 +1000,43 @@ static __maybe_unused int sandbox_fit_register(void)
 #ifdef CONFIG_SANDBOX
 late_initcall(sandbox_fit_register);
 #endif
+
+static int fuzz_fit(const u8 *data, size_t size)
+{
+	const char *imgname = "kernel";
+	struct fit_handle handle = {};
+	const void *outdata;
+	unsigned long outsize, addr;
+	int ret;
+	void *config;
+
+	handle.verbose = false;
+	handle.verify = false;
+
+	handle.size = size;
+	handle.fit = data;
+	handle.fit_alloc = NULL;
+
+	ret = fit_do_open(&handle);
+	if (ret)
+		goto out;
+
+	config = fit_open_configuration(&handle, NULL);
+	if (IS_ERR(config)) {
+		ret = PTR_ERR(config);
+		goto out;
+	}
+
+	ret = fit_open_image(&handle, config, imgname, &outdata, &outsize);
+	if (ret)
+		goto out;
+
+	fit_get_image_address(&handle, config, imgname, "load", &addr);
+	fit_get_image_address(&handle, config, imgname, "entry", &addr);
+
+out:
+	__fit_close(&handle);
+
+	return ret;
+}
+fuzz_test("fit", fuzz_fit);
