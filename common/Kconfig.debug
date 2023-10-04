@@ -126,7 +126,8 @@ source "lib/kasan/Kconfig"
 
 config ASAN
 	bool "ASAN: runtime memory debugger"
-	depends on HAVE_ARCH_ASAN
+	depends on SANDBOX
+	select SANDBOX_SJLJ_ASM
 	help
 	  Enables ASAN (AddressSANitizer) - runtime memory debugger,
 	  designed to find out-of-bounds accesses and use-after-free bugs.
