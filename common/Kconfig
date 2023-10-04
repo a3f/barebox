@@ -1312,6 +1312,9 @@ config DDR_SPD
 	bool
 	select CRC_ITU_T
 
+config ARCH_HAS_ASAN_FIBER_API
+	bool
+
 config HAVE_ARCH_ASAN
 	bool
 
