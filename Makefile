@@ -763,23 +763,25 @@ export KBUILD_BINARY ?= barebox.bin
 # Also any assignments in arch/$(SRCARCH)/Makefile take precedence over
 # the default value.
 
+export BAREBOX_PROPER ?= barebox.bin
+
 barebox-flash-image: $(KBUILD_IMAGE) FORCE
 	$(call if_changed,ln)
 
 barebox-flash-images: $(KBUILD_IMAGE)
 	@echo $^ > $@
 
-images: barebox.bin FORCE
+images: $(BAREBOX_PROPER) FORCE
 	$(Q)$(MAKE) $(build)=images $@
-images/%.s: barebox.bin FORCE
+images/%.s: $(BAREBOX_PROPER) FORCE
 	$(Q)$(MAKE) $(build)=images $@
 
 ifdef CONFIG_EFI_STUB
-all: barebox.bin images barebox.efi
+all: $(BAREBOX_PROPER) images barebox.efi
 barebox.efi: FORCE
 	$(Q)ln -fsn images/barebox-dt-2nd.img $@
 else ifdef CONFIG_PBL_IMAGE
-all: barebox.bin images
+all: $(BAREBOX_PROPER) images
 else
 all: barebox-flash-image barebox-flash-images
 endif
@@ -975,7 +977,7 @@ ifeq ($(INSTALL_PATH),)
 endif
 ifdef CONFIG_PBL_IMAGE
 	$(Q)$(MAKE) $(build)=images __images_install
-	@install -t "$(INSTALL_PATH)" barebox.bin
+	@install -t "$(INSTALL_PATH)" $(BAREBOX_PROPER)
 else
 	@install -t "$(INSTALL_PATH)" $(KBUILD_IMAGE)
 endif
