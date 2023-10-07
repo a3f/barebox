@@ -13,6 +13,4 @@ obj-y += watchdog.o
 obj-$(CONFIG_CMD_SANDBOX_CPUINFO) += cpuinfo.o
 obj-$(CONFIG_LED) += led.o
 
-extra-y += barebox.lds
-
 obj-y += stickypage.o
