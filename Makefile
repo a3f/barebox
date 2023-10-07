@@ -1011,6 +1011,18 @@ barebox: $(BAREBOX_LDS) $(BAREBOX_OBJS) $(kallsyms.o) FORCE
 barebox.srec: barebox
 	$(OBJCOPY) -O srec $< $@
 
+quiet_cmd_barebox_proper__ = CC      $@
+      cmd_barebox_proper__ = $(CC) -r -o $@ -Wl,--whole-archive $(BAREBOX_OBJS)
+
+.tmp_barebox.o: $(BAREBOX_OBJS) $(kallsyms.o) FORCE
+	$(if $(CONFIG_KALLSYMS),,+$(call cmd,barebox_version))
+	$(call cmd,barebox_proper__)
+	$(Q)echo 'cmd_$@ := $(cmd_barebox_proper__)' > $(@D)/.$(@F).cmd
+	$(Q)rm -f .old_version
+
+barebox.o: .tmp_barebox.o FORCE
+	$(call if_changed,objcopy)
+
 # The actual objects are generated when descending,
 # make sure no implicit rule kicks in
 $(sort $(BAREBOX_OBJS)) $(BAREBOX_LDS) $(BAREBOX_PBL_OBJS): $(barebox-dirs) ;
@@ -1207,7 +1219,7 @@ CLEAN_DIRS  += $(MODVERDIR)
 CLEAN_FILES +=	barebox System.map include/generated/barebox_default_env.h \
                 .tmp_version .tmp_barebox* barebox.bin barebox.map \
 		.tmp_kallsyms* barebox.ldr compile_commands.json \
-		barebox-flash-image \
+		.tmp_barebox.o barebox.o barebox-flash-image \
 		barebox.srec barebox.s5p barebox.ubl \
 		barebox.uimage \
 		barebox.efi barebox.canon-a1100.bin
