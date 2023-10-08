@@ -33,4 +33,14 @@
  */
 #define IS_ENABLED(option) __or(IS_BUILTIN(option), IS_MODULE(option))
 
+/*
+ * IS_PROPER(CONFIG_FOO) evaluates to 1 if CONFIG_FOO is set to 'y', or 'm'
+ * and file is being compiled for barebox proper, 0 otherwise.
+ */
+#ifndef __PBL__
+#define IS_PROPER(option) IS_ENABLED(option)
+#else
+#define IS_PROPER(option) 0
+#endif
+
 #endif /* __LINUX_KCONFIG_H */
