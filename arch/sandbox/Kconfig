@@ -58,6 +58,13 @@ config SANDBOX_REEXEC
 	  The normal reset handler hangs barebox. On Linux, barebox
 	  instead can exec itself to simulate a reset.
 
+config CMD_SANDBOX_CPUINFO
+	bool "cpuinfo command"
+	depends on COMMAND_SUPPORT
+	default y
+	help
+	  Say yes here to get a dummy cpuinfo command.
+
 config SDL
 	bool
 
