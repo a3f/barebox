@@ -70,6 +70,13 @@ config SANDBOX_SJLJ_ASM
 
 	  If unsure, say y.
 
+config CMD_SANDBOX_CPUINFO
+	bool "cpuinfo command"
+	depends on COMMAND_SUPPORT
+	default y
+	help
+	  Say yes here to get a dummy cpuinfo command.
+
 config SDL
 	bool
 
