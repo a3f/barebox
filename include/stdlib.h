@@ -12,11 +12,26 @@ unsigned int rand(void);
 /* set the seed for rand () */
 void srand(unsigned int seed);
 
+struct hwrng;
+
 /* fill a buffer with pseudo-random data */
+#ifndef __PBL__
 void get_random_bytes(void *buf, int len);
 int get_crypto_bytes(void *buf, int len);
-struct hwrng;
 int hwrng_get_crypto_bytes(struct hwrng *rng, void *buf, int len);
+#else
+static inline void get_random_bytes(void *buf, int len)
+{
+}
+static inline int get_crypto_bytes(void *buf, int len)
+{
+	return -ENOSYS;
+}
+static inline int hwrng_get_crypto_bytes(struct hwrng *rng, void *buf, int len)
+{
+	return -ENOSYS;
+}
+#endif
 
 static inline u32 random32(void)
 {
