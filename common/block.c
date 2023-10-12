@@ -446,14 +446,6 @@ static struct cdev_operations block_ops = {
 	.discard_range = block_op_discard_range,
 };
 
-struct block_device *cdev_get_block_device(const struct cdev *cdev)
-{
-	if (!cdev || cdev->ops != &block_ops)
-		return NULL;
-
-	return cdev->priv;
-}
-
 int blockdevice_register(struct block_device *blk)
 {
 	loff_t size = (loff_t)blk->num_blocks * BLOCKSIZE(blk);
@@ -464,6 +456,7 @@ int blockdevice_register(struct block_device *blk)
 	blk->cdev.dev = blk->dev;
 	blk->cdev.ops = &block_ops;
 	blk->cdev.priv = blk;
+	blk->cdev.flags |= DEVFS_IS_BLOCK_DEV;
 	blk->rdbufsize = BUFSIZE >> blk->blockbits;
 
 	INIT_LIST_HEAD(&blk->buffered_blocks);
