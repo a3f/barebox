@@ -436,6 +436,21 @@ enum filetype file_detect_type(const void *_buf, size_t bufsize)
 	return filetype_unknown;
 }
 
+static int fuzz_filetype(const u8 *data, size_t size)
+{
+	void *buf = NULL;
+
+	if (!PTR_IS_ALIGNED(data, sizeof(u64)))
+		data = buf = memdup(data, size);
+
+	file_detect_type(data, size);
+
+	free(buf);
+
+	return 0;
+}
+fuzz_test("filetype", fuzz_filetype);
+
 int file_name_detect_type_offset(const char *filename, loff_t pos, enum filetype *type)
 {
 	int fd, ret;
