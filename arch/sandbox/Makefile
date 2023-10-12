@@ -78,6 +78,7 @@ endif
 endif
 
 ifeq ($(CONFIG_UBSAN),y)
+KBUILD_CPPFLAGS += -fsanitize=undefined
 SANITIZER_LIBS += -fsanitize=undefined
 endif
 
