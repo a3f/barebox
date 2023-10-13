@@ -16,6 +16,7 @@
 #include <filetype.h>
 #include <linux/err.h>
 #include <partitions.h>
+#include <fuzz.h>
 
 static LIST_HEAD(partition_parser_list);
 
@@ -70,6 +71,21 @@ static int register_one_partition(struct block_device *blk, struct partition *pa
 	return 0;
 out:
 	free(partition_name);
+	return ret;
+}
+
+static int remove_one_partition(struct block_device *blk, int no)
+{
+	char *partition_name;
+	int ret;
+
+	partition_name = basprintf("%s.%d", blk->cdev.name, no);
+	if (!partition_name)
+		return -ENOMEM;
+
+	ret = devfs_del_partition(partition_name);
+	free(partition_name);
+
 	return ret;
 }
 
@@ -296,6 +312,44 @@ int partition_parser_register(struct partition_parser *p)
 
 	return 0;
 }
+
+/**
+ * Try to collect partition information on the given block device
+ * @param blk Block device to examine
+ * @return 0 most of the time, negative value else
+ *
+ * It is not a failure if no partition information is found
+ */
+static int fuzz_partition_table_parser(struct block_device *ramdisk)
+{
+	struct partition_desc *pdesc;
+	struct partition *part;
+	int rc = 0;
+	struct partition_parser *parser;
+	u8 buf[2 * SECTOR_SIZE] __aligned(8);
+
+	rc = block_read(ramdisk, buf, 0, 2);
+	if (rc != 0)
+		return rc;
+
+	parser = partition_parser_get_by_filetype(buf);
+	if (!parser)
+		return 0;
+
+	pdesc = parser->parse(buf, ramdisk);
+	if (!pdesc)
+		return 0;
+
+	list_for_each_entry(part, &pdesc->partitions, list) {
+		register_one_partition(ramdisk, part);
+		remove_one_partition(ramdisk, part->num);
+	}
+
+	partition_table_free(pdesc);
+
+	return 0;
+}
+fuzz_test_ramdisk("partitions", fuzz_partition_table_parser);
 
 /**
  * cdev_unallocated_space - return unallocated space
