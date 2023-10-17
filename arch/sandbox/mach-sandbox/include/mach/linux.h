@@ -7,6 +7,10 @@ struct hf_info;
 
 struct device;
 
+int sandbox_main(int argc, char *argv[]);
+
+int selfpath(char *buf, size_t size);
+
 int sandbox_add_device(struct device *dev);
 
 struct fb_bitfield;

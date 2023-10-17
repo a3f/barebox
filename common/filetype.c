@@ -18,6 +18,7 @@
 #include <image-sparse.h>
 #include <elf.h>
 #include <linux/zstd.h>
+#include <fuzz.h>
 
 #include <mach/imx/imx-header.h>
 
