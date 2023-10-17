@@ -5,6 +5,7 @@
 #include <password.h>
 #include <environment.h>
 #include <shell.h>
+#include <fuzz.h>
 
 /*
  * not yet supported

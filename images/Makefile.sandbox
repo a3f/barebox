@@ -4,6 +4,11 @@ pblb-$(CONFIG_SANDBOX) += sandbox_main
 FILE_barebox = sandbox_main.elf
 sandbox-$(CONFIG_SANDBOX) += barebox
 
+pblb-$(CONFIG_FUZZ_EXTERNAL) += main
+FILE_barebox-fuzz = main.elf
+LDFLAGS_main = -fsanitize=fuzzer
+sandbox-$(CONFIG_FUZZ_EXTERNAL) += barebox-fuzz
+
 # create top level hardlink
 FILE_../barebox = barebox
 sandbox-$(CONFIG_SANDBOX) += ../barebox
