@@ -64,6 +64,11 @@ KBUILD_CPPFLAGS += -fsanitize=undefined
 SANDBOX_LIBS += -fsanitize=undefined
 endif
 
+ifeq ($(CONFIG_FUZZ_EXTERNAL),y)
+KBUILD_CPPFLAGS += -fsanitize=fuzzer
+SANDBOX_LIBS += -fsanitize=fuzzer
+endif
+
 ifeq ($(CONFIG_SANDBOX_LINUX_I386),y)
 KBUILD_CFLAGS += -m32
 KBUILD_LDFLAGS += -m elf_i386
@@ -77,7 +82,7 @@ SANDBOX_PROPER2PBL_GLUE_SYMS := \
 	strsep_unescaped start_barebox linux_get_stickypage_path \
 	stickypage mem_malloc_init \
 	barebox_register_filedev barebox_register_dtb barebox_register_console \
-	barebox_errno
+	barebox_errno call_for_each_fuzz_test setup_external_fuzz
 
 OBJCOPYFLAGS_barebox.o := $(addprefix --keep-global-symbol=, $(SANDBOX_PROPER2PBL_GLUE_SYMS))
 
