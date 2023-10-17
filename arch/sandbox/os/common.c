@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <limits.h>
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -46,6 +47,20 @@
 #include <mach/linux.h>
 #include <mach/hostfile.h>
 #include <asm/barebox-sandbox.h>
+
+#ifdef CONFIG_FUZZ_EXTERNAL
+int call_for_each_fuzz_test(int (*fn)(const char **test));
+int setup_external_fuzz(const char *name);
+#else
+static inline int call_for_each_fuzz_test(int (*fn)(const char **test))
+{
+	return 0;
+}
+static inline int setup_external_fuzz(const char *name)
+{
+	return -1;
+}
+#endif
 
 #define DELETED_OFFSET (sizeof(" (deleted)") - 1)
 
@@ -138,7 +153,7 @@ void __attribute__((noreturn)) linux_exit(void)
 
 static char **saved_argv;
 
-static int selfpath(char *buf, size_t len)
+int selfpath(char *buf, size_t len)
 {
 	int ret;
 
@@ -502,6 +517,9 @@ const char *barebox_cmdline_get(void)
 
 static void print_usage(const char*);
 
+#define OPT_LIST_FUZZERS	(CHAR_MAX + 1)
+#define OPT_FUZZ		(CHAR_MAX + 2)
+
 static struct option long_options[] = {
 	{"help",     0, 0, 'h'},
 	{"malloc",   1, 0, 'm'},
@@ -514,10 +532,20 @@ static struct option long_options[] = {
 	{"stdinout", 1, 0, 'B'},
 	{"xres",     1, 0, 'x'},
 	{"yres",     1, 0, 'y'},
+#ifdef CONFIG_FUZZ_EXTERNAL
+	{"fuzz", 1, 0, OPT_FUZZ},
+	{"list-fuzzers", 0, 0, OPT_LIST_FUZZERS},
+#endif
 	{0, 0, 0, 0},
 };
 
 static const char optstring[] = "hm:i:c:e:d:O:I:B:x:y:";
+
+static __attribute__((unused)) int print_fuzz_test_name(const char **test_name)
+{
+	printf("%s\n", *test_name);
+	return 0;
+}
 
 ENTRY_FUNCTION(sandbox_main, argc, argv)
 {
@@ -571,6 +599,17 @@ ENTRY_FUNCTION(sandbox_main, argc, argv)
 			break;
 		case 'y':
 			sdl_yres = strtoul(optarg, NULL, 0);
+			break;
+		case OPT_LIST_FUZZERS:
+			call_for_each_fuzz_test(print_fuzz_test_name);
+			exit(0);
+			break;
+		case OPT_FUZZ:
+			ret = setup_external_fuzz(optarg);
+			if (ret) {
+				printf("unknown fuzz target '%s'\n", optarg);
+				exit(1);
+			}
 			break;
 		default:
 			break;
