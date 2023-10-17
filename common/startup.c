@@ -41,6 +41,7 @@
 #include <net.h>
 #include <efi/efi-mode.h>
 #include <bselftest.h>
+#include <fuzz.h>
 
 extern initcall_t __barebox_initcalls_start[], __barebox_early_initcalls_end[],
 		  __barebox_initcalls_end[];
@@ -356,7 +357,8 @@ void __noreturn start_barebox(void)
 	initcall_t *initcall;
 	int result;
 
-	if (!IS_ENABLED(CONFIG_SHELL_NONE) && IS_ENABLED(CONFIG_COMMAND_SUPPORT))
+	if (!IS_ENABLED(CONFIG_SHELL_NONE) && IS_ENABLED(CONFIG_COMMAND_SUPPORT) &&
+	    !fuzz_external_active())
 		barebox_main = run_init;
 
 	do_ctors();

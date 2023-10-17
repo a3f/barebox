@@ -64,6 +64,7 @@ obj-$(CONFIG_XYMODEM)	+= xymodem.o
 obj-y			+= unlink-recursive.o
 obj-$(CONFIG_STMP_DEVICE) += stmp-device.o
 obj-y			+= wchar.o
+obj-$(CONFIG_FUZZ)	+= fuzz.o
 obj-y			+= libfile.o
 obj-y			+= bitmap.o
 obj-y			+= gcd.o
