@@ -40,3 +40,4 @@ barebox.sum
 *.imx9img
 *.fit
 *.missing-firmware
+fuzz-*
