@@ -41,6 +41,7 @@
 #include <net.h>
 #include <efi/efi-mode.h>
 #include <bselftest.h>
+#include <fuzz.h>
 
 extern initcall_t __barebox_initcalls_start[], __barebox_early_initcalls_end[],
 		  __barebox_initcalls_end[];
