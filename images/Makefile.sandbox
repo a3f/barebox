@@ -4,6 +4,11 @@ pblb-$(CONFIG_SANDBOX) += sandbox_main
 FILE_barebox = sandbox_main.elf
 sandbox-$(CONFIG_SANDBOX) += barebox
 
+pblb-$(CONFIG_FUZZ_EXTERNAL) += main
+FILE_fuzz-barebox = main.elf
+LDFLAGS_main = -fsanitize=fuzzer
+sandbox-$(CONFIG_FUZZ_EXTERNAL) += fuzz-barebox
+
 ifeq ($(CONFIG_SANDBOX),y)
 
 quiet_cmd_elf__ = LD      $@
@@ -13,6 +18,12 @@ quiet_cmd_elf__ = LD      $@
 	-lrt -pthread $(SANDBOX_LIBS) $(LDFLAGS_$(@F))
 
 image-y += $(sandbox-y)
+
+ifeq ($(CONFIG_FUZZ_EXTERNAL),y)
+$(foreach fuzzer, $(fuzzer-y), \
+	$(eval FILE_fuzz-$(fuzzer) = fuzz-barebox) \
+	$(eval sandbox-y += fuzz-$(fuzzer)))
+endif
 
 .SECONDEXPANSION:
 $(patsubst %,$(obj)/%, $(sandbox-y)): %: $(obj)/$$(FILE_$$(@F)) FORCE
