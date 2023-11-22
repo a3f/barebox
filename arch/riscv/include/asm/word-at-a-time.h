@@ -10,6 +10,7 @@
 
 
 #include <linux/kernel.h>
+#include <linux/bitops.h>
 
 struct word_at_a_time {
 	const unsigned long one_bits, high_bits;

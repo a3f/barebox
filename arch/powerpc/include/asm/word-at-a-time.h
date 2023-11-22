@@ -6,6 +6,7 @@
  */
 
 #include <linux/kernel.h>
+#include <linux/bitops.h>
 
 #ifdef __BIG_ENDIAN__
 
@@ -28,7 +29,12 @@ static inline long find_zero(unsigned long mask)
 {
 	long leading_zero_bits;
 
-	asm (PPC_CNTLZL "%0,%1" : "=r" (leading_zero_bits) : "r" (mask));
+#ifdef __powerpc64__
+	asm ("cntlzd %0,%1" : "=r" (leading_zero_bits) : "r" (mask));
+#else
+	asm ("cntlzw %0,%1" : "=r" (leading_zero_bits) : "r" (mask));
+#endif
+
 	return leading_zero_bits >> 3;
 }
 
