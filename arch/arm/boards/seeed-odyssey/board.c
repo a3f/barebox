@@ -4,6 +4,7 @@
 #include <init.h>
 #include <asm/memory.h>
 #include <mach/stm32mp/bbu.h>
+#include <deep-probe.h>
 #include <bootsource.h>
 #include <of.h>
 
@@ -13,10 +14,10 @@ static int odyssey_som_probe(struct device *dev)
 	int instance = bootsource_get_instance();
 
 	flags = instance == 0 ? BBU_HANDLER_FLAG_DEFAULT : 0;
-	stm32mp_bbu_mmc_register_handler("sd", "/dev/mmc0.ssbl", flags);
+	stm32mp_bbu_mmc_fip_register("sd", "/dev/mmc0", flags);
 
 	flags = instance == 1 ? BBU_HANDLER_FLAG_DEFAULT : 0;
-	stm32mp_bbu_mmc_register_handler("emmc", "/dev/mmc1.ssbl", flags);
+	stm32mp_bbu_mmc_fip_register("emmc", "/dev/mmc1", flags);
 
 
 	if (instance == 0)
@@ -29,9 +30,10 @@ static int odyssey_som_probe(struct device *dev)
 
 static const struct of_device_id odyssey_som_of_match[] = {
 	{ .compatible = "seeed,stm32mp157c-odyssey-som" },
+	{ .compatible = "st,stm32mp135d-odyssey" },
 	{ /* sentinel */ },
 };
-MODULE_DEVICE_TABLE(of, odyssey_som_of_match);
+BAREBOX_DEEP_PROBE_ENABLE(odyssey_som_of_match);
 
 static struct driver odyssey_som_driver = {
 	.name = "odyssey-som",
