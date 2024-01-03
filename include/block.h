@@ -35,6 +35,8 @@ struct block_device {
 	struct cdev cdev;
 };
 
+#define BLOCKSIZE(blk)	(1u << (blk)->blockbits)
+
 extern struct list_head block_device_list;
 
 #define for_each_block_device(bdev) list_for_each_entry(bdev, &block_device_list, list)
