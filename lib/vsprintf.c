@@ -20,6 +20,7 @@
 #include <kallsyms.h>
 #include <wchar.h>
 #include <of.h>
+#include <efi.h>
 
 #include <common.h>
 #include <pbl.h>
@@ -348,6 +349,15 @@ char *uuid_string(char *buf, const char *end, const u8 *addr, int field_width,
 	return string(buf, end, uuid, field_width, precision, flags);
 }
 
+static char *device_path_string(char *buf, const char *end, const struct efi_device_path *dp,
+				int field_width, int precision, int flags)
+{
+	if (!dp)
+		return string(buf, end, NULL, field_width, precision, flags);
+
+	return buf + device_path_to_str_buf(dp, buf, end - buf);
+}
+
 static noinline_for_stack
 char *hex_string(char *buf, const char *end, const u8 *addr, int field_width,
 		 int precision, int flags, const char *fmt)
@@ -519,6 +529,10 @@ static char *pointer(const char *fmt, char *buf, const char *end, const void *pt
 	case 'J':
 		if (fmt[1] == 'P' && IS_ENABLED(CONFIG_JSMN))
 			return jsonpath_string(buf, end, ptr, field_width, precision, flags, fmt);
+	case 'D':
+		if (IS_ENABLED(CONFIG_EFI_DEVICEPATH))
+			return device_path_string(buf, end, ptr, field_width, precision, flags);
+		break;
 	}
 
 	return raw_pointer(buf, end, ptr, field_width, precision, flags);
