@@ -163,6 +163,15 @@ out:
 	return;
 }
 
+static void extract_flags(const struct partition_entry *p,
+			  struct partition *pentry)
+{
+	if (p->boot_indicator == 0x80)
+		pentry->flags |= DEVFS_PARTITION_BOOTABLE_LEGACY;
+	if (p->type == 0xef)
+		pentry->flags |= DEVFS_PARTITION_BOOTABLE_ESP;
+}
+
 /**
  * Check if a DOS like partition describes this block device
  * @param blk Block device to register to
@@ -199,6 +208,7 @@ static void dos_partition(void *buf, struct block_device *blk,
 			pd->parts[n].first_sec = pentry.first_sec;
 			pd->parts[n].size = pentry.size;
 			pd->parts[n].dos_partition_type = pentry.dos_partition_type;
+			extract_flags(&table[i], &pd->parts[n]);
 			if (signature)
 				sprintf(pd->parts[n].partuuid, "%08x-%02d",
 						signature, i + 1);

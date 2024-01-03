@@ -11,6 +11,7 @@
 #include <filetype.h>
 #include <linux/uuid.h>
 #include <linux/list.h>
+#include <driver.h>
 
 #define MAX_PARTITION		128
 #define MAX_PARTITION_NAME	38
@@ -24,6 +25,8 @@ struct partition {
 		u8 dos_partition_type;
 		guid_t typeuuid;
 	};
+	unsigned int flags;
+	unsigned int typeflags;
 };
 
 struct partition_desc {
