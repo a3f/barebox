@@ -29,6 +29,7 @@ FW_BL31="
 
 FW_ROCKCHIP_SDRAM_INIT="
 	arch/arm/boards/pine64-quartz64/sdram-init.bin
+	arch/arm/boards/anbernic-rgxx3/sdram-init.bin
 	arch/arm/boards/radxa-rock3/sdram-init.bin
 	arch/arm/boards/rockchip-rk3568-bpi-r2pro/sdram-init.bin
 	arch/arm/boards/rockchip-rk3568-evb/sdram-init.bin

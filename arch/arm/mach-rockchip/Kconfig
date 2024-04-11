@@ -97,6 +97,27 @@ config MACH_PROTONIC_MECSBC
 	help
 	  Say Y here if you are using a Protonic MECSBC
 
+config MACH_ANBERNIC_RGXX3
+	select ARCH_RK3568
+	bool "Anbernic RGxx3 and Powkiddy RGB (RK3566-based)"
+	help
+	  Say Y here if you want to support one of:
+
+	    Anbernic RG-ARC-D
+	    Anbernic RG-ARC-S
+	    Anbernic RG353M
+	    Anbernic RG353PS
+	    Anbernic RG353VS
+	    Anbernic RG503
+
+	  Additionally, the following very similar non-Anbernic devices are also supported:
+
+	    Powkiddy RGB10MAX3
+	    Powkiddy RGB30
+	    Powkiddy RK2023
+
+	  This has been so far tested with Powkiddy RGB30 only.
+
 config MACH_RADXA_ROCK3
 	select ARCH_RK3568
 	bool "Radxa ROCK3"
