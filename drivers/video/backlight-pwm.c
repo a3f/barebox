@@ -10,6 +10,7 @@
 #include <video/backlight.h>
 #include <pwm.h>
 #include <linux/err.h>
+#include <linux/device.h>
 #include <of.h>
 #include <regulator.h>
 #include <linux/gpio/consumer.h>
@@ -96,6 +97,90 @@ static int backlight_pwm_set(struct backlight_device *backlight,
 		return backlight_pwm_disable(pwm_backlight);
 }
 
+#define PWM_LUMINANCE_SHIFT	16
+#define PWM_LUMINANCE_SCALE	(1 << PWM_LUMINANCE_SHIFT) /* luminance scale */
+
+/*
+ * CIE lightness to PWM conversion.
+ *
+ * The CIE 1931 lightness formula is what actually describes how we perceive
+ * light:
+ *          Y = (L* / 903.3)           if L* ≤ 8
+ *          Y = ((L* + 16) / 116)^3    if L* > 8
+ *
+ * Where Y is the luminance, the amount of light coming out of the screen, and
+ * is a number between 0.0 and 1.0; and L* is the lightness, how bright a human
+ * perceives the screen to be, and is a number between 0 and 100.
+ *
+ * The following function does the fixed point maths needed to implement the
+ * above formula.
+ */
+static u64 cie1931(unsigned int lightness)
+{
+	u64 retval;
+
+	/*
+	 * @lightness is given as a number between 0 and 1, expressed
+	 * as a fixed-point number in scale
+	 * PWM_LUMINANCE_SCALE. Convert to a percentage, still
+	 * expressed as a fixed-point number, so the above formulas
+	 * can be applied.
+	 */
+	lightness *= 100;
+	if (lightness <= (8 * PWM_LUMINANCE_SCALE)) {
+		retval = DIV_ROUND_CLOSEST(lightness * 10, 9033);
+	} else {
+		retval = (lightness + (16 * PWM_LUMINANCE_SCALE)) / 116;
+		retval *= retval * retval;
+		retval += 1ULL << (2*PWM_LUMINANCE_SHIFT - 1);
+		retval >>= 2*PWM_LUMINANCE_SHIFT;
+	}
+
+	return retval;
+}
+
+/*
+ * Create a default correction table for PWM values to create linear brightness
+ * for LED based backlights using the CIE1931 algorithm.
+ */
+static
+int pwm_backlight_brightness_default(struct device *dev,
+				     struct pwm_backlight *pwm_backlight,
+				     unsigned int period)
+{
+	unsigned int i;
+	u64 retval;
+
+	/*
+	 * Once we have 4096 levels there's little point going much higher...
+	 * neither interactive sliders nor animation benefits from having
+	 * more values in the table.
+	 */
+	pwm_backlight->backlight.brightness_max =
+		min((int)DIV_ROUND_UP(period, fls(period)), 4096);
+
+	pwm_backlight->levels = devm_kcalloc(dev, pwm_backlight->backlight.brightness_max,
+				    sizeof(*pwm_backlight->levels), GFP_KERNEL);
+	if (!pwm_backlight->levels)
+		return -ENOMEM;
+
+	/* Fill the table using the cie1931 algorithm */
+	for (i = 0; i < pwm_backlight->backlight.brightness_max; i++) {
+		retval = cie1931((i * PWM_LUMINANCE_SCALE) /
+				 pwm_backlight->backlight.brightness_max) * period;
+		retval = DIV_ROUND_CLOSEST_ULL(retval, PWM_LUMINANCE_SCALE);
+		if (retval > UINT_MAX)
+			return -EINVAL;
+		pwm_backlight->levels[i] = (unsigned int)retval;
+	}
+
+	pwm_backlight->backlight.brightness_default
+		= pwm_backlight->backlight.brightness_max / 2;
+	pwm_backlight->backlight.brightness_max--;
+
+	return 0;
+}
+
 static int pwm_backlight_parse_dt(struct device *dev,
 				  struct pwm_backlight *pwm_backlight)
 {
@@ -108,17 +193,17 @@ static int pwm_backlight_parse_dt(struct device *dev,
 	if (!node)
 		return -ENODEV;
 
+	/* determine the number of brightness levels */
+	prop = of_find_property(node, "brightness-levels", &length);
+	if (!prop)
+		return 0;
+
 	ret = of_property_read_u32(node, "default-brightness-level",
 					   &value);
 	if (ret < 0)
 		return ret;
 
 	pwm_backlight->backlight.brightness_default = value;
-
-	/* determine the number of brightness levels */
-	prop = of_find_property(node, "brightness-levels", &length);
-	if (!prop)
-		return -EINVAL;
 
 	length /= sizeof(u32);
 
@@ -148,8 +233,6 @@ static int pwm_backlight_parse_dt(struct device *dev,
 		pwm_backlight->backlight.brightness_max = pwm_backlight->scale;
 	}
 
-	pwm_backlight->enable_gpio = gpiod_get_optional(dev, "enable-gpios", 0);
-
 	return 0;
 }
 
@@ -172,6 +255,34 @@ static int backlight_pwm_of_probe(struct device *dev)
 	ret = pwm_backlight_parse_dt(dev, pwm_backlight);
 	if (ret)
 		return ret;
+	if (!pwm_backlight->backlight.brightness_max) {
+		struct pwm_state state;
+		int i;
+
+		/*
+		 * If no brightness levels are provided and max_brightness is
+		 * not set, use the default brightness table. For the DT case,
+		 * max_brightness is set to 0 when brightness levels is not
+		 * specified. For the non-DT case, max_brightness is usually
+		 * set to some value.
+		 */
+
+		/* Get the PWM period (in nanoseconds) */
+		pwm_get_state(pwm_backlight->pwm, &state);
+
+		ret = pwm_backlight_brightness_default(dev, pwm_backlight,
+						       state.period);
+		if (ret < 0)
+			return dev_err_probe(dev, ret,
+				      "failed to setup default brightness table\n");
+
+		for (i = 0; i <= pwm_backlight->backlight.brightness_max; i++) {
+			if (pwm_backlight->levels[i] > pwm_backlight->scale)
+				pwm_backlight->scale = pwm_backlight->levels[i];
+		}
+	}
+
+	pwm_backlight->enable_gpio = gpiod_get_optional(dev, "enable-gpios", 0);
 
 	pwm_backlight->power = regulator_get(dev, "power");
 	if (IS_ERR(pwm_backlight->power)) {
