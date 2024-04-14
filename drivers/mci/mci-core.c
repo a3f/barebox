@@ -3096,7 +3096,7 @@ struct mci *mci_get_rpmb_dev(unsigned int id)
 {
 	struct mci *mci;
 
-	list_for_each_entry(mci, &mci_list, list) {
+	for_each_mci(mci) {
 		if (mci->host->of_id != id)
 			continue;
 
