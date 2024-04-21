@@ -80,4 +80,11 @@ config VF610_ADC
 	  Say yes here to support for Vybrid board analog-to-digital converter.
 	  Since the IP is used for i.MX6SLX, the driver also support i.MX6SLX.
 
+config IIO_MUX
+	tristate "IIO multiplexer driver"
+	depends on OFDEVICE
+	select MULTIPLEXER
+	help
+	  Say yes here to build support for the IIO multiplexer.
+
 endif
