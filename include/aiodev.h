@@ -10,6 +10,7 @@
 #ifndef __AIODEVICE_H
 #define __AIODEVICE_H
 
+#include <linux/types.h>
 #include <device.h>
 #include <linux/errno.h>
 
@@ -37,7 +38,8 @@ int aiodevice_register(struct aiodevice *aiodev);
 
 const char *aiodevice_name(struct aiodevice *aiodev);
 
-struct aiochannel *aiochannel_get(struct device *dev, int index);
+struct aiochannel *aiochannel_get(struct device *dev, const char *consumer_channel);
+struct aiochannel *aiochannel_get_by_index(struct device *dev, int index);
 /* Find aiochannel by channel name, e.g. "aiodev0.in_value0_mV" */
 struct aiochannel *aiochannel_by_name(const char *name);
 

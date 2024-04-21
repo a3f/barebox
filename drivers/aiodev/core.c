@@ -39,7 +39,7 @@ struct aiochannel *aiochannel_by_name(const char *name)
 }
 EXPORT_SYMBOL(aiochannel_by_name);
 
-struct aiochannel *aiochannel_get(struct device *dev, int index)
+struct aiochannel *aiochannel_get_by_index(struct device *dev, int index)
 {
 	struct of_phandle_args spec;
 	struct aiodevice *aiodev;
@@ -70,6 +70,25 @@ found:
 		return ERR_PTR(-EINVAL);
 
 	return aiodev->channels[chnum];
+}
+EXPORT_SYMBOL(aiochannel_get_by_index);
+
+struct aiochannel *aiochannel_get(struct device *dev, const char *name)
+{
+	int index = 0;
+
+	/*
+	 * For named iio channels, first look up the name in the
+	 * "io-channel-names" property.  If it cannot be found, the
+	 * index will be an error code, and fwnode_iio_channel_get()
+	 * will fail.
+	 */
+
+	/* Walk up the tree of devices looking for a clock that matches */
+	index = of_property_match_string(dev->of_node, "io-channel-names",
+					 name);
+
+	return aiochannel_get_by_index(dev, index);
 }
 EXPORT_SYMBOL(aiochannel_get);
 
