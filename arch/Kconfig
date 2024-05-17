@@ -21,3 +21,9 @@ config ARCH_DMA_DEFAULT_COHERENT
 
 config ARCH_HAS_ASAN_FIBER_API
 	bool
+
+config ARCH_HAS_FORTIFY_SOURCE
+	bool
+	help
+	  An architecture should select this when it can successfully
+	  build and run with CONFIG_FORTIFY_SOURCE.
