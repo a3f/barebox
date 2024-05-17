@@ -20,4 +20,10 @@ extern int memcmp(const void *,const void *,__kernel_size_t);
 
 #endif
 
+#ifdef __PBL__
+char * strchr(const char *s, int ch);
+#define strchr strchr
+#define __HAVE_ARCH_STRCHR
+#endif
+
 #endif

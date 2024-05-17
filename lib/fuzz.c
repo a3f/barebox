@@ -3,6 +3,7 @@
 #include <fuzz.h>
 #include <string.h>
 #include <common.h>
+#include <malloc.h>
 
 int call_for_each_fuzz_test(int (*fn)(const struct fuzz_test *test))
 {
@@ -34,8 +35,12 @@ static int fuzz_main(void)
 	const void *buf;
 	size_t len;
 
-	while ((buf = fuzzer_get_data(&len)))
+	if ((buf = fuzzer_get_data(&len)))
 		fuzz_test_once(fuzz, buf, len);
+
+	while ((buf = fuzzer_get_data(&len))) {
+		fuzz_test_once(fuzz, buf, len);
+	}
 
 	pr_emerg("fuzzing unexpectedly ended");
 	return -1;
