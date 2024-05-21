@@ -10,14 +10,6 @@
 #include <errno.h>
 #include <of.h>
 
-struct pinctrl {
-	struct device_node consumer_np;
-};
-
-struct pinctrl_state {
-	struct property prop;
-};
-
 static LIST_HEAD(pinctrl_list);
 
 static struct pinctrl_device *pin_to_pinctrl(unsigned int pin)
@@ -98,28 +90,30 @@ static int pinctrl_config_one(struct device_node *for_node, struct device_node *
 		return -ENODEV;
 }
 
-static inline struct pinctrl_state *
-of_property_pinctrl_get_state(struct property *prop)
+int of_pinctrl_select_state(struct device_node *np, const char *name)
 {
-	return container_of(prop, struct pinctrl_state, prop);
-}
-
-struct pinctrl_state *pinctrl_lookup_state(struct pinctrl *pinctrl,
-					   const char *name)
-{
-	struct device_node *np = &pinctrl->consumer_np;
 	int state, ret;
 	char propname[sizeof("pinctrl-4294967295")];
-	struct property *prop;
+	const __be32 *list;
+	int size, config;
+	phandle phandle;
+	struct device_node *np_config;
 	const char *statename;
+
+	if (!of_find_property(np, "pinctrl-0", NULL))
+		return 0;
 
 	/* For each defined state ID */
 	for (state = 0; ; state++) {
 		/* Retrieve the pinctrl-* property */
 		sprintf(propname, "pinctrl-%d", state);
-		prop = of_find_property(np, propname, NULL);
-		if (!prop)
-			return ERR_PTR(-ENODEV);
+		list = of_get_property(np, propname, &size);
+		if (!list) {
+			ret = -ENODEV;
+			break;
+		}
+
+		size /= sizeof(*list);
 
 		/* Determine whether pinctrl-names property names the state */
 		ret = of_property_read_string_index(np, "pinctrl-names",
@@ -137,59 +131,29 @@ struct pinctrl_state *pinctrl_lookup_state(struct pinctrl *pinctrl,
 		if (strcmp(name, statename))
 			continue;
 
-		return of_property_pinctrl_get_state(prop);
-	}
+		/* For every referenced pin configuration node in it */
+		for (config = 0; config < size; config++) {
+			phandle = be32_to_cpup(list++);
 
-	return ERR_PTR(ret);
-}
+			/* Look up the pin configuration node */
+			np_config = of_find_node_by_phandle(phandle);
+			if (!np_config) {
+				pr_err("prop %pOF %s index %i invalid phandle\n",
+					np, propname, config);
+				ret = -EINVAL;
+				goto err;
+			}
 
-int pinctrl_select_state(struct pinctrl *pinctrl, struct pinctrl_state *state)
-{
-	int ret = -ENODEV;
-	const __be32 *list;
-	int size, config;
-	phandle phandle;
-	struct device_node *np = &pinctrl->consumer_np, *np_config;
-	struct property *prop = &state->prop;
-
-	list = of_property_get_value(prop);
-	size = prop->length / sizeof(*list);
-
-	/* For every referenced pin configuration node in it */
-	for (config = 0; config < size; config++) {
-		phandle = be32_to_cpup(list++);
-
-		/* Look up the pin configuration node */
-		np_config = of_find_node_by_phandle(phandle);
-		if (!np_config) {
-			pr_err("prop %pOF %s index %i invalid phandle\n",
-				np, prop->name, config);
-			ret = -EINVAL;
-			goto err;
+			/* Parse the node */
+			ret = pinctrl_config_one(np, np_config);
+			if (ret < 0)
+				goto err;
 		}
 
-		/* Parse the node */
-		ret = pinctrl_config_one(np, np_config);
-		if (ret < 0)
-			goto err;
+		return 0;
 	}
 err:
 	return ret;
-}
-
-int of_pinctrl_select_state(struct device_node *np, const char *name)
-{
-	struct pinctrl *pinctrl = of_pinctrl_get(np);
-	struct pinctrl_state *state;
-
-	if (!of_find_property(np, "pinctrl-0", NULL))
-		return 0;
-
-	state = pinctrl_lookup_state(pinctrl, name);
-	if (IS_ERR(state))
-		return PTR_ERR(state);
-
-	return pinctrl_select_state(pinctrl, state);
 }
 
 int of_pinctrl_select_state_default(struct device_node *np)
