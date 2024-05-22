@@ -10,6 +10,8 @@
 #include <linux/ioport.h>
 #include <linux/uuid.h>
 #include <linux/printk.h>
+#include <linux/compiler.h>
+#include <linux/stddef.h>
 #include <device.h>
 #include <of.h>
 #include <init.h>
@@ -29,27 +31,31 @@ struct platform_device_id {
 };
 
 /** @brief Describes a driver present in the system */
-struct driver {
-	/*! The name of this driver. Used to match to
-	 * the corresponding device. */
-	const char *name;
+struct platform_driver {
+	struct_group_tagged(driver, drv,
+		/*! The name of this driver. Used to match to
+		 * the corresponding device. */
+		const char *name;
 
-	struct list_head list;
-	struct list_head bus_list; /* our bus            */
+		struct list_head list;
+		struct list_head bus_list; /* our bus            */
 
-	/*! Called if an instance of a device is found */
-	int     (*probe) (struct device *);
+		/*! Called if an instance of a device is found */
+		int     (*probe) (__param_either(struct device *,
+						 struct platform_device *));
 
-	/*! Called if an instance of a device is gone. */
-	void     (*remove)(struct device *);
+		/*! Called if an instance of a device is gone. */
+		void     (*remove)(__param_either(struct device *,
+						  struct platform_device *));
 
-	struct bus_type *bus;
+		struct bus_type *bus;
 
-	const struct platform_device_id *id_table;
-	union {
-		const struct of_device_id *of_compatible;
-		const struct of_device_id *of_match_table;
-	};
+		const struct platform_device_id *id_table;
+		union {
+			const struct of_device_id *of_compatible;
+			const struct of_device_id *of_match_table;
+		};
+	);
 };
 
 /*@}*/	/* do not delete, doxygen relevant */
@@ -393,7 +399,7 @@ extern struct list_head bus_list;
 
 extern struct bus_type platform_bus;
 
-int platform_driver_register(struct driver *drv);
+int platform_driver_register(__param_either(struct driver *, struct platform_driver *));
 
 /* register_driver_macro() - Helper macro for drivers that don't do
  * anything special in module registration. This eliminates a lot of

@@ -356,4 +356,15 @@ struct ftrace_likely_data {
 #define __prereloc \
 	notrace __no_sanitize_address __no_stack_protector
 
+#define __param_oneof(PARAMS) union { \
+	PARAMS; \
+} __attribute__ ((__transparent_union__))
+
+/*
+ * For use in function prototypes. Instructs the compiler to accept either
+ * type1 or type2 as permissible types. The types need to have identical
+ * bit-level representation
+ */
+#define __param_either(type1, type2) __param_oneof(type1 __arg1; type2 __arg2)
+
 #endif /* __LINUX_COMPILER_TYPES_H */
