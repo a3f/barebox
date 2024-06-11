@@ -17,5 +17,6 @@ static __always_inline void stm32mp_cpu_lowlevel_init(void)
 }
 
 void __noreturn stm32mp1_barebox_entry(void *boarddata);
+void __noreturn stm32mp2_barebox_entry(void *boarddata);
 
 #endif

@@ -11,6 +11,7 @@
 #include <mach/stm32mp/revision.h>
 #include <asm/barebox-arm.h>
 #include <asm/memory.h>
+#include <linux/sizes.h>
 #include <pbl.h>
 #include <io.h>
 
@@ -128,6 +129,10 @@ void __noreturn __prereloc stm32mp1_barebox_entry(void *boarddata)
 	barebox_arm_entry(STM32MP1_DDR_BASE, stm32mp1_ddrctrl_ramsize(), boarddata);
 }
 
+void __noreturn __prereloc stm32mp2_barebox_entry(void *boarddata)
+{
+	barebox_arm_entry(0x84000000, SZ_64M, boarddata);
+}
 
 static int stm32mp1_ddr_probe(struct device *dev)
 {
