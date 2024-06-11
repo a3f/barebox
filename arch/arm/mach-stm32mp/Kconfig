@@ -77,4 +77,11 @@ config MACH_PHYTEC_PHYCORE_STM32MP1
 	  builds an additional barebox-phytec-phycore.stm32
 	  that can be deployed as SSBL on the phyCORE-STM32MP1
 
+config MACH_STM32MP25X_EV1
+	select ARCH_STM32MP257
+	bool "STM32MP25X-EV1 board"
+	depends on 64BIT
+	help
+	  FIXME
+
 endif

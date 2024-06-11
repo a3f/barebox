@@ -1,0 +1,7 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR X11)
+
+#include <arm64/st/stm32mp257f-ev1.dts>
+#include "stm32mp251.dtsi"
+
+/ {
+};
