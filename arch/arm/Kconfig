@@ -194,9 +194,7 @@ config ARCH_ROCKCHIP
 
 config ARCH_STM32MP
 	bool "STMicroelectronics STM32MP"
-	depends on 32BIT
 	select ARCH_STM32
-	select CPU_V7
 	select COMMON_CLK
 	select COMMON_CLK_OF_PROVIDER
 	select HAS_DEBUG_LL
