@@ -13,6 +13,7 @@
 #include <mach/stm32mp/revision.h>
 #include <mach/stm32mp/bootsource.h>
 #include <bootsource.h>
+#include <deep-probe.h>
 #include <dt-bindings/pinctrl/stm32-pinfunc.h>
 
 /* Package = bit 27:29 of OTP16
@@ -248,7 +249,13 @@ static int stm32mp_init(void)
 		__st32mp_soc = 32153;
 	else if (of_machine_is_compatible("st,stm32mp157"))
 		__st32mp_soc = 32157;
+	else if (of_machine_is_compatible("st,stm32mp257"))
+		__st32mp_soc = 64257;
 	else
+		return 0;
+
+	/* TODO: Boot mode detection */
+	if (__st32mp_soc == 64257)
 		return 0;
 
 	if (__st32mp_soc == 32135) {
@@ -263,3 +270,9 @@ static int stm32mp_init(void)
 	return 0;
 }
 postcore_initcall(stm32mp_init);
+
+static const struct of_device_id stm32mp_of_match[] = {
+	{ .compatible = "st,stm32mp257" },
+	{ /* sentinel */ },
+};
+BAREBOX_DEEP_PROBE_ENABLE(stm32mp_of_match);

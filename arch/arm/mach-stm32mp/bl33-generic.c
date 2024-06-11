@@ -14,6 +14,16 @@
  * When using OP-TEE, ensure CONFIG_OPTEE_SIZE is appopriately set.
  */
 
+#ifdef CONFIG_CPU_V8
+ENTRY_FUNCTION_WITHSTACK(start_stm32mp_bl33, 0x85000000, x0, x1, x2)
+{
+	arm_cpu_lowlevel_init();
+
+	putc_ll('>');
+
+	stm32mp2_barebox_entry((void *)x2);
+}
+#else
 ENTRY_FUNCTION(start_stm32mp_bl33, r0, r1, r2)
 {
 	stm32mp_cpu_lowlevel_init();
@@ -22,3 +32,4 @@ ENTRY_FUNCTION(start_stm32mp_bl33, r0, r1, r2)
 
 	stm32mp1_barebox_entry((void *)r2);
 }
+#endif

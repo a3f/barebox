@@ -5,9 +5,14 @@
 
 #include <io.h>
 #include <mach/stm32mp/stm32mp1.h>
+#include <mach/stm32mp/stm32mp2.h>
 #include <linux/bitops.h>
 
+#ifdef CONFIG_STM32MP1
 #define DEBUG_LL_UART_ADDR	STM32MP1_UART4_BASE
+#else
+#define DEBUG_LL_UART_ADDR	STM32MP2_USART2_BASE
+#endif
 
 #define CR1_OFFSET	0x00
 #define CR3_OFFSET	0x08
