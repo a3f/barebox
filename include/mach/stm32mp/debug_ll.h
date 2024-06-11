@@ -4,10 +4,10 @@
 #define __MACH_STM32MP1_DEBUG_LL_H
 
 #include <io.h>
-#include <mach/stm32mp/stm32.h>
+#include <mach/stm32mp/stm32mp1.h>
 #include <linux/bitops.h>
 
-#define DEBUG_LL_UART_ADDR	STM32_UART4_BASE
+#define DEBUG_LL_UART_ADDR	STM32MP1_UART4_BASE
 
 #define CR1_OFFSET	0x00
 #define CR3_OFFSET	0x08

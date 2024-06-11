@@ -8,7 +8,7 @@
 
 #include <mach/stm32mp/bsec.h>
 #include <asm/io.h>
-#include <mach/stm32mp/stm32.h>
+#include <mach/stm32mp/stm32mp1.h>
 
 /* ID = Device Version (bit31:16) + Device Part Number (RPN) (bit7:0)
  * 157X: 2x Cortex-A7, Cortex-M4, CAN FD, GPU, DSI
@@ -41,8 +41,8 @@
 #define CPU_REV_Z	0x2001
 
 /* DBGMCU register */
-#define DBGMCU_APB4FZ1		(STM32_DBGMCU_BASE + 0x2C)
-#define DBGMCU_IDC		(STM32_DBGMCU_BASE + 0x00)
+#define DBGMCU_APB4FZ1		(STM32MP1_DBGMCU_BASE + 0x2C)
+#define DBGMCU_IDC		(STM32MP1_DBGMCU_BASE + 0x00)
 #define DBGMCU_IDC_DEV_ID_MASK	GENMASK(11, 0)
 #define DBGMCU_IDC_DEV_ID_SHIFT	0
 #define DBGMCU_IDC_REV_ID_MASK	GENMASK(31, 16)

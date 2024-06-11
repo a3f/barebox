@@ -7,7 +7,7 @@
 #include <init.h>
 #include <memory.h>
 #include <linux/sizes.h>
-#include <mach/stm32mp/stm32.h>
+#include <mach/stm32mp/stm32mp1.h>
 
 #define BAREBOX_STAGE2_OFFSET	256
 

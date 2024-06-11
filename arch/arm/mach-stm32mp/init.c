@@ -8,7 +8,7 @@
 
 #include <common.h>
 #include <init.h>
-#include <mach/stm32mp/stm32.h>
+#include <mach/stm32mp/stm32mp1.h>
 #include <mach/stm32mp/bsec.h>
 #include <mach/stm32mp/revision.h>
 #include <mach/stm32mp/bootsource.h>
@@ -41,7 +41,7 @@
 #define BOOT_INSTANCE_SHIFT	0
 
 /* TAMP registers */
-#define TAMP_BACKUP_REGISTER(x)         (STM32_TAMP_BASE + 0x100 + 4 * x)
+#define TAMP_BACKUP_REGISTER(x)         (STM32MP1_TAMP_BASE + 0x100 + 4 * x)
 /* non secure access */
 #define STM32MP13_TAMP_BOOT_CONTEXT     TAMP_BACKUP_REGISTER(30)
 #define STM32MP15_TAMP_BOOT_CONTEXT     TAMP_BACKUP_REGISTER(20)

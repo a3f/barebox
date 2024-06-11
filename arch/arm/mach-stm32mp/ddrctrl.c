@@ -7,7 +7,7 @@
 #include <init.h>
 #include <mach/stm32mp/ddr_regs.h>
 #include <mach/stm32mp/entry.h>
-#include <mach/stm32mp/stm32.h>
+#include <mach/stm32mp/stm32mp1.h>
 #include <mach/stm32mp/revision.h>
 #include <asm/barebox-arm.h>
 #include <asm/memory.h>
@@ -120,12 +120,12 @@ static inline unsigned stm32mp1_ddrctrl_ramsize(void)
 	if (cpu_stm32_is_stm32mp13())
 		nb_bytes /= 2;
 
-	return ddrctrl_ramsize(IOMEM(STM32_DDRCTL_BASE), nb_bytes);
+	return ddrctrl_ramsize(IOMEM(STM32MP1_DDRCTL_BASE), nb_bytes);
 }
 
 void __noreturn __prereloc stm32mp1_barebox_entry(void *boarddata)
 {
-	barebox_arm_entry(STM32_DDR_BASE, stm32mp1_ddrctrl_ramsize(), boarddata);
+	barebox_arm_entry(STM32MP1_DDR_BASE, stm32mp1_ddrctrl_ramsize(), boarddata);
 }
 
 
@@ -142,7 +142,7 @@ static int stm32mp1_ddr_probe(struct device *dev)
 
 	nb_bytes = (unsigned long)device_get_match_data(dev);
 
-	return arm_add_mem_device("ram0", STM32_DDR_BASE,
+	return arm_add_mem_device("ram0", STM32MP1_DDR_BASE,
 				  ddrctrl_ramsize(base, nb_bytes));
 }
 
