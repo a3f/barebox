@@ -577,7 +577,9 @@ static const char *param_enum_get(struct device *dev, struct param_d *p)
 
 	free(p->value);
 
-	if (*pe->value >= pe->num_names)
+	if (*pe->value == PARAM_ENUM_UNKNOWN)
+		p->value = strdup("unknown");
+	else if (*pe->value >= pe->num_names)
 		p->value = basprintf("invalid:%d", *pe->value);
 	else
 		p->value = strdup(pe->names[*pe->value]);
@@ -633,6 +635,25 @@ struct param_d *dev_add_param_enum(struct device *dev, const char *name,
 	p->info = param_enum_info;
 
 	return &pe->param;
+}
+
+int dev_update_param_enum_names(struct param_d *p,
+				const char * const *names, int num_names)
+{
+	struct param_enum *pe;
+
+	if (p->type != PARAM_TYPE_ENUM)
+		return -EBADF;
+
+	pe = to_param_enum(p);
+
+	if (*pe->value >= num_names)
+		return -EINVAL;
+
+	pe->names = names;
+	pe->num_names = num_names;
+
+	return 0;
 }
 
 static const char *const tristate_names[] = {

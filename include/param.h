@@ -40,6 +40,8 @@ struct param_d {
 	enum param_type type;
 };
 
+#define PARAM_ENUM_UNKNOWN	(-1000000)
+
 enum param_tristate { PARAM_TRISTATE_UNKNOWN, PARAM_TRISTATE_TRUE, PARAM_TRISTATE_FALSE };
 
 #ifdef CONFIG_PARAMETER
@@ -111,6 +113,9 @@ void dev_remove_parameters(struct device *dev);
 
 int dev_param_set_generic(struct device *dev, struct param_d *p,
 			  const char *val);
+
+int dev_update_param_enum_names(struct param_d *p,
+				const char * const *names, int num_names);
 
 int param_int_set_scale(struct param_d *p, uint64_t max);
 
@@ -240,6 +245,12 @@ static inline void dev_remove_parameters(struct device *dev) {}
 
 static inline int dev_param_set_generic(struct device *dev, struct param_d *p,
 					const char *val)
+{
+	return 0;
+}
+
+static int dev_update_param_enum_names(struct param_d *p,
+				       const char * const *names, int num_names)
 {
 	return 0;
 }
