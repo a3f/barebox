@@ -267,6 +267,8 @@ int register_device(struct device *new_device)
 	INIT_LIST_HEAD(&new_device->bus_list);
 	INIT_LIST_HEAD(&new_device->class_list);
 
+	of_pinctrl_register_consumer(new_device, new_device->device_node);
+
 	if (new_device->bus) {
 		if (!new_device->parent)
 			new_device->parent = new_device->bus->dev;
@@ -296,6 +298,8 @@ int unregister_device(struct device *old_dev)
 	dev_dbg(old_dev, "unregister\n");
 
 	dev_remove_parameters(old_dev);
+
+	of_pinctrl_unregister_consumer(old_dev);
 
 	if (old_dev->driver)
 		device_remove(old_dev);

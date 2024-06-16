@@ -592,7 +592,7 @@ static void param_enum_info(struct param_d *p)
 	struct param_enum *pe = to_param_enum(p);
 	int i;
 
-	if (pe->num_names <= 1)
+	if (pe->num_names <= 1 && *pe->value != PARAM_ENUM_UNKNOWN)
 		return;
 
 	printf(" (values: ");
