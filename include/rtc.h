@@ -53,5 +53,6 @@ static inline struct rtc_device *rtc_lookup(const char *name)
 #endif
 
 const char *time_str(struct rtc_time *tm);
+const char *time_now_str(void);
 
 #endif	/* _RTC_H_ */
