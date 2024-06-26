@@ -51,19 +51,10 @@ EXPORT_SYMBOL(rtc_set_time);
 
 int rtc_register(struct rtc_device *rtcdev)
 {
-	struct device *dev = &rtcdev->class_dev;
-
 	if (!rtcdev->ops)
 		return -EINVAL;
 
-	dev->id = DEVICE_ID_DYNAMIC;
-	dev_set_name(dev, "rtc");
-	if (rtcdev->dev)
-		dev->parent = rtcdev->dev;
-	platform_device_register(dev);
-
-	class_add_device(&rtc_class, &rtcdev->class_dev);
-
-	return 0;
+	rtcdev->class_dev.parent = rtcdev->dev;
+	return class_register_device(&rtc_class, &rtcdev->class_dev, "rtc");
 }
 EXPORT_SYMBOL(rtc_register);
