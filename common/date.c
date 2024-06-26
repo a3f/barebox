@@ -12,6 +12,7 @@
 #include <common.h>
 #include <command.h>
 #include <rtc.h>
+#include <linux/rtc.h>
 
 #define FEBRUARY		2
 #define	STARTOFTIME		1970
@@ -151,5 +152,31 @@ const char *time_str(struct rtc_time *tm)
 			tm->tm_hour,
 			tm->tm_min,
 			tm->tm_sec);
+	return buf;
+}
+
+const char *time_now_str(void)
+{
+	static char buf[sizeof("Since power-on  00:00:00")];
+	struct rtc_device *r;
+	struct rtc_time tm;
+	u32 time;
+	int ret;
+
+	r = rtc_lookup(NULL);
+	if (IS_ERR(r))
+		goto uptime;
+
+	ret = rtc_read_time(r, &tm);
+	if (ret < 0)
+		goto uptime;
+
+	return time_str(&tm);
+uptime:
+	time = div_u64(get_time_ns(), NSEC_PER_SEC);
+
+	snprintf(buf, sizeof(buf), "barebox uptime  %02d:%02d:%02d",
+		 time / 3600, time / 60, time);
+
 	return buf;
 }
