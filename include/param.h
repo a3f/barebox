@@ -112,6 +112,8 @@ void dev_remove_parameters(struct device *dev);
 int dev_param_set_generic(struct device *dev, struct param_d *p,
 			  const char *val);
 
+int param_int_set_scale(struct param_d *p, uint64_t max);
+
 #else
 static inline const char *dev_get_param(struct device *dev, const char *name)
 {
@@ -241,6 +243,12 @@ static inline int dev_param_set_generic(struct device *dev, struct param_d *p,
 {
 	return 0;
 }
+
+static inline int param_int_set_scale(struct param_d *p, uint64_t max)
+{
+	return 0;
+}
+
 #endif
 
 int param_set_readonly(struct param_d *p, void *priv);
