@@ -90,6 +90,7 @@ static int pwm_beeper_probe(struct device *dev)
 	card->name = dev->of_node->full_name;
 	card->bell_frequency = bell_frequency;
 	card->beep = pwm_beeper_beep;
+	card->dev.parent = dev;
 
 	return sound_card_register(card);
 }

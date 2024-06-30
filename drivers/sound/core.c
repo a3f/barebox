@@ -7,7 +7,7 @@
 #include <poller.h>
 #include <linux/iopoll.h>
 
-static LIST_HEAD(card_list);
+DEFINE_DEV_CLASS(sound_class, "sound");
 
 struct beep {
 	int freq;
@@ -46,22 +46,29 @@ static void sound_card_poller_cb(void *_card)
 
 int sound_card_register(struct sound_card *card)
 {
+	int ret;
+
 	if (!card->name)
 		return -EINVAL;
+
+	INIT_LIST_HEAD(&card->tune);
+
+	ret = class_register_device(&sound_class, &card->dev, "snd");
+	if (ret)
+		return ret;
 
 	if (card->bell_frequency <= 0)
 		card->bell_frequency = 1000;
 
 	poller_async_register(&card->poller, card->name);
-	INIT_LIST_HEAD(&card->tune);
 
-	list_add_tail(&card->list, &card_list);
 	return 0;
 }
 
 struct sound_card *sound_card_get_default(void)
 {
-	return list_first_entry_or_null(&card_list, struct sound_card, list);
+	return container_of_safe(class_first_device(&sound_class),
+				 struct sound_card, dev);
 }
 
 int sound_card_beep(struct sound_card *card, int freq, unsigned int us)

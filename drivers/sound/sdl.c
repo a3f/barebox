@@ -51,6 +51,7 @@ static int sandbox_sound_probe(struct device *dev)
 	card = &priv->card;
 	card->name = "SDL-Audio";
 	card->beep = sandbox_sound_beep;
+	card->dev.parent = dev;
 
 	ret = sdl_sound_init(SAMPLERATE);
 	if (ret) {

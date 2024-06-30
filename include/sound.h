@@ -10,12 +10,12 @@
 #define BELL_DEFAULT_FREQUENCY	-1
 
 struct sound_card {
+	struct device dev;
 	const char *name;
 	int bell_frequency;
 	int (*beep)(struct sound_card *, unsigned freq, unsigned us);
 
 	/* private */
-	struct list_head list;
 	struct list_head tune;
 	struct poller_async poller;
 };

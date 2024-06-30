@@ -40,6 +40,7 @@ static int gpio_beeper_probe(struct device *dev)
 	card = &beeper->card;
 	card->name = np->full_name;
 	card->beep = gpio_beeper_beep;
+	card->dev.parent = dev;
 
 	return sound_card_register(card);
 }

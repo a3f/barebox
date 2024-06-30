@@ -237,6 +237,7 @@ static int virtinput_probe(struct virtio_device *vdev)
 		beeper = &vi->beeper;
 		beeper->name = basprintf("%s/beeper0", dev_name(&vdev->dev));
 		beeper->beep = virtinput_send_status;
+		beeper->dev.parent = &vdev->dev;
 
 		err = sound_card_register(&vi->beeper);
 		if (err)
