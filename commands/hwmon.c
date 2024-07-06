@@ -11,19 +11,22 @@
 
 static int do_hwmon(int argc, char *argv[])
 {
-	int i;
+
 	struct aiodevice *aiodev;
+	int i;
 
 	for_each_aiodevice(aiodev) {
 		for (i = 0; i < aiodev->num_channels; i++) {
 			struct aiochannel *chan = aiodev->channels[i];
-			int value;
-			int ret = aiochannel_get_value(chan, &value);
+			int ret, value;
 
+			printf("%s.%s", aiodevice_name(aiodev), chan->param_name);
+
+			ret = aiochannel_get_value(chan, &value);
 			if (!ret)
-				printf("%s: %d %s\n", chan->name, value, chan->unit);
+				printf(": %d %s\n", value, chan->unit);
 			else
-				printf("%s: failed to read (%d)\n", chan->name, ret);
+				printf(": failed to read (%d)\n", ret);
 		}
 	}
 

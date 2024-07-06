@@ -14,14 +14,24 @@
 
 DEFINE_DEV_CLASS(aiodevice_class, "analogio");
 
+const char *aiodevice_name(struct aiodevice *aiodev)
+{
+	return dev_name(&aiodev->dev);
+}
+
 struct aiochannel *aiochannel_by_name(const char *name)
 {
 	struct aiodevice *aiodev;
+	size_t namelen = strlen(name);
 	int i;
 
 	for_each_aiodevice(aiodev) {
+		if (strncmp(name, aiodevice_name(aiodev), namelen) ||
+		    strcmp(name + namelen, "."))
+			continue;
+
 		for (i = 0; i < aiodev->num_channels; i++)
-			if (!strcmp(name, aiodev->channels[i]->name))
+			if (!strcmp(name, aiodev->channels[i]->param_name))
 				return aiodev->channels[i];
 	}
 
@@ -122,20 +132,15 @@ int aiodevice_register(struct aiodevice *aiodev)
 
 	for (i = 0; i < aiodev->num_channels; i++) {
 		struct aiochannel *aiochan = aiodev->channels[i];
-		char *name;
 
 		aiochan->index  = i;
 		aiochan->aiodev = aiodev;
 
-		name = xasprintf("in_value%d_%s", i, aiochan->unit);
+		aiochan->param_name = xasprintf("in_value%d_%s", i, aiochan->unit);
 
-		dev_add_param_int(&aiodev->dev, name, NULL,
-				  aiochannel_param_get_value,
+		dev_add_param_int(&aiodev->dev, aiochan->param_name,
+				  NULL, aiochannel_param_get_value,
 				  &aiochan->value, "%d", aiochan);
-
-		aiochan->name = xasprintf("%s.%s", dev_name(&aiodev->dev), name);
-
-		free(name);
 	}
 
 	class_add_device(&aiodevice_class, &aiodev->dev);

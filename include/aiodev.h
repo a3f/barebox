@@ -15,12 +15,13 @@
 
 struct aiodevice;
 struct aiochannel {
-	int index;
 	const char *unit;
-	struct aiodevice *aiodev;
 
+	/* internal use */
+	char *param_name;
+	struct aiodevice *aiodev;
+	int index;
 	int value;
-	char *name;
 };
 
 struct aiodevice {
@@ -33,6 +34,8 @@ struct aiodevice {
 };
 
 int aiodevice_register(struct aiodevice *aiodev);
+
+const char *aiodevice_name(struct aiodevice *aiodev);
 
 struct aiochannel *aiochannel_get(struct device *dev, int index);
 /* Find aiochannel by channel name, e.g. "aiodev0.in_value0_mV" */
