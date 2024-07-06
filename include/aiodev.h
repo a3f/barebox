@@ -16,9 +16,9 @@
 struct aiodevice;
 struct aiochannel {
 	const char *unit;
+	const char *param_name;
 
 	/* internal use */
-	char *param_name;
 	struct aiodevice *aiodev;
 	int index;
 	int value;

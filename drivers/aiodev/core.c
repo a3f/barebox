@@ -132,15 +132,17 @@ int aiodevice_register(struct aiodevice *aiodev)
 
 	for (i = 0; i < aiodev->num_channels; i++) {
 		struct aiochannel *aiochan = aiodev->channels[i];
+		struct param_d *param;
 
 		aiochan->index  = i;
 		aiochan->aiodev = aiodev;
 
-		aiochan->param_name = xasprintf("in_value%d_%s", i, aiochan->unit);
+		if (!aiochan->param_name)
+			aiochan->param_name = xasprintf("in_value%d_%s", i, aiochan->unit);
 
-		dev_add_param_int(&aiodev->dev, aiochan->param_name,
-				  NULL, aiochannel_param_get_value,
-				  &aiochan->value, "%d", aiochan);
+		param = dev_add_param_int(&aiodev->dev, aiochan->param_name,
+					  NULL, aiochannel_param_get_value,
+					  &aiochan->value, "%d", aiochan);
 	}
 
 	class_add_device(&aiodevice_class, &aiodev->dev);
