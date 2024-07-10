@@ -125,6 +125,29 @@ static int aiochannel_param_get_value(struct param_d *p, void *priv)
 	return aiochannel_get_value(aiochan, &aiochan->value);
 }
 
+int aiodevice_alloc_channels(struct aiodevice *aiodev, int num_channels)
+{
+	struct aiochannel *channel_objs;
+	size_t pchannels_size, channels_size;
+
+	pchannels_size = ALIGN(num_channels * sizeof(struct iochannel *),
+			       alignof(struct  iochannel));
+	channels_size = num_channels * sizeof(struct iochannel);
+
+	aiodev->channels = zalloc(pchannels_size + channels_size);
+	if (!aiodev->channels)
+		return -ENOMEM;
+
+	channel_objs = (char *)aiodev->channels + pchannels_size;
+
+	for (int i = 0; i < num_channels; i++)
+		aiodev->channels[i] = &channel_objs[i];
+
+	aiodev->num_channels = num_channels;
+
+	return 0;
+}
+
 int aiodevice_register(struct aiodevice *aiodev)
 {
 	int i, ret;

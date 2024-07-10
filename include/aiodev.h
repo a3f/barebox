@@ -34,6 +34,7 @@ struct aiodevice {
 	int num_channels;
 };
 
+int aiodevice_alloc_channels(struct aiodevice *aiodev, int num_channels);
 int aiodevice_register(struct aiodevice *aiodev);
 
 const char *aiodevice_name(struct aiodevice *aiodev);
