@@ -10,18 +10,16 @@
 
 #include <common.h>
 #include <aiodev.h>
-#include <linux/list.h>
 #include <malloc.h>
 
-LIST_HEAD(aiodevices);
-EXPORT_SYMBOL(aiodevices);
+DEFINE_DEV_CLASS(aiodevice_class, "analogio");
 
 struct aiochannel *aiochannel_by_name(const char *name)
 {
 	struct aiodevice *aiodev;
 	int i;
 
-	list_for_each_entry(aiodev, &aiodevices, list) {
+	for_each_aiodevice(aiodev) {
 		for (i = 0; i < aiodev->num_channels; i++)
 			if (!strcmp(name, aiodev->channels[i]->name))
 				return aiodev->channels[i];
@@ -47,7 +45,7 @@ struct aiochannel *aiochannel_get(struct device *dev, int index)
         if (ret)
                 return ERR_PTR(ret);
 
-	list_for_each_entry(aiodev, &aiodevices, list) {
+	for_each_aiodevice(aiodev) {
 		if (aiodev->hwdev->of_node == spec.np)
 			goto found;
 	}
@@ -140,7 +138,7 @@ int aiodevice_register(struct aiodevice *aiodev)
 		free(name);
 	}
 
-	list_add_tail(&aiodev->list, &aiodevices);
+	class_add_device(&aiodevice_class, &aiodev->dev);
 
 	return 0;
 }

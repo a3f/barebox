@@ -144,6 +144,8 @@ extern struct list_head class_list;
 	list_for_each_entry((obj), &(class)->devices, member.class_list)
 
 #define class_for_each(class) list_for_each_entry((class), &class_list, list)
+#define class_for_each_container_of_device(class, obj, member) \
+	list_for_each_entry((obj), &(class)->devices, member.class_list)
 
 struct device_alias {
 	struct device *dev;

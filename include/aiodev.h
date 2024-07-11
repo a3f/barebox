@@ -10,6 +10,9 @@
 #ifndef __AIODEVICE_H
 #define __AIODEVICE_H
 
+#include <device.h>
+#include <linux/errno.h>
+
 struct aiodevice;
 struct aiochannel {
 	int index;
@@ -27,7 +30,6 @@ struct aiodevice {
 	struct device *hwdev;
 	struct aiochannel **channels;
 	int num_channels;
-	struct list_head list;
 };
 
 int aiodevice_register(struct aiodevice *aiodev);
@@ -44,8 +46,9 @@ static inline const char *aiochannel_get_unit(struct aiochannel *aiochan)
 	return aiochan->unit;
 }
 
-extern struct list_head aiodevices;
-#define for_each_aiodevice(aiodevice) list_for_each_entry(aiodevice, &aiodevices, list)
+extern struct class aiodevice_class;
+#define for_each_aiodevice(aiodevice) \
+	class_for_each_container_of_device(&aiodevice_class, aiodevice, dev)
 
 #ifdef CONFIG_AIODEV
 int aiochannel_name_get_value(const char *chname, int *value);
