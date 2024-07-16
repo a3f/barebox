@@ -15,6 +15,10 @@ jobs:
       matrix:
 
         include:
+          - ARCH: sandbox
+            lgenv: 'test/sandbox/sandbox_defconfig.yaml'
+            defconfig: sandbox_defconfig
+
           - ARCH: arm
             lgenv: 'test/arm/*@multi_v7_defconfig.yaml'
             defconfig: multi_v7_defconfig
