@@ -19,6 +19,7 @@ struct input_device {
 };
 
 void input_report_key_event(struct input_device *idev, unsigned int code, int value);
+void input_report_abs(struct input_device *dev, unsigned int code, int value);
 
 int input_device_register(struct input_device *);
 void input_device_unregister(struct input_device *);

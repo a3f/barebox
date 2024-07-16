@@ -73,9 +73,9 @@ struct mux_chip *mux_chip_alloc(struct device *dev,
 	if (WARN_ON(!dev || !controllers))
 		return ERR_PTR(-EINVAL);
 
-	mux_chip = kzalloc(sizeof(*mux_chip) +
+	mux_chip = xzalloc(sizeof(*mux_chip) +
 			   controllers * sizeof(*mux_chip->mux) +
-			   sizeof_priv, GFP_KERNEL);
+			   sizeof_priv);
 	if (!mux_chip)
 		return ERR_PTR(-ENOMEM);
 

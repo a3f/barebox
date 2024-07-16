@@ -3,11 +3,14 @@ targets:
     drivers:
       ExternalConsoleDriver:
         cmd: !template "$LG_BUILDDIR/barebox"
+        txdelay: 0.05
+      BareboxDriver:
+        prompt: 'barebox@[^:]+:[^ ]+ '
+        bootstring: 'commandline:'
       ExternalPowerDriver:
         cmd_on: 'true'
         cmd_off: 'true'
-      BareboxDriver:
-        prompt: "barebox@[^:]+:[^ ]+ "
+        cmd_cycle: 'true'
       BareboxTestStrategy: {}
     runner:
       tuxmake_arch: um

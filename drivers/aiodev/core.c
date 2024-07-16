@@ -130,15 +130,15 @@ int aiodevice_alloc_channels(struct aiodevice *aiodev, int num_channels)
 	struct aiochannel *channel_objs;
 	size_t pchannels_size, channels_size;
 
-	pchannels_size = ALIGN(num_channels * sizeof(struct iochannel *),
-			       alignof(struct  iochannel));
-	channels_size = num_channels * sizeof(struct iochannel);
+	pchannels_size = ALIGN(num_channels * sizeof(struct aiochannel *),
+			       __alignof__(struct  aiochannel));
+	channels_size = num_channels * sizeof(struct aiochannel);
 
-	aiodev->channels = zalloc(pchannels_size + channels_size);
+	aiodev->channels = calloc(pchannels_size + channels_size, 1);
 	if (!aiodev->channels)
 		return -ENOMEM;
 
-	channel_objs = (char *)aiodev->channels + pchannels_size;
+	channel_objs = (void *)aiodev->channels + pchannels_size;
 
 	for (int i = 0; i < num_channels; i++)
 		aiodev->channels[i] = &channel_objs[i];

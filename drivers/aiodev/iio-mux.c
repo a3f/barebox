@@ -21,7 +21,7 @@ struct mux {
 	struct aiochannel *parent;
 	u32 delay_us;
 	struct aiodevice indio_dev;
-	struct aiochannel channels[];
+	u32 state[];
 };
 
 static int iio_mux_select(struct mux *mux, int idx)
@@ -71,9 +71,11 @@ static int mux_configure_channel(struct device *dev, struct mux *mux,
 {
 	struct aiodevice *indio_dev = &mux->indio_dev;
 
-	indio_dev->channels[idx] = &mux->channels[idx];
-	mux->channels[idx].unit = "mV";
-	mux->channels[idx].name = label;
+#if 0
+	indio_dev->channels[idx] = &mux->channels[state];
+	indio_dev->channels[idx].unit = "mV";
+	indio_dev->channels[idx].name = label;
+#endif
 
 	if (state >= mux_control_states(mux->control)) {
 		dev_err(dev, "too many channels\n");
@@ -123,7 +125,7 @@ static int mux_probe(struct device *dev)
 		return -EINVAL;
 	}
 
-	mux = xzalloc(struct_size(mux, channels, all_children));
+	mux = xzalloc(struct_size(mux, state, all_children));
 	mux->parent = parent;
 	mux->cached_state = -1;
 	mux->delay_us = 0;
@@ -132,8 +134,10 @@ static int mux_probe(struct device *dev)
 
 	indio_dev = &mux->indio_dev;
 
-	indio_dev->num_channels = children;
-	indio_dev->channels = calloc(indio_dev->num_channels, sizeof(indio_dev->channels[0]));
+	ret = aiodevice_alloc_channels(indio_dev, children);
+	if (ret)
+		return ret;
+
 	indio_dev->hwdev = dev;
 	indio_dev->read = mux_read_raw;
 

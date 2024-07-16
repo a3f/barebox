@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <common.h>
 #include <driver.h>
-#include <linux/list.h>
 #include <video/backlight.h>
 
-static LIST_HEAD(backlights);
+static DEFINE_DEV_CLASS(backlight_class, "backlight");
 
 int backlight_set_brightness(struct backlight_device *bl, unsigned brightness)
 {
@@ -87,7 +86,7 @@ int backlight_register(struct backlight_device *bl)
 	dev_add_param_uint32(&bl->dev, "slew_time_ms", NULL, NULL,
 			     &bl->slew_time_ms, "%u", NULL);
 
-	list_add_tail(&bl->list, &backlights);
+	class_add_device(&backlight_class, &bl->dev);
 
 	return ret;
 }
@@ -96,7 +95,7 @@ struct backlight_device *of_backlight_find(struct device_node *node)
 {
 	struct backlight_device *bl;
 
-	list_for_each_entry(bl, &backlights, list)
+	class_for_each_container_of_device(&backlight_class, bl, dev)
 		if (bl->node == node)
 			return bl;
 
