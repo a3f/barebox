@@ -7,6 +7,7 @@
 #include <linux/bug.h>
 #include <stdarg.h>
 #include <wchar.h>
+#include <malloc.h>
 
 #if IN_PROPER || !defined(__BAREBOX__)
 void *xmalloc(size_t size) __xalloc_size(1);
