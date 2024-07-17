@@ -1,0 +1,2 @@
+export BAREBOX_FUZZ_TARGET=dtb
+./build/images/barebox-fuzz -rss_limit_mb=10000 -max_len=128000 ../fuzz-corpus/fit
