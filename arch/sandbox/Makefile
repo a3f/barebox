@@ -55,8 +55,8 @@ SANDBOX_LIBS += $(shell $(PKG_CONFIG) libftdi1 --libs)
 endif
 
 ifeq ($(CONFIG_ASAN),y)
-KBUILD_CPPFLAGS += -fsanitize=address
-SANDBOX_LIBS += -fsanitize=address
+KBUILD_CPPFLAGS += -fsanitize=address -fno-sanitize-address-globals-dead-stripping
+SANDBOX_LIBS += -fsanitize=address -fno-sanitize-address-globals-dead-stripping
 endif
 
 ifeq ($(CONFIG_UBSAN),y)
