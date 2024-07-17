@@ -7,6 +7,7 @@
 #include <asm-generic/bug.h>
 #include <stdarg.h>
 #include <wchar.h>
+#include <malloc.h>
 
 #ifndef __PBL__
 void *xmalloc(size_t size) __xalloc_size(1);
