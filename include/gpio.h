@@ -32,6 +32,8 @@ static inline int gpio_direction_input(unsigned gpio)
 }
 #endif
 
+struct device;
+
 #ifdef CONFIG_GPIOLIB
 void gpio_set_active(unsigned gpio, bool state);
 int gpio_is_active(unsigned gpio);
