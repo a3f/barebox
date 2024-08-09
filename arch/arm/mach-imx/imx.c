@@ -89,11 +89,12 @@ static int imx_init(void)
 	struct device_node *root;
 
 	root = of_get_root_node();
-	if (root) {
-		__imx_cpu_type = imx_soc_from_dt();
-		if (!__imx_cpu_type)
-			return 0;
-	}
+	if (!root)
+		return 0;
+
+	__imx_cpu_type = imx_soc_from_dt();
+	if (!__imx_cpu_type)
+		return 0;
 
 	/*
 	 * Don't add new SoCs to this list, instead use the new

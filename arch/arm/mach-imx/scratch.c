@@ -8,6 +8,7 @@
 #include <mach/imx/imx9-regs.h>
 #include <mach/imx/esdctl.h>
 #include <mach/imx/scratch.h>
+#include <mach/imx/generic.h>
 #include <memory.h>
 #include <tee/optee.h>
 #include <pbl.h>
@@ -95,6 +96,9 @@ const struct optee_header *imx_scratch_get_optee_hdr(void)
 
 static int imx8m_reserve_scratch_area(void)
 {
+	if (!__imx_cpu_type)
+		return 0;
+
 	return request_barebox_region("scratch area",
 				      (ulong)arm_mem_scratch_get(),
 				      sizeof(struct imx_scratch_space)) ? 0 : -EINVAL;
