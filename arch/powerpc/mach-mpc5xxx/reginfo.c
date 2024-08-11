@@ -4,9 +4,10 @@
 #include <common.h>
 #include <config.h>
 #include <mach/mpc5xxx.h>
+#include <command.h>
 #include <asm/io.h>
 
-void reginfo(void)
+static void reginfo(void)
 {
 	puts ("\nMPC5200 registers\n");
 	printf ("MBAR=%08x\n", CFG_MBAR);
@@ -61,3 +62,4 @@ void reginfo(void)
 	printf ("\tSDRAMCS1: %08X\n",
 		in_be32((void*)MPC5XXX_SDRAM_CS1CFG));
 }
+DEFINE_SIMPLE_COMMAND(reginfo);
