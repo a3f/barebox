@@ -119,4 +119,19 @@ static const __maybe_unused char cmd_##_name##_help[] =
 
 int register_command(struct command *);
 
+#define DEFINE_SIMPLE_COMMAND(func) \
+	struct string_list; \
+	int empty_complete(struct string_list *sl, char *instr); \
+	static int do_simple_command_##func(int argc, char *argv[]) \
+	{ \
+		func(); \
+		return 0; \
+	} \
+	BAREBOX_CMD_START(func) \
+		.cmd		= do_simple_command_##func, \
+		BAREBOX_CMD_DESC("call " # func "()") \
+		BAREBOX_CMD_GROUP(CMD_GRP_INFO) \
+		BAREBOX_CMD_COMPLETE(empty_complete) \
+	BAREBOX_CMD_END
+
 #endif	/* __COMMAND_H */
