@@ -78,7 +78,7 @@ static int do_dmesg(int argc, char *argv[])
 {
 	int opt, ret, i;
 	int delete_buf = 0, emit = 0;
-	unsigned flags = 0, levels = 0;
+	unsigned flags = 0, levels = GENMASK(CONFIG_DEFAULT_LOGLEVEL, 0);
 	char *set = NULL;
 
 	while ((opt = getopt(argc, argv, "ctderl:n:")) > 0) {
