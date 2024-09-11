@@ -61,6 +61,7 @@ jobs:
 
         ./MAKEALL -O build-${{matrix.arch}} \
                 -k common/boards/configs/enable_self_test.config \
+                -k common/boards/configs/full.config \
                 -k common/boards/configs/disable_target_tools.config \
                 ${{matrix.defconfig}}
 
