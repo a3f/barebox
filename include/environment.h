@@ -50,7 +50,7 @@ static inline char *getenv(const char *var)
 static inline int envvar_for_each(int (*fn)(struct list_head *l, void *data),
 				  void *data)
 {
-	return -ENOENT;
+	return 0;
 }
 
 static inline int setenv(const char *var, const char *val)

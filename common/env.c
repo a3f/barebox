@@ -135,7 +135,7 @@ static int getenv_raw_call(int (*fn)(struct variable_d *v, void *data),
 			return ret;
 	}
 
-	return -ENOENT;
+	return 0;
 }
 
 static const char *dev_getenv(const char *name)
@@ -212,7 +212,7 @@ int envvar_for_each(int (*fn)(struct variable_d *v, void *data), void *data)
 		c = c->parent;
 	}
 
-	return -ENOENT;
+	return 0;
 }
 EXPORT_SYMBOL(envvar_for_each);
 
