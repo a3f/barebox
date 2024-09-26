@@ -6,6 +6,7 @@
 #include <linux/types.h>
 #include <linux/const.h>
 #include <linux/bits.h>
+#include <linux/math.h>
 
 #include <uapi/linux/kernel.h>
 
