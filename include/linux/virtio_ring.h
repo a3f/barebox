@@ -103,6 +103,7 @@ struct virtqueue {
 	unsigned int num_free;
 	struct vring vring;
 	bool event;
+	bool use_dma_api;
 	unsigned int free_head;
 	unsigned int num_added;
 	u16 last_used_idx;
