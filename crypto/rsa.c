@@ -488,11 +488,12 @@ static void rsa_init_keys_of(void)
 	}
 }
 
-static int rsa_init_keys(void)
+static __maybe_unused int rsa_init_keys(void)
 {
 	rsa_init_keys_of();
 
 	return 0;
 }
-
+#ifdef CONFIG_CRYPTO_BUILTIN_KEYS
 device_initcall(rsa_init_keys);
+#endif
