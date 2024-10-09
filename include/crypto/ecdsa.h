@@ -2,6 +2,10 @@
 #ifndef _ECDSA_H
 #define _ECDSA_H
 
+#include <linux/types.h>
+#include <linux/list.h>
+#include <errno.h>
+
 struct ecdsa_public_key {
 	const char *curve_name;	/* Name of curve, e.g. "prime256v1" */
 	const uint64_t *x;	/* x coordinate of public key */
