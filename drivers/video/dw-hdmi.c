@@ -7,6 +7,7 @@
  * Copyright (C) 2010, Guennadi Liakhovetski <g.liakhovetski@gmx.de>
  */
 #include <linux/clk.h>
+#include <linux/kernel.h>
 #include <linux/err.h>
 #include <linux/hdmi.h>
 #include <i2c/i2c.h>
