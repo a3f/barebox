@@ -168,7 +168,6 @@ struct dw_hdmi_plat_data {
 
 struct dw_hdmi *dw_hdmi_probe(struct device *dev,
 			      const struct dw_hdmi_plat_data *plat_data);
-void dw_hdmi_remove(struct dw_hdmi *hdmi);
 void dw_hdmi_unbind(struct dw_hdmi *hdmi);
 struct dw_hdmi *dw_hdmi_bind(struct device *dev,
 			     const struct dw_hdmi_plat_data *plat_data);
