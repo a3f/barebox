@@ -301,12 +301,12 @@ static struct virtqueue *__vring_new_virtqueue(unsigned int index,
 
 static void *vring_alloc_queue(size_t size, dma_addr_t *dma_handle)
 {
-	return dma_alloc_coherent(size, dma_handle);
+	return dma_alloc_coherent(DMA_DEVICE_BROKEN, size, dma_handle);
 }
 
 static void vring_free_queue(size_t size, void *queue, dma_addr_t dma_handle)
 {
-	dma_free_coherent(queue, dma_handle, size);
+	dma_free_coherent(DMA_DEVICE_BROKEN, queue, dma_handle, size);
 }
 
 struct virtqueue *vring_create_virtqueue(unsigned int index, unsigned int num,
