@@ -16,7 +16,7 @@ static inline void perror(const char *s)
 }
 static inline const char *strerror(int errnum)
 {
-	return NULL;
+	return "unknown error";
 }
 #endif
 
