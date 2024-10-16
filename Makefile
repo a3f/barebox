@@ -780,9 +780,6 @@ export KBUILD_BINARY ?= barebox.bin
 # Also any assignments in arch/$(SRCARCH)/Makefile take precedence over
 # the default value.
 
-barebox-flash-image: $(KBUILD_IMAGE) FORCE
-	$(call if_changed,symlink)
-
 barebox-flash-images: $(KBUILD_IMAGE)
 	@echo $^ > $@
 
@@ -791,14 +788,18 @@ images: barebox.bin FORCE
 images/%.s: barebox.bin FORCE
 	$(Q)$(MAKE) $(build)=images $@
 
-ifdef CONFIG_EFI_STUB
-all: barebox.bin images barebox.efi
-barebox.efi: FORCE
-	$(Q)ln -fsn images/barebox-dt-2nd.img $@
-else ifdef CONFIG_PBL_IMAGE
-all: barebox.bin images
+.SECONDEXPANSION:
+$(symlink-y): %: $$(SYMLINK_TARGET_%) FORCE
+	$(call if_changed,symlink_quiet)
+
+ifdef CONFIG_PBL_IMAGE
+SYMLINK_TARGET_barebox.efi = images/barebox-dt-2nd.img
+symlink-$(CONFIG_EFI_STUB) += barebox.efi
+all: barebox.bin images $(symlink-y)
 else
-all: barebox-flash-image barebox-flash-images
+SYMLINK_TARGET_barebox-flash-image = $(KBUILD_IMAGE)
+symlink-y += barebox-flash-image
+all: barebox-flash-images $(symlink-y)
 endif
 
 common-$(CONFIG_PBL_IMAGE)	+= pbl/
@@ -1000,9 +1001,11 @@ endif
 PHONY += install
 
 # barebox image
+ifeq ($(filter barebox, $(symlink-y)),)
 barebox: $(BAREBOX_LDS) $(BAREBOX_OBJS) $(kallsyms.o) FORCE
 	$(call if_changed_rule,barebox__)
 	$(Q)rm -f .old_version
+endif
 
 barebox.srec: barebox
 	$(OBJCOPY) -O srec $< $@
