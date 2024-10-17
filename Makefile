@@ -787,7 +787,7 @@ barebox-flash-images: $(KBUILD_IMAGE)
 
 images: $(BAREBOX_PROPER) FORCE
 	$(Q)$(MAKE) $(build)=images $@
-images/%.s: $(BAREBOX_PROPER) FORCE
+images/%: $(BAREBOX_PROPER) FORCE
 	$(Q)$(MAKE) $(build)=images $@
 
 .SECONDEXPANSION:
