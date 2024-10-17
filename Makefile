@@ -792,10 +792,6 @@ images: $(BAREBOX_PROPER) FORCE
 images/%: $(BAREBOX_PROPER) FORCE
 	$(Q)$(MAKE) $(build)=images $@
 
-.SECONDEXPANSION:
-$(symlink-y): %: $$(SYMLINK_TARGET_%) FORCE
-	$(call if_changed,symlink_quiet)
-
 ifdef CONFIG_PBL_IMAGE
 SYMLINK_TARGET_barebox.efi = images/barebox-dt-2nd.img
 symlink-$(CONFIG_EFI_STUB) += barebox.efi
@@ -805,6 +801,10 @@ SYMLINK_TARGET_barebox-flash-image = $(KBUILD_IMAGE)
 symlink-y += barebox-flash-image
 all: barebox-flash-images $(symlink-y)
 endif
+
+.SECONDEXPANSION:
+$(symlink-y): %: $$(SYMLINK_TARGET_%) FORCE
+	$(call if_changed,symlink_quiet)
 
 common-$(CONFIG_PBL_IMAGE)	+= pbl/
 common-$(CONFIG_DEFAULT_ENVIRONMENT) += defaultenv/
