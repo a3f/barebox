@@ -15,6 +15,7 @@ fuzzer-$(CONFIG_OFTREE)		+= dtb
 fuzzer-$(CONFIG_VIRTIO)		+= vring
 fuzzer-$(CONFIG_FILETYPE)	+= filetype
 fuzzer-$(CONFIG_FS)		+= fs
+fuzzer-$(CONFIG_PARTITION)	+= partitions
 
 ifeq ($(CONFIG_SANDBOX),y)
 
