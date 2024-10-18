@@ -14,6 +14,7 @@ fuzzer-y			+= printf
 fuzzer-$(CONFIG_OFTREE)		+= dtb
 fuzzer-$(CONFIG_VIRTIO)		+= vring
 fuzzer-$(CONFIG_FILETYPE)	+= filetype
+fuzzer-$(CONFIG_FS)		+= fs
 
 ifeq ($(CONFIG_SANDBOX),y)
 
