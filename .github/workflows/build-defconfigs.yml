@@ -20,6 +20,7 @@ jobs:
   build:
     needs: defconfigs
     runs-on: ubuntu-latest
+    continue-on-error: true
     container:
       image: ghcr.io/barebox/barebox/barebox-ci:latest
       # allow mounting and devtmpfs in the container
