@@ -149,7 +149,7 @@ missing_fw = $(strip $(wildcard $(obj)/$(FILE_$(@F)).missing-firmware $(basename
 $(obj)/%.img: $(obj)/$$(FILE_$$(@F))
 	$(Q)if [ -z $(FILE_$(@F)) ]; then echo "FILE_$(@F) empty!"; false; fi
 	$(Q)$(if $(missing_fw),cat $(missing_fw) >$@.missing-firmware,rm -f $@.missing-firmware)
-	$(call if_changed,$(if $(missing_fw),delete,shipped))
+	$(call cmd,$(if $(missing_fw),delete,shipped))
 
 board = $(srctree)/arch/$(SRCARCH)/boards
 objboard = $(objtree)/arch/$(SRCARCH)/boards
