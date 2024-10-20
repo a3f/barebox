@@ -50,6 +50,6 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: log-${{matrix.config}}
-        path: log-${{matrix.config}}/
+        name: log-${{matrix.arch}}-${{matrix.config}}
+        path: log-${{matrix.arch}}-${{matrix.config}}/
         if-no-files-found: error
