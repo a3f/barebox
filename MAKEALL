@@ -105,7 +105,7 @@ do_build_target() {
 	[ "$INCREMENTAL" != "1" ] && rm -rf "${BUILDDIR}"
 	mkdir -p "${LOGDIR}/${target}"
 
-	MAKE="make -j${JOBS} ARCH=${arch} O=${BUILDDIR}"
+	MAKE="make -j${JOBS} ARCH=${arch} O=${BUILDDIR} V=1"
 	${MAKE} ${target} &>/dev/null
 
 	if [ ${arch} = "arm" ]; then
