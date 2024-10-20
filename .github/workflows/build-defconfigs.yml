@@ -57,6 +57,7 @@ jobs:
   merge:
     name: makeall-logs
     needs: upload-logs
+    runs-on: ubuntu-latest
     steps:
       - name: Merge Artifacts
         uses: actions/upload-artifact/merge@v4
