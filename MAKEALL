@@ -147,7 +147,7 @@ do_build_target() {
 	if [ "$configure_result" = "0" ]; then
 		printf "OK     \n" | tee -a "${log_report}"
 
-		${MAKE} -s 2>&1 >> "${log_report}" | tee -a "${log_err}"
+		${MAKE} 2>&1 >> "${log_report}" | tee -a "${log_err}"
 
 		check_pipe_status
 		compile_result="$?"
