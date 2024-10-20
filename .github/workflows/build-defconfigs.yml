@@ -40,7 +40,7 @@ jobs:
         ./test/generate-dummy-fw.sh
 
         ./MAKEALL -O build-${{matrix.arch}} \
-                -l log-${{matrix.arch}} \
+                -l log-${{matrix.config}} \
                 -k common/boards/configs/disable_size_check.config \
                 -k common/boards/configs/disable_target_tools.config \
                 -k common/boards/configs/enable_werror.config \
@@ -50,6 +50,6 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: log-${{matrix.arch}}
-        path: log-${{matrix.arch}}/
+        name: log-${{matrix.config}}
+        path: log-${{matrix.config}}/
         if-no-files-found: error
