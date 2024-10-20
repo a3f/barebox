@@ -796,8 +796,7 @@ barebox-flash-images: $(KBUILD_IMAGE)
 
 images: $(BAREBOX_PROPER) FORCE
 	$(Q)$(MAKE) $(build)=images $@
-images/%: $(BAREBOX_PROPER) FORCE
-	$(Q)$(MAKE) $(build)=images $@
+images/%: images
 
 ifdef CONFIG_PBL_IMAGE
 SYMLINK_TARGET_barebox.efi = images/barebox-dt-2nd.img
