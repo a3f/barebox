@@ -11,9 +11,16 @@ NAME = None
 # Comments in this file are targeted only to the developer, do not
 # expect to learn how to build the kernel reading this file.
 
+ifeq ($(filter output-sync,$(.FEATURES)),)
+$(error GNU Make >= 4.0 is required. Your Make version is $(MAKE_VERSION))
+endif
+
+$(if $(filter __%, $(MAKECMDGOALS)), \
+	$(error targets prefixed with '__' are only for internal use))
+
 # That's our default target when none is given on the command line
-PHONY := _all
-_all:
+PHONY := __all
+__all:
 
 # We are using a recursive build, so we need to do a little thinking
 # to get the ordering right.
@@ -164,12 +171,11 @@ MAKEFLAGS += --include-dir=$(abs_srctree)
 need-sub-make := 1
 endif
 
-ifneq ($(filter 3.%,$(MAKE_VERSION)),)
-# 'MAKEFLAGS += -rR' does not immediately become effective for GNU Make 3.x
-# We need to invoke sub-make to avoid implicit rules in the top Makefile.
+ifeq ($(filter --no-print-directory, $(MAKEFLAGS)),)
+# If --no-print-directory is unset, recurse once again to set it.
+# You may end up recursing into __sub-make twice. This is needed due to the
+# behavior change in GNU Make 4.4.1.
 need-sub-make := 1
-# Cancel implicit rules for this Makefile.
-$(lastword $(MAKEFILE_LIST)): ;
 endif
 
 export abs_srctree abs_objtree
@@ -177,13 +183,13 @@ export sub_make_done := 1
 
 ifeq ($(need-sub-make),1)
 
-PHONY += $(MAKECMDGOALS) sub-make
+PHONY += $(MAKECMDGOALS) __sub-make
 
-$(filter-out _all sub-make $(lastword $(MAKEFILE_LIST)), $(MAKECMDGOALS)) _all: sub-make
+$(filter-out __all __sub-make $(lastword $(MAKEFILE_LIST)), $(MAKECMDGOALS)) __all: __sub-make
 	@:
 
 # Invoke a second make in the output directory, passing relevant variables
-sub-make:
+__sub-make:
 	$(Q)$(MAKE) -C $(abs_objtree) -f $(abs_srctree)/Makefile $(MAKECMDGOALS)
 
 endif # need-sub-make
@@ -313,7 +319,7 @@ __build_one_by_one:
 
 else # !mixed-build
 
-include scripts/Kbuild.include
+include $(srctree)/scripts/Kbuild.include
 
 # Read KERNELRELEASE from include/config/kernel.release (if it exists)
 KERNELRELEASE = $(shell cat include/config/kernel.release 2> /dev/null)
@@ -584,12 +590,12 @@ else #!config-build
 # targets and others. In general all targets except *config targets.
 
 # If building an external module we do not care about the all: rule
-# but instead _all depend on modules
+# but instead __all depend on modules
 PHONY += all
 ifeq ($(KBUILD_EXTMOD),)
-_all: all
+__all: all
 else
-_all: modules
+__all: modules
 endif
 
 # Decide whether to build built-in, modular, or both.
@@ -611,7 +617,7 @@ endif
 # in addition to whatever we do anyway.
 # Just "make" or "make all" shall build modules as well
 
-ifneq ($(filter all _all modules %compile_commands.json,$(MAKECMDGOALS)),)
+ifneq ($(filter all __all modules %compile_commands.json,$(MAKECMDGOALS)),)
   KBUILD_MODULES := 1
 endif
 
@@ -659,11 +665,12 @@ $(KCONFIG_CONFIG):
 # This exploits the 'multi-target pattern rule' trick.
 # The syncconfig should be executed only once to make all the targets.
 # (Note: use the grouped target '&:' when we bump to GNU Make 4.3)
-quiet_cmd_syncconfig = SYNC    $@
-      cmd_syncconfig = $(MAKE) -f $(srctree)/Makefile syncconfig
-
-%/config/auto.conf %/config/auto.conf.cmd %/generated/autoconf.h: $(KCONFIG_CONFIG)
-	+$(call cmd,syncconfig)
+#
+# Do not use $(call cmd,...) here. That would suppress prompts from syncconfig,
+# so you cannot notice that Kconfig is waiting for the user input.
+%/config/auto.conf %/config/auto.conf.cmd %/generated/autoconf.h %/generated/rustc_cfg: $(KCONFIG_CONFIG)
+	$(Q)$(kecho) "  SYNC    $@"
+	$(Q)$(MAKE) -f $(srctree)/Makefile syncconfig
 else # !may-sync-config
 # External modules and some install targets need include/generated/autoconf.h
 # and include/config/auto.conf but do not care if they are up-to-date.
@@ -671,7 +678,7 @@ else # !may-sync-config
 PHONY += include/config/auto.conf
 
 include/config/auto.conf:
-	$(Q)test -e include/generated/autoconf.h -a -e $@ || (		\
+	@test -e include/generated/autoconf.h -a -e $@ || (		\
 	echo >&2;							\
 	echo >&2 "  ERROR: Kernel configuration is invalid.";		\
 	echo >&2 "         include/generated/autoconf.h or $@ are missing.";\
@@ -1040,11 +1047,15 @@ PHONY += $(barebox-dirs)
 $(barebox-dirs): prepare scripts
 	$(Q)$(MAKE) $(build)=$@
 
-# Store (new) KERNELRELASE string in include/config/kernel.release
-localversion = $(shell $(srctree)/scripts/setlocalversion $(srctree))
+ifeq ($(origin KERNELRELEASE),file)
+filechk_kernel.release = $(srctree)/scripts/setlocalversion $(srctree)
+else
+filechk_kernel.release = echo $(KERNELRELEASE)
+endif
+
+# Store (new) KERNELRELEASE string in include/config/kernel.release
 include/config/kernel.release: FORCE
-	$(Q)rm -f $@
-	$(Q)echo $(KERNELVERSION)$(localversion) > $@
+	$(call filechk,kernel.release)
 
 # Additional helpers built in scripts/
 # Carefully list dependencies so we do not try to build scripts twice
