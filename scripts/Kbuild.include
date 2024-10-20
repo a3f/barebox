@@ -224,7 +224,7 @@ cmd_and_savecmd =                                                            \
 if_changed_dep = $(if $(if-changed-cond),$(cmd_and_fixdep),@:)
 
 cmd_and_fixdep =                                                             \
-	$(cmd);                                                              \
+	$(cmd); echo  fixdepping $(depfile)  ;                                                      \
 	scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd;\
 	rm -f $(depfile)
 
