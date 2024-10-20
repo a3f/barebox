@@ -40,7 +40,7 @@ jobs:
         ./test/generate-dummy-fw.sh
 
         ./MAKEALL -O build-${{matrix.arch}} \
-                -l log-${{matrix.config}} \
+                -l log-${{matrix.arch}}-${{matrix.config}} \
                 -k common/boards/configs/disable_size_check.config \
                 -k common/boards/configs/disable_target_tools.config \
                 -k common/boards/configs/enable_werror.config \
