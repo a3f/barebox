@@ -332,6 +332,8 @@ static int fuzz_partition_table_parser(struct block_device *ramdisk)
 	if (!pdesc)
 		return 0;
 
+	pdesc->parser = parser;
+
 	list_for_each_entry(part, &pdesc->partitions, list) {
 		register_one_partition(ramdisk, part);
 		remove_one_partition(ramdisk, part->num);
