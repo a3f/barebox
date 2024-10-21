@@ -3,6 +3,7 @@
 
 #include <ramdisk.h>
 #include <block.h>
+#include <driver.h>
 #include <fs.h>
 #include <string.h>
 #include <xfuncs.h>
@@ -11,6 +12,7 @@
 
 struct ramdisk {
 	struct block_device blk;
+	struct device dev;
 	union {
 		void *base_rw;
 		const void *base_ro;
@@ -24,8 +26,8 @@ static int ramdisk_check_read(const struct ramdisk *ramdisk)
 	return ramdisk->base_ro ? 1 : 0;
 }
 
-static ssize_t ramdisk_read(struct cdev *cdev, void *buf, size_t count, loff_t offset,
-			unsigned long flags)
+static ssize_t ramdisk_read(struct cdev *cdev, void *buf, size_t count,
+			    loff_t offset, unsigned long flags)
 {
 	struct ramdisk *ramdisk = cdev->priv;
 	size_t cpy_count, pad_count;
@@ -35,6 +37,9 @@ static ssize_t ramdisk_read(struct cdev *cdev, void *buf, size_t count, loff_t o
 	if (ret < 1)
 		return ret;
 
+	if (size_add(offset, count) > ramdisk->size)
+		return -ENXIO;
+
 	cpy_count = min_t(size_t, count, ramdisk->size - offset);
 	buf = mempcpy(buf, ramdisk->base_ro + offset, cpy_count);
 
@@ -42,7 +47,7 @@ static ssize_t ramdisk_read(struct cdev *cdev, void *buf, size_t count, loff_t o
 
 	memset(buf, 0x00, pad_count);
 
-	pr_info("read %zu bytes\n", cpy_count + pad_count);
+	pr_debug("read %zu bytes\n", cpy_count + pad_count);
 
 	return cpy_count + pad_count;
 }
@@ -65,6 +70,8 @@ static ssize_t ramdisk_write(struct cdev *cdev, const void *buf, size_t count,
 	ret = ramdisk_check_write(ramdisk);
 	if (ret < 1)
 		return ret;
+	if (size_add(offset, count) > ramdisk->size)
+		return -ENXIO;
 
 	memcpy(ramdisk->base_rw + offset, buf,
 	       min_t(size_t, count, ramdisk->size - offset));
@@ -96,16 +103,32 @@ struct ramdisk *ramdisk_init(int sector_size)
 {
 	struct ramdisk *ramdisk;
 	struct block_device *blk;
+	int ret;
 
 	ramdisk = xzalloc(sizeof(*ramdisk));
+
+	dev_set_name(&ramdisk->dev, "ramdisk");
+	ramdisk->dev.id = DEVICE_ID_DYNAMIC;
+
+	ret = register_device(&ramdisk->dev);
+	if (ret)
+		return NULL;
+
 	blk = &ramdisk->blk;
+	blk->dev = &ramdisk->dev;
+	blk->type = BLK_TYPE_VIRTUAL;
 
 	blk->cdev.size = 0;
+	blk->cdev.name = xstrdup(dev_name(&ramdisk->dev));
 	blk->cdev.dev = blk->dev;
 	blk->cdev.ops = &ramdisk_ops;
 	blk->cdev.priv = ramdisk;
 	blk->cdev.flags |= DEVFS_IS_BLOCK_DEV;
 	blk->blockbits = ilog2(sector_size);
+
+	ret = devfs_create(&blk->cdev);
+	if (ret)
+		return NULL;
 
 	INIT_LIST_HEAD(&blk->buffered_blocks);
 	INIT_LIST_HEAD(&blk->idle_blocks);
@@ -120,6 +143,8 @@ struct block_device *ramdisk_get_block_device(struct ramdisk *ramdisk)
 
 void ramdisk_free(struct ramdisk *ramdisk)
 {
+	devfs_remove(&ramdisk->blk.cdev);
+	unregister_device(&ramdisk->dev);
 	free(ramdisk);
 }
 
