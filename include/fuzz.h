@@ -56,6 +56,8 @@ extern const struct fuzz_test __barebox_fuzz_tests_end;
 		int ret;					\
 		if (!ramdisk)					\
 			ramdisk = ramdisk_init(512);		\
+		if (!ramdisk)					\
+			return -ENODEV;				\
 		ramdisk_setup_ro(ramdisk, data, size);		\
 		ret = _func(ramdisk_get_block_device(ramdisk));	\
 		ramdisk_setup_ro(ramdisk, NULL, 0);		\
