@@ -85,7 +85,8 @@ static void rawmode(void)
 	tcsetattr(0, TCSANOW, &term_vi);
 }
 
-static void cookmode(void)
+void cookmode(void);
+void cookmode(void)
 {
 	fflush(stdout);
 	if (erase_char)
@@ -557,10 +558,6 @@ ENTRY_FUNCTION(sandbox_main, argc, argv)
 	char *aux;
 
 	tcgetattr(0, &term_orig);
-
-#ifdef CONFIG_ASAN
-	__sanitizer_set_death_callback(prepare_exit);
-#endif
 
 	while (1) {
 		option_index = 0;

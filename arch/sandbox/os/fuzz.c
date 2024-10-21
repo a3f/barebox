@@ -75,6 +75,8 @@ const uint8_t *fuzzer_get_data(size_t *size)
 	return fuzz_data;
 }
 
+void cookmode(void);
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
@@ -97,6 +99,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 		}
 
 		finish_switch_fiber(fake_stack_save, &main_stack_bottom, &main_stack_size);
+
+		cookmode();
 	}
 
 	if (!barebox_setjmp(fuzzer_jmpbuf)) {
