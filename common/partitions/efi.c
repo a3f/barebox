@@ -122,7 +122,6 @@ static gpt_entry *alloc_read_gpt_entries(struct block_device *blk,
 	ret = block_read(blk, pte, from, size);
 	if (ret) {
 		free(pte);
-		pte=NULL;
 		return NULL;
 	}
 	return pte;
@@ -157,7 +156,6 @@ static gpt_header *alloc_read_gpt_header(struct block_device *blk,
 	ret = block_read(blk, gpt, lba, 1);
 	if (ret) {
 		free(gpt);
-		gpt=NULL;
 		return NULL;
 	}
 
