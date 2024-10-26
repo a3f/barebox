@@ -13,6 +13,7 @@
  */
 
 #include <common.h>
+#include <linux/device.h>
 #include <disks.h>
 #include <init.h>
 #include <stdlib.h>
@@ -60,17 +61,17 @@ static inline int is_extended_partition(struct partition *p)
 
 static inline void *blk_xmalloc(struct block_device *blk, size_t size)
 {
-	return xmalloc(size);
+	return devm_kmalloc(blk->dev, size, GFP_KERNEL);
 }
 
 static inline void *blk_xzalloc(struct block_device *blk, size_t size)
 {
-	return xzalloc(size);
+	return devm_xzalloc(blk->dev, size, GFP_KERNEL);
 }
 
 static inline void blk_free(struct block_device *blk, void *ptr)
 {
-	free(ptr);
+	devm_kfree(blk->dev, ptr);
 }
 
 static void *read_mbr(struct block_device *blk)

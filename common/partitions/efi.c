@@ -13,6 +13,7 @@
  */
 
 #include <common.h>
+#include <linux/device.h>
 #include <disks.h>
 #include <init.h>
 #include <asm/unaligned.h>
@@ -97,17 +98,17 @@ static inline void *blk_calloc(struct block_device *blk,
 			       size_t n,
 			       size_t size)
 {
-	return calloc(n, size);
+	return devm_kcalloc(blk->dev, n, size, GFP_KERNEL);
 }
 
 static inline void *blk_xzalloc(struct block_device *blk, size_t size)
 {
-	return xzalloc(size);
+	return devm_xzalloc(blk->dev, size, GFP_KERNEL);
 }
 
 static inline void blk_free(struct block_device *blk, void *ptr)
 {
-	free(ptr);
+	devm_kfree(blk->dev, ptr);
 }
 
 /**
