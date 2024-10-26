@@ -29,10 +29,12 @@ SECTIONS
 	BAREBOX_PBL_SIZE
 
 	. = ALIGN(4);
+	__start_rodata = .;
 	.rodata : { *(.rodata*) }
 
 	.barebox_imd : { BAREBOX_IMD }
 
+	__end_rodata = .;
 	_etext = .;			/* End of text and rodata section */
 
 	.data : { *(.data*) }

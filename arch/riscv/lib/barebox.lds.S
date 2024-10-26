@@ -39,11 +39,13 @@ SECTIONS
 	BAREBOX_BARE_INIT_SIZE
 
 	. = ALIGN(4);
+	__start_rodata = .;
 	.rodata : {
 		*(.rodata*)
 		RO_DATA_SECTION
 	}
 
+	__end_rodata = .;
 	_etext = .;			/* End of text and rodata section */
 	_sdata = .;
 

@@ -46,6 +46,7 @@ SECTIONS
 	}  > ram
 
 	. = ALIGN(4);
+	__start_rodata = .;
 	.rodata : {
 		*(.rodata);
 		*(.rodata.*)
@@ -53,6 +54,7 @@ SECTIONS
 		RO_DATA_SECTION
 	} > ram
 
+	__end_rodata = .;
 	__etext = .; /* End of text and rodata section */
 
 	. = ALIGN(4);
