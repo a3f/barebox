@@ -27,6 +27,7 @@ struct efi_partition_desc {
 	gpt_header *gpt;
 	gpt_entry *ptes;
 	struct param_d *param_guid;
+	struct block_device *blk;
 };
 
 struct efi_partition {
@@ -92,6 +93,23 @@ static u64 last_lba(struct block_device *bdev)
 	return bdev->num_blocks - 1;
 }
 
+static inline void *blk_calloc(struct block_device *blk,
+			       size_t n,
+			       size_t size)
+{
+	return calloc(n, size);
+}
+
+static inline void *blk_xzalloc(struct block_device *blk, size_t size)
+{
+	return xzalloc(size);
+}
+
+static inline void blk_free(struct block_device *blk, void *ptr)
+{
+	free(ptr);
+}
+
 /**
  * alloc_read_gpt_entries(): reads partition entries from disk
  * @dev_desc
@@ -113,7 +131,7 @@ static gpt_entry *alloc_read_gpt_entries(struct block_device *blk,
 	if (!count)
 		return NULL;
 
-	pte = calloc(count, 1);
+	pte = blk_calloc(blk, count, 1);
 	if (!pte)
 		return NULL;
 
@@ -121,7 +139,7 @@ static gpt_entry *alloc_read_gpt_entries(struct block_device *blk,
 	size = count / GPT_BLOCK_SIZE;
 	ret = block_read(blk, pte, from, size);
 	if (ret) {
-		free(pte);
+		blk_free(blk, pte);
 		return NULL;
 	}
 	return pte;
@@ -149,13 +167,13 @@ static gpt_header *alloc_read_gpt_header(struct block_device *blk,
 	unsigned ssz = bdev_logical_block_size(blk);
 	int ret;
 
-	gpt = calloc(ssz, 1);
+	gpt = blk_calloc(blk, ssz, 1);
 	if (!gpt)
 		return NULL;
 
 	ret = block_read(blk, gpt, lba, 1);
 	if (ret) {
-		free(gpt);
+		blk_free(blk, gpt);
 		return NULL;
 	}
 
@@ -252,10 +270,10 @@ static int is_gpt_valid(struct block_device *blk, u64 lba,
 	return 1;
 
  fail_ptes:
-	free(*ptes);
+	blk_free(blk, *ptes);
 	*ptes = NULL;
  fail:
-	free(*gpt);
+	blk_free(blk, *gpt);
 	*gpt = NULL;
 	return 0;
 }
@@ -431,8 +449,8 @@ static int find_valid_gpt(void *buf, struct block_device *blk, gpt_header **gpt,
 	if (good_pgpt) {
 		*gpt  = pgpt;
 		*ptes = pptes;
-		free(agpt);
-		free(aptes);
+		blk_free(blk, agpt);
+		blk_free(blk, aptes);
 		if (!good_agpt)
 			dev_warn(blk->dev, "Alternate GPT is invalid, using primary GPT.\n");
 		return 1;
@@ -440,17 +458,17 @@ static int find_valid_gpt(void *buf, struct block_device *blk, gpt_header **gpt,
 	else if (good_agpt) {
 		*gpt  = agpt;
 		*ptes = aptes;
-		free(pgpt);
-		free(pptes);
+		blk_free(blk, pgpt);
+		blk_free(blk, pptes);
 		dev_warn(blk->dev, "Primary GPT is invalid, using alternate GPT.\n");
 		return 1;
 	}
 
  fail:
-	free(pgpt);
-	free(agpt);
-	free(pptes);
-	free(aptes);
+	blk_free(blk, pgpt);
+	blk_free(blk, agpt);
+	blk_free(blk, pptes);
+	blk_free(blk, aptes);
 	*gpt = NULL;
 	*ptes = NULL;
 	return 0;
@@ -522,9 +540,10 @@ static struct partition_desc *efi_partition(void *buf, struct block_device *blk)
 		nb_part = MAX_PARTITION;
 	}
 
-	epd = xzalloc(sizeof(*epd));
+	epd = blk_xzalloc(blk, sizeof(*epd));
 	partition_desc_init(&epd->pd, blk);
 
+	epd->blk = blk;
 	epd->gpt = gpt;
 	epd->ptes = ptes;
 
@@ -538,7 +557,7 @@ static struct partition_desc *efi_partition(void *buf, struct block_device *blk)
 			continue;
 		}
 
-		epart = xzalloc(sizeof(*epart));
+		epart = blk_xzalloc(blk, sizeof(*epart));
 		epart->pte = &ptes[i];
 		pentry = &epart->part;
 		extract_flags(&ptes[i], pentry);
@@ -558,28 +577,29 @@ static struct partition_desc *efi_partition(void *buf, struct block_device *blk)
 static void efi_partition_free(struct partition_desc *pd)
 {
 	struct efi_partition_desc *epd = container_of(pd, struct efi_partition_desc, pd);
+	struct block_device *blk = epd->blk;
 	struct partition *part, *tmp;
 
 	list_for_each_entry_safe(part, tmp, &pd->partitions, list) {
 		struct efi_partition *epart = container_of(part, struct efi_partition, part);
 
-		free(epart);
+		blk_free(blk, epart);
 	}
 
 	dev_remove_param(epd->param_guid);
-	free(epd->ptes);
-	free(epd->gpt);
-	free(epd);
+	blk_free(blk, epd->ptes);
+	blk_free(blk, epd->gpt);
+	blk_free(blk, epd);
 }
 
 static __maybe_unused struct partition_desc *efi_partition_create_table(struct block_device *blk)
 {
-	struct efi_partition_desc *epd = xzalloc(sizeof(*epd));
+	struct efi_partition_desc *epd = blk_xzalloc(blk, sizeof(*epd));
 	gpt_header *gpt;
 
 	partition_desc_init(&epd->pd, blk);
 
-	epd->gpt = xzalloc(512);
+	epd->gpt = blk_xzalloc(blk, 512);
 	gpt = epd->gpt;
 
 	gpt->signature = cpu_to_le64(GPT_HEADER_SIGNATURE);
@@ -596,7 +616,7 @@ static __maybe_unused struct partition_desc *efi_partition_create_table(struct b
 
 	pr_info("Created new disk label with GUID %pU\n", &gpt->disk_guid);
 
-	epd->ptes = xzalloc(128 * sizeof(gpt_entry));
+	epd->ptes = blk_xzalloc(blk, 128 * sizeof(gpt_entry));
 
 	return &epd->pd;
 }
