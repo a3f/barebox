@@ -58,14 +58,29 @@ static inline int is_extended_partition(struct partition *p)
 		p->dos_partition_type == LINUX_EXTENDED_PARTITION);
 }
 
+static inline void *blk_xmalloc(struct block_device *blk, size_t size)
+{
+	return xmalloc(size);
+}
+
+static inline void *blk_xzalloc(struct block_device *blk, size_t size)
+{
+	return xzalloc(size);
+}
+
+static inline void blk_free(struct block_device *blk, void *ptr)
+{
+	free(ptr);
+}
+
 static void *read_mbr(struct block_device *blk)
 {
-	void *buf = xmalloc(SECTOR_SIZE);
+	void *buf = blk_xmalloc(blk, SECTOR_SIZE);
 	int ret;
 
 	ret = block_read(blk, buf, 0, 1);
 	if (ret) {
-		free(buf);
+		blk_free(blk, buf);
 		return NULL;
 	}
 
@@ -101,7 +116,7 @@ static int dos_set_disk_signature(struct param_d *p, void *_priv)
 
 	ret = write_mbr(blk, buf);
 
-	free(buf);
+	blk_free(blk, buf);
 
 	return ret;
 }
@@ -118,7 +133,7 @@ static int dos_get_disk_signature(struct param_d *p, void *_priv)
 
 	priv->signature = get_unaligned_le32(buf + 0x1b8);
 
-	free(buf);
+	blk_free(blk, buf);
 
 	return 0;
 }
@@ -126,7 +141,7 @@ static int dos_get_disk_signature(struct param_d *p, void *_priv)
 static void dos_extended_partition(struct block_device *blk, struct dos_partition_desc *dpd,
 		struct partition *partition, uint32_t signature)
 {
-	uint8_t *buf = xmalloc(SECTOR_SIZE);
+	uint8_t *buf = blk_xmalloc(blk, SECTOR_SIZE);
 	uint32_t ebr_sector = partition->first_sec;
 	struct partition_entry *table = (struct partition_entry *)&buf[0x1be];
 	unsigned partno = 4;
@@ -157,7 +172,7 @@ static void dos_extended_partition(struct block_device *blk, struct dos_partitio
 			}
 		/* /sanity checks */
 
-		dpart = xzalloc(sizeof(*dpart));
+		dpart = blk_xzalloc(blk, sizeof(*dpart));
 		dpart->logical = true;
 		dpart->boot_indicator = table[0].boot_indicator;
 		memcpy(dpart->chs_begin, table[0].chs_begin, sizeof(table[0].chs_begin));
@@ -187,7 +202,7 @@ static void dos_extended_partition(struct block_device *blk, struct dos_partitio
 	}
 
 out:
-	free(buf);
+	blk_free(blk, buf);
 	return;
 }
 
@@ -226,7 +241,7 @@ static struct partition_desc *dos_partition(void *buf, struct block_device *blk)
 
 	table = (struct partition_entry *)&buffer[446];
 
-	dpd = xzalloc(sizeof(*dpd));
+	dpd = blk_xzalloc(blk, sizeof(*dpd));
 	partition_desc_init(&dpd->pd, blk);
 
 	for (i = 0; i < 4; i++) {
@@ -237,7 +252,7 @@ static struct partition_desc *dos_partition(void *buf, struct block_device *blk)
 			continue;
 		}
 
-		dpart = xzalloc(sizeof(*dpart));
+		dpart = blk_xzalloc(blk, sizeof(*dpart));
 		dpart->boot_indicator = table[i].boot_indicator;
 		memcpy(dpart->chs_begin, table[i].chs_begin, sizeof(table[i].chs_begin));
 		dpart->type = table[i].type;
@@ -299,17 +314,18 @@ static void dos_partition_free(struct partition_desc *pd)
 {
 	struct dos_partition_desc *dpd
 		= container_of(pd, struct dos_partition_desc, pd);
+	struct block_device *blk = dpd->disksig.blk;
 	struct partition *part, *tmp;
 
 	list_for_each_entry_safe(part, tmp, &pd->partitions, list) {
 		struct dos_partition *dpart = container_of(part, struct dos_partition, part);
 
-		free(dpart);
+		blk_free(blk, dpart);
 	}
 
 	dev_remove_param(dpd->disksig.param);
 
-	free(pd);
+	blk_free(blk, pd);
 }
 
 static __maybe_unused struct partition_desc *dos_partition_create_table(struct block_device *blk)
