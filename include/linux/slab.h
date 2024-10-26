@@ -28,7 +28,7 @@
 
 static inline void *kmalloc(size_t size, gfp_t flags)
 {
-	return dma_alloc(size);
+	return flags & __GFP_ZERO ? dma_zalloc(size) : dma_alloc(size);
 }
 
 static inline size_t kmalloc_size_roundup(size_t size)
@@ -111,7 +111,7 @@ static inline void *kmalloc_array(size_t n, size_t size, gfp_t flags)
 
 static inline void *kcalloc(size_t n, size_t size, gfp_t flags)
 {
-	return dma_zalloc(size_mul(n, size));
+	return kmalloc(size_mul(n, size), flags | __GFP_ZERO);
 }
 
 static inline char *kstrdup(const char *str, gfp_t flags)
