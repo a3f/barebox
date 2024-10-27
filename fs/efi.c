@@ -455,7 +455,8 @@ static int index;
 
 static int efi_fs_probe(struct efi_device *efidev)
 {
-	char *path, *device;
+	const char *path;
+	char *device, *freep = NULL;
 	int ret;
 	struct efi_file_io_interface *volume;
 
@@ -464,9 +465,9 @@ static int efi_fs_probe(struct efi_device *efidev)
 				&efi_simple_file_system_protocol_guid, (void*)&volume);
 
 	if (efi_loaded_image && efidev->protocol == volume)
-		path = xstrdup("/boot");
+		path = "/boot";
 	else
-		path = basprintf("/efi%d", index);
+		path = freep = basprintf("/efi%d", index);
 	device = basprintf("%s", dev_name(&efidev->dev));
 
 	ret = make_directory(path);
@@ -483,7 +484,7 @@ static int efi_fs_probe(struct efi_device *efidev)
 
 	ret = 0;
 out:
-	free(path);
+	free(freep);
 	free(device);
 
 	return ret;
