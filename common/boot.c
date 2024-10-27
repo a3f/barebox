@@ -179,7 +179,7 @@ static void bootscript_entry_release(struct bootentry *entry)
 {
 	struct bootentry_script *bs = container_of(entry, struct bootentry_script, entry);
 
-	free(bs->scriptpath);
+	free_const(bs->scriptpath);
 	free(bs);
 }
 
