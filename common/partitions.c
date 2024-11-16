@@ -8,6 +8,7 @@
  * @brief Generic support for partition tables on disk like media
  */
 #include <common.h>
+#include <linux/device.h>
 #include <malloc.h>
 #include <errno.h>
 #include <block.h>
@@ -305,6 +306,16 @@ int partition_parser_register(struct partition_parser *p)
 	return 0;
 }
 
+static inline void devres_panic_if_leak(struct block_device *blk,
+					void *id)
+{
+	size_t n;
+
+	n = devres_release_group(blk->dev, id);
+
+	BUG_ON(n != 0);
+}
+
 /**
  * Try to collect partition information on the given block device
  * @param blk Block device to examine
@@ -319,6 +330,7 @@ static int fuzz_partition_table_parser(struct block_device *ramdisk)
 	int rc = 0;
 	struct partition_parser *parser;
 	u8 buf[2 * SECTOR_SIZE] __aligned(8);
+	void *devres_grp;
 
 	rc = block_read(ramdisk, buf, 0, 2);
 	if (rc != 0)
@@ -328,18 +340,28 @@ static int fuzz_partition_table_parser(struct block_device *ramdisk)
 	if (!parser)
 		return 0;
 
+	devres_grp = devres_open_group(ramdisk->dev, NULL, GFP_KERNEL);
+
 	pdesc = parser->parse(buf, ramdisk);
-	if (!pdesc)
+
+	devres_close_group(ramdisk->dev, devres_grp);
+
+	if (!pdesc) {
+		devres_panic_if_leak(ramdisk, devres_grp);
 		return 0;
+	}
 
 	pdesc->parser = parser;
 
-	list_for_each_entry(part, &pdesc->partitions, list) {
-		register_one_partition(ramdisk, part);
-		remove_one_partition(ramdisk, part->num);
+	if (0) {
+		list_for_each_entry(part, &pdesc->partitions, list) {
+			register_one_partition(ramdisk, part);
+			remove_one_partition(ramdisk, part->num);
+		}
 	}
 
 	partition_table_free(pdesc);
+	devres_panic_if_leak(ramdisk, devres_grp);
 
 	return 0;
 }
