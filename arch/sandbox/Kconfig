@@ -8,7 +8,6 @@ config SANDBOX
 	select GPIOLIB
 	select ARCH_HAS_UBSAN_SANITIZE_ALL
 	select ARCH_HAS_FORTIFY_SOURCE
-	select HAVE_ARCH_ASAN
 	select HAS_DMA
 	select BLOCK
 	select BLOCK_WRITE
