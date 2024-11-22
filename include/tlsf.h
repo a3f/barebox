@@ -47,6 +47,7 @@ extern "C" {
 #define tlsf_assert(expr) do {                              \
         if (unlikely(!(expr))) {                            \
                 printf(#expr "%s %d\n", __FILE__, __LINE__); \
+                BUG_ON(IS_ENABLED(CONFIG_BUG_ON_DATA_CORRUPTION)); \
                 dump_stack();                               \
         }                                                   \
 } while (0)
