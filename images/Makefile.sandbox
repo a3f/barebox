@@ -16,7 +16,6 @@ fuzzer-$(CONFIG_VIRTIO)		+= vring
 fuzzer-$(CONFIG_FILETYPE)	+= filetype
 fuzzer-$(CONFIG_PARTITION)	+= partitions
 fuzzer-$(CONFIG_FS)		+= fs
-fuzzer-y			+= malloc
 
 ifeq ($(CONFIG_SANDBOX),y)
 
