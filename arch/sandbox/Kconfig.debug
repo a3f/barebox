@@ -8,3 +8,9 @@ config ASAN
 
 	  This is the hosted implementation for sandbox as opposed to
 	  KASAN, which is the bare-metal implementation.
+
+config GCOV
+	bool "Enable gcov support"
+	help
+	  This option allows developers to retrieve coverage data from a sandbox
+	  session.
