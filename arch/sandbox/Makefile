@@ -79,6 +79,13 @@ KBUILD_AFLAGS += -m32
 BAREBOX_LDFLAGS += -m32
 endif
 
+ifeq ($(CONFIG_GCOV),y)
+GCOV_OPT-$(CONFIG_CC_IS_CLANG) = -fprofile-instr-generate -fcoverage-mapping
+GCOV_OPT-$(CONFIG_CC_IS_GCC) = -fprofile-arcs -ftest-coverage
+KBUILD_CFLAGS += $(GCOV_OPT-y)
+BAREBOX_LDFLAGS += $(GCOV_OPT-y)
+endif
+
 common-y += $(BOARD) arch/sandbox/os/ arch/sandbox/lib/
 
 SANDBOX_PROPER2PBL_GLUE_SYMS := \
