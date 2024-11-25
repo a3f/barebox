@@ -171,4 +171,10 @@ config WERROR
 
 	  If in doubt, say Y.
 
+menu "$(SRCARCH) Debugging"
+
+source "arch/$(SRCARCH)/Kconfig.debug"
+
+endmenu
+
 endmenu
