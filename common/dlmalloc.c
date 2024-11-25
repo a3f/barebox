@@ -9,11 +9,8 @@
 #include <linux/build_bug.h>
 #include <linux/compiler.h>
 
-#include <dlmalloc.h>
 #include <stdio.h>
 #include <module.h>
-
-void *(*dlsbrk)(ptrdiff_t increment);
 
 /*
   A version of malloc/free/realloc written by Doug Lea and released to the
@@ -1015,7 +1012,7 @@ static void malloc_extend_top(INTERNAL_SIZE_T nb)
 	if (sbrk_base != (char*)(-1))
 		sbrk_size = (sbrk_size + (pagesz - 1)) & ~(pagesz - 1);
 
-	brk = (char*)(dlsbrk(sbrk_size));
+	brk = (char*)(sbrk(sbrk_size));
 
 	/* Fail if sbrk failed or if a foreign sbrk call killed our space */
 	if (brk == (char*)(NULL) || (brk < old_end && old_top != initial_top))
@@ -1048,7 +1045,7 @@ static void malloc_extend_top(INTERNAL_SIZE_T nb)
 			((unsigned long) (brk + sbrk_size));
 
 		/* Allocate correction */
-		new_brk = (char*) (dlsbrk(correction));
+		new_brk = (char*) (sbrk(correction));
 		if (new_brk == (char*)(NULL))
 			return;
 
