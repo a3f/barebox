@@ -49,7 +49,11 @@
 #include <mach/hostfile.h>
 #include <asm/barebox-sandbox.h>
 
+#ifdef CONFIG_CONSOLE_NONE
+int __attribute__((unused)) barebox_loglevel;
+#else
 extern int barebox_loglevel;
+#endif
 
 #ifdef CONFIG_FUZZ_EXTERNAL
 int call_for_each_fuzz_test(int (*fn)(const char **test));
@@ -544,7 +548,9 @@ static struct option long_options[] = {
 	{"stdinout", 1, 0, 'B'},
 	{"xres",     1, 0, 'x'},
 	{"yres",     1, 0, 'y'},
+#ifndef CONFIG_CONSOLE_NONE
 	{"loglevel", 1, 0, OPT_LOGLEVEL},
+#endif
 #ifdef CONFIG_FUZZ_EXTERNAL
 	{"fuzz", 1, 0, OPT_FUZZ},
 	{"list-fuzzers", 0, 0, OPT_LIST_FUZZERS},
