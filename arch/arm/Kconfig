@@ -16,6 +16,15 @@ config ARM
 	select USE_COMPRESSED_DTB
 	default y
 
+config ARCH_LINUX_NAME
+	string
+	default "arm" if ARM32
+	default "arm64" if ARM64
+
+config ARCH_MKIMAGE_NAME
+	string
+	default ARCH_LINUX_NAME
+
 config ARM32
 	def_bool CPU_32
 
