@@ -60,3 +60,4 @@ config NET_FASTBOOT
 	  protocol.
 
 endif
+source "net/9p/Kconfig"
