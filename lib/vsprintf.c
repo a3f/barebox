@@ -46,6 +46,7 @@ static int skip_atoi(const char **s)
 #define LEFT	16		/* left justified */
 #define SMALL	32		/* Must be 32 == 0x20 */
 #define SPECIAL	64		/* 0x */
+#define REPEAT	128		/* repeat input to fill minimum field width */
 
 static char *number(char *buf, const char *end, unsigned long long num, int base, int size,
 		    int precision, int type)
@@ -179,24 +180,54 @@ static char *trailing_spaces(char *buf, const char *end,
 	return buf;
 }
 
+/*
+ * Show a '%s' string.  A barebox extension is that the '%s' is followed
+ * by an extra set of alphanumeric characters that are extended format
+ * specifiers.
+ *
+ * Right now we handle following barebox-specific format specifiers:
+ *
+ * - 'R' For repeating a non-NULL string as many times as necessary to fill out
+ *       the specified minimum field. i.e. printf("%7sR", "abc") prints
+ *       "abcabca". If string is left-justified, it will only print the string
+ *       as a whole, i.e. printf("%7sR", "abc") prints "abcabc "
+ */
 static char *string(char *buf, const char *end, const char *s, int field_width,
 		    int precision, int flags)
 {
-	int len, i;
+	const char *s_orig;
+	int len, total;
 
-	if ((unsigned long)s < PAGE_SIZE)
+	if ((unsigned long)s < PAGE_SIZE) {
 		s = "<NULL>";
+		flags &= ~REPEAT;
+	}
 
 	len = strnlen(s, precision);
-	buf = leading_spaces(buf, end, len, &field_width, flags);
+	if (len == 0)
+		flags &= ~REPEAT;
 
-	for (i = 0; i < len; ++i) {
+	if (flags & REPEAT) {
+		total = max(len, field_width);
+		if (flags & LEFT)
+			total = rounddown(total, len);
+	} else {
+		total = len;
+		buf = leading_spaces(buf, end, total, &field_width, flags);
+	}
+
+	s_orig = s;
+	for (int i = 0, j = 0; i < total; ++i, ++j) {
+		if (j == len) {
+			s = s_orig;
+			j = 0;
+		}
 		if (buf < end)
 			*buf = *s;
 		++buf; ++s;
 	}
 
-	return trailing_spaces(buf, end, len, &field_width, flags);
+	return trailing_spaces(buf, end, total, &field_width, flags);
 }
 
 static __maybe_unused char *string_array(char *buf, const char *end, char *const *s,
@@ -220,25 +251,54 @@ static __maybe_unused char *string_array(char *buf, const char *end, char *const
 	return buf;
 }
 
+/*
+ * Show a '%ls' string.
+ * by an extra set of alphanumeric characters that are extended format
+ * specifiers.
+ *
+ * Right now we handle following barebox-specific format specifiers:
+ *
+ * - 'R' For repeating a non-NULL string as many times as necessary to fill out
+ *       the specified minimum field. i.e. printf("%7lsR", L"abc") prints
+ *       "abcabca". If string is left-justified, it will only print the string
+ *       as a whole, i.e. printf("%7lsR", L"abc") prints "abcabc "
+ */
 static char *wstring(char *buf, const char *end, const wchar_t *s, int field_width,
 		     int precision, int flags)
 {
-	int len, i;
+	const wchar_t *s_orig;
+	int len, total;
 
-	if ((unsigned long)s < PAGE_SIZE)
+	if ((unsigned long)s < PAGE_SIZE) {
 		s = L"<NULL>";
+		flags &= ~REPEAT;
+	}
 
 	len = wcsnlen(s, precision);
+	if (!len)
+		flags &= ~REPEAT;
 
-	buf = leading_spaces(buf, end, len, &field_width, flags);
+	if (flags & REPEAT) {
+		total = max(len, field_width);
+		if (flags & LEFT)
+			total = rounddown(total, len);
+	} else {
+		total = len;
+		buf = leading_spaces(buf, end, total, &field_width, flags);
+	}
 
-	for (i = 0; i < len; ++i) {
+	s_orig = s;
+	for (int i = 0, j = 0; i < total; ++i, ++j) {
+		if (j == len) {
+			s = s_orig;
+			j = 0;
+		}
 		if (buf < end)
 			wctomb(buf, *s);
 		++buf; ++s;
 	}
 
-	return trailing_spaces(buf, end, len, &field_width, flags);
+	return trailing_spaces(buf, end, total, &field_width, flags);
 }
 
 static char *raw_pointer(char *buf, const char *end, const void *ptr, int field_width,
@@ -728,6 +788,12 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				continue;
 
 			case 's':
+				switch (fmt[1]) {
+				case 'R':
+					flags |= REPEAT;
+					fmt++;
+					break;
+				}
 				if (IS_ENABLED(CONFIG_PRINTF_WCHAR) && IN_PROPER && qualifier == 'l')
 					str = wstring(str, end, va_arg(args, wchar_t *),
 						      field_width, precision, flags);
