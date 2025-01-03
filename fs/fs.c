@@ -1382,6 +1382,15 @@ struct inode *iget(struct inode *inode)
 	return inode;
 }
 
+/*
+ * get additional reference to inode; caller must already hold one.
+ */
+void ihold(struct inode *inode)
+{
+	WARN_ON(++inode->i_count < 2);
+}
+EXPORT_SYMBOL(ihold);
+
 /* dcache.c */
 
 /*

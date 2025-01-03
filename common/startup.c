@@ -75,6 +75,9 @@ static int mount_root(void)
 		automount_add("/mnt/smhfs", "mount -t smhfs /dev/null /mnt/smhfs");
 	}
 
+	if (IS_ENABLED(CONFIG_9P_FS))
+		mkdir("/mnt/9p", 0);
+
 	return 0;
 }
 fs_initcall(mount_root);
