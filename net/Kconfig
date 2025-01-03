@@ -60,3 +60,6 @@ config NET_FASTBOOT
 	  protocol.
 
 endif
+
+# TODO as usable without net, move away?
+source "net/9p/Kconfig"
