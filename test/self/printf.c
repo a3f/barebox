@@ -179,6 +179,20 @@ test_string(void)
 	test("      1234", "%10.4s", "123456");
 }
 
+static void __init
+test_string_barebox(void)
+{
+	test("abcabca", "%7sR", "abc");
+	test("abcabca", "%*sR", 7, "abc");
+	test("abcabc ", "%-7sR", "abc");
+	test("abcabc ", "%-7.*sR", 3, "abcd");
+
+	test("", "%sR%.0sR", "", "123");
+	test("ABCD|abc|123", "%sR|%.3sR|%.*sR", "ABCD", "abcdef", 3, "123456");
+	test("111|222|33 |444|5", "%-3sR|%3sR|%-*sR|%*sR|%-*sR", "1", "2", 3, "33", 3, "4", 0, "5");
+	test("12341234  ", "%-10.4sR", "123456");
+}
+
 #if BITS_PER_LONG == 64
 
 #define PTR_WIDTH 16
@@ -331,6 +345,7 @@ static void __init test_printf(void)
 	test_basic();
 	test_number();
 	test_string();
+	test_string_barebox();
 	test_pointer();
 	test_hexstr();
 	test_jsonpath();
