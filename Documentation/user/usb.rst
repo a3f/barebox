@@ -240,6 +240,25 @@ Example exporting barebox block devices to a USB host:
 
   usbgadget -S /dev/mmc0(emmc),/dev/mmc1(sd)
 
+USB 9PFS gadget
+---------------
+
+The usb9pfs gadget allows barebox to mount a file system fom a remote
+development host via USB. barebox can boot an OS from this file system
+with only a USB gadget port on the barebox side while avoiding the
+need for any network setup.
+
+Unlike Linux, usb9pfs is configured fully via mount arguments and
+not via config fs::
+
+  otg.mode=gadget
+  mount -t usb9pfs otg0 /mnt`
+
+To simplify use, barebox sets up preconfigured automounts like it already
+does for TFTP and NFS. A usb9pfs with bootloader spec files can thus
+be booted simply via::
+
+  boot /mnt/9p/otg
 
 USB Composite Multifunction Gadget
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
