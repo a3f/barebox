@@ -304,14 +304,14 @@ char *get_mounted_path(const char *path)
 	return fdev->path;
 }
 
-static FILE *get_file(void)
+static FILE *get_file(struct fs_device *fsdev)
 {
 	int i;
 
 	for (i = 3; i < MAX_FILES; i++) {
-		if (!files[i].in_use) {
+		if (!files[i].fsdev) {
 			memset(&files[i], 0, sizeof(FILE));
-			files[i].in_use = 1;
+			files[i].fsdev = fsdev;
 			return &files[i];
 		}
 	}
@@ -330,14 +330,14 @@ static void put_file(FILE *f)
 {
 	free(f->path);
 	f->path = NULL;
-	f->in_use = 0;
+	f->fsdev = NULL;
 	iput(f->f_inode);
 	dput(f->dentry);
 }
 
 static FILE *fd_to_file(int fd, bool o_path_ok)
 {
-	if (fd < 0 || fd >= MAX_FILES || !files[fd].in_use) {
+	if (fd < 0 || fd >= MAX_FILES || !files[fd].fsdev) {
 		errno = EBADF;
 		return ERR_PTR(-errno);
 	}
@@ -2564,7 +2564,7 @@ int openat(int dirfd, const char *pathname, int flags)
 			return -errno;
 		}
 
-		f = get_file();
+		f = get_file(fsdev);
 		if (!f) {
 			errno = EMFILE;
 			return -errno;
@@ -2576,7 +2576,6 @@ int openat(int dirfd, const char *pathname, int flags)
 		f->f_inode->i_mode = S_IFREG;
 		f->flags = flags;
 		f->size = 0;
-		f->fsdev = fsdev;
 
 		return file_to_fd(f);
 	}
@@ -2647,8 +2646,10 @@ int openat(int dirfd, const char *pathname, int flags)
 	}
 
 	inode = d_inode(dentry);
+	sb = inode->i_sb;
+	fsdev = container_of(sb, struct fs_device, sb);
 
-	f = get_file();
+	f = get_file(fsdev);
 	if (!f) {
 		error = -EMFILE;
 		goto out1;
@@ -2660,11 +2661,7 @@ int openat(int dirfd, const char *pathname, int flags)
 	f->flags = flags;
 	f->size = inode->i_size;
 
-	sb = inode->i_sb;
-	fsdev = container_of(sb, struct fs_device, sb);
 	fsdrv = fsdev->driver;
-
-	f->fsdev = fsdev;
 
 	if (flags & O_PATH)
 		return file_to_fd(f);
