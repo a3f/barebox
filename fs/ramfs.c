@@ -210,7 +210,7 @@ static struct ramfs_chunk *ramfs_find_chunk(struct ramfs_inode *node,
 	return NULL;
 }
 
-static int ramfs_read(struct device *_dev, FILE *f, void *buf, size_t insize)
+static int ramfs_read(struct device *_dev, struct file *f, void *buf, size_t insize)
 {
 	struct inode *inode = f->f_inode;
 	struct ramfs_inode *node = to_ramfs_inode(inode);
@@ -240,7 +240,7 @@ static int ramfs_read(struct device *_dev, FILE *f, void *buf, size_t insize)
 	return insize;
 }
 
-static int ramfs_write(struct device *_dev, FILE *f, const void *buf,
+static int ramfs_write(struct device *_dev, struct file *f, const void *buf,
 		       size_t insize)
 {
 	struct inode *inode = f->f_inode;
@@ -345,7 +345,7 @@ out:
 	return -ENOSPC;
 }
 
-static int ramfs_truncate(struct device *dev, FILE *f, loff_t size)
+static int ramfs_truncate(struct device *dev, struct file *f, loff_t size)
 {
 	struct inode *inode = f->f_inode;
 	struct ramfs_inode *node = to_ramfs_inode(inode);
@@ -377,7 +377,7 @@ static int ramfs_truncate(struct device *dev, FILE *f, loff_t size)
 	return 0;
 }
 
-static int ramfs_memmap(struct device *_dev, FILE *f, void **map, int flags)
+static int ramfs_memmap(struct device *_dev, struct file *f, void **map, int flags)
 {
 	struct inode *inode = f->f_inode;
 	struct ramfs_inode *node = to_ramfs_inode(inode);
