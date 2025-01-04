@@ -70,9 +70,9 @@ static int smhfs_open(struct device __always_unused *dev,
 		return fd;
 
 	file->private_data = (void *)(uintptr_t)fd;
-	file->size = semihosting_flen(fd);
-	if (file->size < 0)
-		return file->size;
+	file->f_size = semihosting_flen(fd);
+	if (file->f_size < 0)
+		return file->f_size;
 
 	return 0;
 }
