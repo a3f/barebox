@@ -2543,8 +2543,7 @@ int openat(int dirfd, const char *pathname, int flags)
 	int error = 0;
 	struct inode *inode = NULL;
 	struct dentry *dentry = NULL;
-	struct nameidata nd;
-	const char *s;
+	struct path path;
 	struct filename *filename;
 
 	if (flags & O_TMPFILE) {
@@ -2575,57 +2574,30 @@ int openat(int dirfd, const char *pathname, int flags)
 		return file_to_fd(f);
 	}
 
-	filename = getname(pathname);
-	if (IS_ERR(filename))
-		return PTR_ERR(filename);
+	if (flags & O_CREAT) {
+		filename = getname(pathname);
+		if (IS_ERR(filename))
+			return PTR_ERR(filename);
 
-	set_nameidata(&nd, filename);
-
-	s = path_init(dirfd, &nd, LOOKUP_FOLLOW);
-	if (IS_ERR(s))
-		return PTR_ERR(s);
-
-	while (1) {
-		error = link_path_walk(s, &nd);
-		if (error)
-			break;
-
-		if (!d_is_dir(nd.path.dentry)) {
-			error = -ENOTDIR;
-			break;
-		}
-
-		dentry = __lookup_hash(&nd.last, nd.path.dentry, 0);
-		if (IS_ERR(dentry)) {
-			error = PTR_ERR(dentry);
-			break;
-		}
-
-		if (!d_is_symlink(dentry))
-			break;
-
-		dput(dentry);
-
-		error = lookup_last(&nd);
-		if (error <= 0)
-			break;
-
-		s = trailing_symlink(&nd);
-		if (IS_ERR(s)) {
-			error = PTR_ERR(s);
-			break;
-		}
+		dentry = filename_create(dirfd, filename, &path, 0);
+		error = PTR_ERR_OR_ZERO(dentry);
 	}
 
-	terminate_walk(&nd);
-	putname(nd.name);
+	if (!(flags & O_CREAT) || error == -EEXIST) {
+		filename = getname(pathname);
+		if (IS_ERR(filename))
+			return PTR_ERR(filename);
+
+		error = filename_lookup(dirfd, filename, LOOKUP_FOLLOW, &path);
+		dentry = path.dentry;
+	}
 
 	if (error)
 		goto out1;
 
 	if (d_is_negative(dentry)) {
 		if (flags & O_CREAT) {
-			error = create(nd.path.dentry, dentry);
+			error = create(path.dentry, dentry);
 			if (error)
 				goto out1;
 		} else {
