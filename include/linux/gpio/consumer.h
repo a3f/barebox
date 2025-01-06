@@ -66,6 +66,8 @@ struct gpio_desc *__must_check gpiod_get_index_optional(struct device *dev,
 							unsigned int index,
 							enum gpiod_flags flags);
 
+int gpiod_count(struct device *dev, const char *con_id);
+
 struct gpio_descs *__must_check gpiod_get_array(struct device *dev,
 						const char *con_id,
 						enum gpiod_flags flags);
@@ -96,6 +98,11 @@ gpiod_get_index_optional(struct device *dev, const char *con_id,
 	return NULL;
 }
 
+static inline int gpiod_count(struct device *dev, const char *con_id)
+{
+	return 0;
+}
+
 static inline struct gpio_descs *__must_check
 gpiod_get_array(struct device *dev, const char *con_id, enum gpiod_flags flags)
 {
@@ -121,8 +128,6 @@ int gpiod_get_value(const struct gpio_desc *desc);
 void gpiod_put(struct gpio_desc *desc);
 
 int gpiod_set_consumer_name(struct gpio_desc *desc, const char *name);
-
-int gpiod_count(struct device *dev, const char *con_id);
 
 void gpiod_put_array(struct gpio_descs *descs);
 
@@ -202,11 +207,6 @@ static inline int gpiod_set_consumer_name(struct gpio_desc *desc,
 	/* GPIO can never have been requested */
 	WARN_ON(desc);
 	return -EINVAL;
-}
-
-static inline int gpiod_count(struct device *dev, const char *con_id)
-{
-	return 0;
 }
 
 static inline void gpiod_put_array(struct gpio_descs *descs)
