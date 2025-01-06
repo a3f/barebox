@@ -56,6 +56,10 @@ struct gpio_desc *dev_gpiod_get_index(struct device *dev,
 			enum gpiod_flags flags,
 			const char *label);
 
+struct gpio_descs *__must_check gpiod_get_array(struct device *dev,
+						const char *con_id,
+						enum gpiod_flags flags);
+
 #else
 static inline struct gpio_desc *dev_gpiod_get_index(struct device *dev,
 		struct device_node *np,
@@ -64,6 +68,12 @@ static inline struct gpio_desc *dev_gpiod_get_index(struct device *dev,
 		const char *label)
 {
 	return ERR_PTR(-ENODEV);
+}
+
+static inline struct gpio_descs *__must_check
+gpiod_get_array(struct device *dev, const char *con_id, enum gpiod_flags flags)
+{
+	return ERR_PTR(-ENOSYS);
 }
 #endif
 
@@ -85,10 +95,6 @@ int gpiod_get_value(const struct gpio_desc *desc);
 void gpiod_put(struct gpio_desc *desc);
 
 int gpiod_count(struct device *dev, const char *con_id);
-
-struct gpio_descs *__must_check gpiod_get_array(struct device *dev,
-						const char *con_id,
-						enum gpiod_flags flags);
 
 void gpiod_put_array(struct gpio_descs *descs);
 
@@ -165,12 +171,6 @@ static inline void gpiod_put(struct gpio_desc *desc)
 static inline int gpiod_count(struct device *dev, const char *con_id)
 {
 	return 0;
-}
-
-static inline struct gpio_descs *__must_check
-gpiod_get_array(struct device *dev, const char *con_id, enum gpiod_flags flags)
-{
-	return ERR_PTR(-ENOSYS);
 }
 
 static inline void gpiod_put_array(struct gpio_descs *descs)
