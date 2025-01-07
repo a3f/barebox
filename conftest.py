@@ -61,6 +61,9 @@ def pytest_addoption(parser):
     parser.addoption('--fs', action='append', dest='qemu_fs',
         default=[], metavar="[tag=]DIR", type=assignment,
         help=('Pass directory trees to emulated barebox. Can be specified more than once'))
+    parser.addoption('--env', action='append', dest='qemu_fw_cfg',
+        default=[], metavar="[envpath=]content | [envpath=]@filepath", type=assignment,
+        help=('Inject environment into barebox'))
     parser.addoption('--qemu', dest='qemu_arg', nargs=argparse.REMAINDER, default=[],
         help=('Pass all remaining options to QEMU as is'))
 
@@ -126,6 +129,22 @@ def strategy(request, target, pytestconfig):
             )
         else:
             pytest.exit("--fs unsupported for target\n", 1)
+
+    for i, fw_cfg in enumerate(pytestconfig.option.qemu_fw_cfg):
+        if virtio:
+            value = fw_cfg.pop()
+            envpath = fw_cfg.pop() if fw_cfg else f"data/fw_cfg{i}"
+
+            if value.startswith('@'):
+                source = f"file='{value[1:]}'"
+            else:
+                source = f"string='{value}'"
+
+            strategy.append_qemu_args(
+                '-fw_cfg', f'name=opt/org.barebox.env/{envpath},{source}'
+            )
+        else:
+            pytest.exit("--env unsupported for target\n", 1)
 
     for arg in pytestconfig.option.qemu_arg:
         strategy.append_qemu_args(arg)
