@@ -33,6 +33,7 @@ obj-y			+= make_directory.o
 obj-y			+= arith.o
 obj-$(CONFIG_IDR)	+= idr.o
 obj-y			+= parser.o
+obj-y			+= iov_iter.o
 obj-y			+= math/
 obj-y			+= uuid.o
 obj-$(CONFIG_XXHASH)	+= xxhash.o
