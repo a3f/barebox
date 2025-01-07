@@ -58,6 +58,9 @@ def pytest_addoption(parser):
     parser.addoption('--blk', action='append', dest='qemu_block',
         default=[], metavar="FILE",
         help=('Pass block device to emulated barebox. Can be specified more than once'))
+    parser.addoption('--fs', action='append', dest='qemu_fs',
+        default=[], metavar="[tag=]DIR", type=assignment,
+        help=('Pass directory trees to emulated barebox. Can be specified more than once'))
     parser.addoption('--env', action='append', dest='qemu_fw_cfg',
         default=[], metavar="[envpath=]content | [envpath=]@filepath", type=assignment,
         help=('Pass barebox environment files to barebox. Can be specified more than once'))
@@ -114,6 +117,18 @@ def strategy(request, target, pytestconfig):
             )
         else:
             pytest.exit("--blk unsupported for target\n", 1)
+
+    for i, fs in enumerate(pytestconfig.option.qemu_fs):
+        if virtio:
+            path = fs.pop()
+            tag = fs.pop() if fs else f"fs{i}"
+
+            strategy.append_qemu_args(
+                "-fsdev", f"local,security_model=mapped,id=fs{i},path={path}",
+                "-device", f"virtio-9p-{virtio},id=fs{i},fsdev=fs{i},mount_tag={tag}"
+            )
+        else:
+            pytest.exit("--fs unsupported for target\n", 1)
 
     for i, fw_cfg in enumerate(pytestconfig.option.qemu_fw_cfg):
         if virtio:
