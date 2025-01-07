@@ -39,6 +39,9 @@ def pytest_configure(config):
         os.environ['LG_BUILDDIR'] = os.path.realpath(os.environ['LG_BUILDDIR'])
 
 def pytest_addoption(parser):
+    def assignment(arg):
+            return arg.split('=', 1)
+
     parser.addoption('--interactive', action='store_const', const='qemu_interactive',
         dest='lg_initial_state',
         help=('(for debugging) skip tests and just start Qemu interactively'))
@@ -55,6 +58,9 @@ def pytest_addoption(parser):
     parser.addoption('--blk', action='append', dest='qemu_block',
         default=[], metavar="FILE",
         help=('Pass block device to emulated barebox. Can be specified more than once'))
+    parser.addoption('--fs', action='append', dest='qemu_fs',
+        default=[], metavar="[tag=]DIR", type=assignment,
+        help=('Pass directory trees to emulated barebox. Can be specified more than once'))
     parser.addoption('--qemu', dest='qemu_arg', nargs=argparse.REMAINDER, default=[],
         help=('Pass all remaining options to QEMU as is'))
 
@@ -108,6 +114,18 @@ def strategy(request, target, pytestconfig):
             )
         else:
             pytest.exit("--blk unsupported for target\n", 1)
+
+    for i, fs in enumerate(pytestconfig.option.qemu_fs):
+        if virtio:
+            path = fs.pop()
+            tag = fs.pop() if fs else f"fs{i}"
+
+            strategy.append_qemu_args(
+                "-fsdev", f"local,security_model=mapped,id=fs{i},path={path}",
+                "-device", f"virtio-9p-{virtio},id=fs{i},fsdev=fs{i},mount_tag={tag}"
+            )
+        else:
+            pytest.exit("--fs unsupported for target\n", 1)
 
     for arg in pytestconfig.option.qemu_arg:
         strategy.append_qemu_args(arg)
