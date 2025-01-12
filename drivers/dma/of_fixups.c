@@ -16,9 +16,12 @@ static int of_dma_coherent_fixup(struct device_node *root, void *data)
 	else
 		coherency = DEV_DMA_COHERENCE_DEFAULT;
 
-	soc_kernel = of_find_node_by_path_from(root, soc_bb->full_name);
-	if (!soc_kernel)
+	soc_kernel = of_find_node_by_path_from(root,
+		       *soc_bb->full_name ? soc_bb->full_name : "/");
+	if (!soc_kernel) {
+		printf("found not %s\n", soc_bb->full_name);
 		return -ENOENT;
+	}
 
 	of_property_write_bool(soc_kernel, "dma-noncoherent", coherency == DEV_DMA_NON_COHERENT);
 	of_property_write_bool(soc_kernel, "dma-coherent", coherency == DEV_DMA_COHERENT);
