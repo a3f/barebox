@@ -7,6 +7,7 @@
 #define __BTHREAD_H_
 
 #include <linux/stddef.h>
+#include <linux/errno.h>
 
 struct bthread;
 
@@ -18,7 +19,6 @@ void bthread_cancel(struct bthread *bthread);
 void bthread_schedule(struct bthread *);
 void bthread_wake(struct bthread *bthread);
 void bthread_suspend(struct bthread *bthread);
-int bthread_should_stop(void);
 void __bthread_stop(struct bthread *bthread);
 void *bthread_data(struct bthread *bthread);
 void bthread_info(void);
@@ -45,9 +45,14 @@ bool bthread_is_main(struct bthread *bthread);
 
 #ifdef CONFIG_BTHREAD
 void bthread_reschedule(void);
+int bthread_should_stop(void);
 #else
 static inline void bthread_reschedule(void)
 {
+}
+static inline int bthread_should_stop(void)
+{
+        return -EINTR;
 }
 #endif
 
