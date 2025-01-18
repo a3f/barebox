@@ -34,6 +34,7 @@ static inline int wait_for_completion_interruptible(struct completion *x)
 		case -EINTR:
 			if (!ctrlc())
 				continue;
+			fallthrough;
 		case 1:
 			return -ERESTARTSYS;
 		}
@@ -42,8 +43,21 @@ static inline int wait_for_completion_interruptible(struct completion *x)
 	return 0;
 }
 
-#define wait_for_completion_killable	\
-	wait_for_completion_interruptible
+static inline int wait_for_completion_killable(struct completion *x)
+{
+	while (!x->done) {
+		switch (bthread_should_stop()) {
+		case -EINTR:
+			if (!ctrlc())
+				continue;
+			fallthrough;
+		case 1:
+			return -EINTR;
+		}
+	}
+
+	return 0;
+}
 
 static inline bool completion_done(struct completion *x)
 {
