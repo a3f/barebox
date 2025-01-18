@@ -22,7 +22,7 @@ static int do_usbgadget(int argc, char *argv[])
 	int opt;
 	int ret;
 
-	while ((opt = getopt(argc, argv, "asdA::D::S::b")) > 0) {
+	while ((opt = getopt(argc, argv, "asdA::D::S::9b")) > 0) {
 		switch (opt) {
 		case 'a':
 		case 's':
@@ -42,6 +42,9 @@ static int do_usbgadget(int argc, char *argv[])
 			break;
 		case 'b':
 			funcs.flags |= USBGADGET_EXPORT_BBU;
+			break;
+		case '9':
+			funcs.flags |= USBGADGET_9PFS;
 			break;
 		case 'd':
 			usb_multi_unregister();
