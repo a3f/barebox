@@ -52,6 +52,8 @@ static struct usb_gadget_strings *dev_strings[] = {
 
 static struct usb_function_instance *fi_acm;
 static struct usb_function *f_acm;
+static struct usb_function_instance *fi_9pfs;
+static struct usb_function *f_9pfs;
 static struct usb_function_instance *fi_dfu;
 static struct usb_function *f_dfu;
 static struct usb_function_instance *fi_fastboot;
@@ -85,6 +87,29 @@ static int multi_bind_acm(struct usb_composite_dev *cdev)
 	}
 
 	return usb_add_function(&config, f_acm);
+}
+
+static int multi_bind_9pfs(struct usb_composite_dev *cdev)
+{
+	int ret;
+
+	fi_9pfs = usb_get_function_instance("usb9pfs");
+	if (IS_ERR(fi_9pfs)) {
+		ret = PTR_ERR(fi_9pfs);
+		fi_9pfs = NULL;
+		return ret;
+	}
+
+	f_9pfs = usb_get_function(fi_9pfs);
+	if (IS_ERR(f_9pfs)) {
+		ret = PTR_ERR(f_9pfs);
+		f_9pfs = NULL;
+		return ret;
+	}
+
+	fi_9pfs->set_inst_name(fi_9pfs, dev_name(&cdev->gadget->dev));
+
+	return usb_add_function(&config, f_9pfs);
 }
 
 static int multi_bind_dfu(struct usb_composite_dev *cdev)
@@ -175,6 +200,11 @@ static int multi_unbind(struct usb_composite_dev *cdev)
 		usb_put_function_instance(fi_acm);
 	}
 
+	if (gadget_multi_opts->create_9pfs) {
+		usb_put_function(f_9pfs);
+		usb_put_function_instance(fi_9pfs);
+	}
+
 	if (gadget_multi_opts->ums_opts.files) {
 		usb_put_function(f_ums);
 		usb_put_function_instance(fi_ums);
@@ -253,6 +283,12 @@ static int multi_bind(struct usb_composite_dev *cdev)
 			goto unbind_ums;
 	}
 
+	if (gadget_multi_opts->create_9pfs) {
+		ret = multi_bind_9pfs(cdev);
+		if (ret)
+			goto unbind_ums;
+	}
+
 	usb_ep_autoconfig_reset(cdev->gadget);
 
 	dev_info(&gadget->dev, DRIVER_DESC "\n");
@@ -320,6 +356,7 @@ unsigned usb_multi_count_functions(struct f_multi_opts *opts)
 	count += !file_list_empty(opts->dfu_opts.files);
 	count += !file_list_empty(opts->ums_opts.files);
 	count += opts->create_acm;
+	count += opts->create_9pfs;
 
 	return count;
 }

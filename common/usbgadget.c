@@ -22,6 +22,7 @@
 static int autostart;
 static int nv_loaded;
 static int acm;
+static int p9fs;
 static char *dfu_function;
 
 static inline struct file_list *get_dfu_function(void)
@@ -66,6 +67,7 @@ struct f_multi_opts *usbgadget_prepare(const struct usbgadget_funcs *funcs)
 	}
 
 	opts->create_acm = flags & USBGADGET_ACM;
+	opts->create_9pfs = flags & USBGADGET_9PFS;
 
 	if (usb_multi_count_functions(opts) == 0) {
 		pr_warn("No functions to register\n");
@@ -137,6 +139,8 @@ static int usbgadget_do_autostart(void)
 		funcs.flags |= USBGADGET_EXPORT_BBU;
 	if (acm)
 		funcs.flags |= USBGADGET_ACM;
+	if (p9fs)
+		funcs.flags |= USBGADGET_9PFS;
 
 	funcs.flags |= USBGADGET_DFU | USBGADGET_FASTBOOT | USBGADGET_MASS_STORAGE;
 
@@ -164,6 +168,7 @@ void usbgadget_autostart(bool enable)
 static int usbgadget_globalvars_init(void)
 {
 	globalvar_add_simple_bool("usbgadget.acm", &acm);
+	globalvar_add_simple_bool("usbgadget.9pfs", &p9fs);
 	globalvar_add_simple_string("usbgadget.dfu_function", &dfu_function);
 	if (IS_ENABLED(CONFIG_USB_GADGET_AUTOSTART))
 		globalvar_add_bool("usbgadget.autostart", usbgadget_autostart_set,
@@ -187,5 +192,7 @@ BAREBOX_MAGICVAR(global.usbgadget.autostart,
 		 "usbgadget: Automatically start usbgadget on boot");
 BAREBOX_MAGICVAR(global.usbgadget.acm,
 		 "usbgadget: Create CDC ACM function");
+BAREBOX_MAGICVAR(global.usbgadget.9pfs,
+		 "usbgadget: Create 9P2000.L file system function");
 BAREBOX_MAGICVAR(global.usbgadget.dfu_function,
 		 "usbgadget: Create DFU function");
