@@ -7,7 +7,7 @@
 
 static int do_version(int argc, char *argv[])
 {
-	printf ("\n%s\n\n", version_string);
+	printf ("\n%s\nCompiled by: %s\n\n", version_string, CONFIG_CC_VERSION_TEXT);
 	return 0;
 }
 
