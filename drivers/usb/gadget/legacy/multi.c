@@ -19,7 +19,7 @@
 /***************************** Device Descriptor ****************************/
 
 #define MULTI_VENDOR_NUM	0x1d6b	/* Linux Foundation */
-#define MULTI_PRODUCT_NUM	0x0104	/* Multifunction Composite Gadget */
+#define MULTI_PRODUCT_NUM	0x0109	/* Multifunction Composite Gadget */
 
 static struct usb_device_descriptor device_desc = {
 	.bLength =		sizeof device_desc,
