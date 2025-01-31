@@ -150,6 +150,9 @@ static int efi_load_image(const char *file, struct efi_loaded_image **loaded_ima
 		goto out;
 	}
 
+	if (efi_get_bootsource())
+		(*loaded_image)->device_handle = efi_get_bootsource()->handle;
+
 	*h = handle;
 out:
 	efi_free_file(exe, size);
@@ -173,6 +176,8 @@ static bool is_linux_image(enum filetype filetype, const void *base)
 
 static int efi_execute_image(enum filetype filetype, const char *file)
 {
+	size_t exit_data_size;
+	efi_char16_t *wfile, *exit_data = NULL;
 	efi_handle_t handle;
 	struct efi_loaded_image *loaded_image;
 	efi_status_t efiret;
@@ -187,7 +192,17 @@ static int efi_execute_image(enum filetype filetype, const char *file)
 	is_driver = (loaded_image->image_code_type == EFI_BOOT_SERVICES_CODE) ||
 		(loaded_image->image_code_type == EFI_RUNTIME_SERVICES_CODE);
 
+	if (is_driver) {
+		printf("is_driver\n");
+	}
+
+	wfile = xstrdup_char_to_wchar(kbasename(file));
+
+	loaded_image->load_options = wfile;
+	loaded_image->load_options_size = wcslen(wfile) + 2;
+
 	if (is_linux_image(filetype, loaded_image->image_base)) {
+		printf("is_linux\n");
 		pr_debug("Linux kernel detected. Adding bootargs.");
 		options = linux_bootargs_get();
 		pr_info("add linux options '%s'\n", options);
@@ -199,16 +214,23 @@ static int efi_execute_image(enum filetype filetype, const char *file)
 		shutdown_barebox();
 	}
 
-	efi_pause_devices();
+//	efi_pause_devices();
 
-	efiret = BS->start_image(handle, NULL, NULL);
-	if (EFI_ERROR(efiret))
-		pr_err("failed to StartImage: %s\n", efi_strerror(efiret));
+	efiret = BS->start_image(handle, &exit_data_size, &exit_data);
+	if (EFI_ERROR(efiret)) {
+		pr_err("failed to StartImage: %.*ls (0x%lx)\n",
+		       (int)exit_data_size, exit_data ?: L"",
+		       efiret);
+		if (exit_data)
+			BS->free_pool(exit_data);
+	}
 
-	efi_continue_devices();
+//	efi_continue_devices();
 
-	if (!is_driver)
+	if (!is_driver) {
+		printf("unloading\n");
 		BS->unload_image(handle);
+	}
 
 	efi_connect_all();
 	efi_register_devices();
