@@ -1856,6 +1856,8 @@ static int __init struct_ep_setup(struct fsl_udc *udc, unsigned char index,
 	return 0;
 }
 
+static int ci_hdrc_idx = 0;
+
 struct fsl_udc *ci_udc_register(struct device *dev, void __iomem *regs)
 {
 	struct fsl_udc *udc_controller;
@@ -1896,6 +1898,8 @@ struct fsl_udc *ci_udc_register(struct device *dev, void __iomem *regs)
 	udc_controller->gadget.speed = USB_SPEED_UNKNOWN;
 	udc_controller->gadget.max_speed = USB_SPEED_HIGH;
 	udc_controller->gadget.name = "fsl-usb2-udc";
+	udc_controller->gadget.linux_udc_name
+		= basprintf("ci_hdrc.%d", ci_hdrc_idx);
 
 	/* setup QH and epctrl for ep0 */
 	ep0_setup(udc_controller);
@@ -1925,6 +1929,7 @@ struct fsl_udc *ci_udc_register(struct device *dev, void __iomem *regs)
 	if (ret)
 		goto err_out;
 
+	ci_hdrc_idx++;
 	return udc_controller;
 err_out:
 	free(udc_controller);

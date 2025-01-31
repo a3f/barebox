@@ -345,6 +345,8 @@ struct usb_gadget_ops {
  * @state: the state we are now (attached, suspended, configured, etc)
  * @name: Identifies the controller hardware type.  Used in diagnostics
  *	and sometimes configuration.
+ * @linux_udc_name: The controller's name in Linux' /sys/class/udc.
+ *	used for building the Linux kernel command line during boot.
  * @dev: Driver model state for this abstract device.
  * @isoch_delay: value from Set Isoch Delay request. Only valid on SS/SSP
  * @out_epnum: last used out ep number
@@ -417,6 +419,7 @@ struct usb_gadget {
 
 	enum usb_device_state		state;
 	const char			*name;
+	const char			*linux_udc_name;
 	struct device			dev;
 	unsigned			isoch_delay;
 	unsigned			out_epnum;
