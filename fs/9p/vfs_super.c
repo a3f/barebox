@@ -187,6 +187,8 @@ void v9fs_umount(struct device *dev)
 {
 	struct super_block *sb = dev->priv;
 
+	return;
+
 	devinfo_del(dev, v9fs_devinfo);
 	v9fs_umount_begin(sb);
 	v9fs_kill_super(sb);

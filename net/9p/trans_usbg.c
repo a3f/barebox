@@ -429,6 +429,10 @@ static void usb9pfs_clear_tx(struct f_usb9pfs *usb9pfs)
 
 	guard(spinlock_irqsave)(&usb9pfs->lock);
 
+	// TODO: not upstream
+	if (!usb9pfs->in_req)
+		return;
+
 	req = usb9pfs->in_req->context;
 	if (!req)
 		return;
