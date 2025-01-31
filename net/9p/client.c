@@ -572,8 +572,10 @@ p9_client_rpc(struct p9_client *c, int8_t type, const char *fmt, ...)
 	if (IS_ERR(req))
 		return req;
 
-
-	err = c->trans_mod->request(c, req);
+	if (ctrlc())
+		err = -ERESTARTSYS;
+	else
+		err = c->trans_mod->request(c, req);
 	if (err < 0) {
 		/* write won't happen */
 		p9_req_put(c, req);
@@ -581,18 +583,14 @@ p9_client_rpc(struct p9_client *c, int8_t type, const char *fmt, ...)
 			c->status = Disconnected;
 		goto recalc_sigpending;
 	}
-again:
+
 	do {
 		c->trans_mod->poll(c);
 	} while (!completion_done(&req->completion) && !(err = ctrlc()));
 
+	// FIXME: stack overflow when ctrlc() is invoked
 	if (err)
 		err = -ERESTARTSYS;
-
-	if (err == -ERESTARTSYS && c->status == Connected &&
-	    type == P9_TFLUSH) {
-		goto again;
-	}
 
 	if (READ_ONCE(req->status) == REQ_STATUS_ERROR) {
 		p9_debug(P9_DEBUG_ERROR, "req_status error %d\n", req->t_err);
