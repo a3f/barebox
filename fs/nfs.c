@@ -11,7 +11,6 @@
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
  * as published by the Free Software Foundation.
- *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -34,6 +33,7 @@
 #include <byteorder.h>
 #include <globalvar.h>
 #include <parseopt.h>
+#include <magicvar.h>
 
 #define SUNRPC_PORT     111
 
@@ -1392,6 +1392,7 @@ static const struct super_operations nfs_ops = {
 };
 
 static char *rootnfsopts;
+static int nfsport_default;
 
 static void nfs_set_rootarg(struct nfs_priv *npriv, struct fs_device *fsdev)
 {
@@ -1469,30 +1470,41 @@ static int nfs_probe(struct device *dev)
 	/* Need a priviliged source port */
 	net_udp_bind(npriv->con, 1000);
 
-	parseopt_hu(fsdev->options, "mountport", &npriv->mount_port);
-	if (!npriv->mount_port) {
-		ret = rpc_lookup_req(npriv, PROG_MOUNT, 3);
-		if (ret < 0) {
-			printf("lookup mount port failed with %d\n", ret);
-			goto err2;
+	if (nfsport_default == 0) {
+		parseopt_hu(fsdev->options, "mountport", &npriv->mount_port);
+		if (!npriv->mount_port) {
+			ret = rpc_lookup_req(npriv, PROG_MOUNT, 3);
+			if (ret < 0) {
+				printf("lookup mount port failed with %d\n", ret);
+				goto err2;
+			}
+			npriv->mount_port = ret;
+		} else {
+			npriv->manual_mount_port = 1;
 		}
-		npriv->mount_port = ret;
-	} else {
-		npriv->manual_mount_port = 1;
-	}
-	debug("mount port: %hu\n", npriv->mount_port);
 
-	parseopt_hu(fsdev->options, "port", &npriv->nfs_port);
-	if (!npriv->nfs_port) {
-		ret = rpc_lookup_req(npriv, PROG_NFS, 3);
-		if (ret < 0) {
-			printf("lookup nfs port failed with %d\n", ret);
-			goto err2;
+		parseopt_hu(fsdev->options, "port", &npriv->nfs_port);
+		if (!npriv->nfs_port) {
+			ret = rpc_lookup_req(npriv, PROG_NFS, 3);
+			if (ret < 0) {
+				printf("lookup nfs port failed with %d\n", ret);
+				goto err2;
+			}
+			npriv->nfs_port = ret;
+		} else {
+			npriv->manual_nfs_port = 1;
 		}
-		npriv->nfs_port = ret;
 	} else {
-		npriv->manual_nfs_port = 1;
+		if (nfsport_default > U16_MAX) {
+			printf("invalid NFS port: %d\n", nfsport_default);
+			return -EINVAL;
+		}
+
+		npriv->mount_port = npriv->nfs_port = nfsport_default;
+		npriv->manual_nfs_port = npriv->manual_mount_port = 1;
 	}
+
+	debug("mount port: %hu\n", npriv->mount_port);
 	debug("nfs port: %d\n", npriv->nfs_port);
 
 	ret = nfs_mount_req(npriv);
@@ -1554,7 +1566,11 @@ static int nfs_init(void)
 	rootnfsopts = xstrdup("v3,tcp");
 
 	globalvar_add_simple_string("linux.rootnfsopts", &rootnfsopts);
+	globalvar_add_simple_int("net.nfsport", &nfsport_default, "%d");
 
 	return register_fs_driver(&nfs_driver);
 }
 coredevice_initcall(nfs_init);
+
+BAREBOX_MAGICVAR(global.net.nfsport,
+		 "Sets -o port= and -o mountport to the specified value");
