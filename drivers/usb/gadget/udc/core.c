@@ -1162,8 +1162,9 @@ int usb_add_gadget(struct usb_gadget *gadget)
 	if (!udc)
 		goto error;
 
+	udc->dev.id = DEVICE_ID_DYNAMIC;
 	udc->dev.parent = gadget->dev.parent;
-	ret = dev_set_name(&udc->dev, "usbgadget");
+	ret = dev_set_name(&udc->dev, "udc");
 	if (ret)
 		goto err_put_udc;
 
