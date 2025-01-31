@@ -1349,6 +1349,12 @@ void usb_del_gadget_udc(struct usb_gadget *gadget)
 }
 EXPORT_SYMBOL_GPL(usb_del_gadget_udc);
 
+const char *usb_gadget_get_udc_name(struct usb_gadget *gadget)
+{
+	return dev_name(&gadget->udc->dev);
+
+}
+
 /* ------------------------------------------------------------------------- */
 
 static int gadget_match_driver(struct device *dev, const struct driver *drv)

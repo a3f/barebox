@@ -484,6 +484,8 @@ extern int usb_add_gadget_udc_release(struct device *parent,
 extern int usb_add_gadget_udc(struct device *parent, struct usb_gadget *gadget);
 extern void usb_del_gadget_udc(struct usb_gadget *gadget);
 extern char *usb_get_gadget_udc_name(void);
+extern const char *usb_gadget_get_udc_name(struct usb_gadget *gadget);
+
 
 /* iterates the non-control endpoints; 'tmp' is a struct usb_ep pointer */
 #define gadget_for_each_ep(tmp, gadget) \
