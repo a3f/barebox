@@ -107,7 +107,7 @@ static int multi_bind_9pfs(struct usb_composite_dev *cdev)
 		return ret;
 	}
 
-	fi_9pfs->set_inst_name(fi_9pfs, dev_name(&cdev->gadget->dev));
+	fi_9pfs->set_inst_name(fi_9pfs, usb_gadget_get_udc_name(cdev->gadget));
 
 	return usb_add_function(&config, f_9pfs);
 }
