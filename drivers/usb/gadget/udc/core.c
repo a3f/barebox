@@ -1190,10 +1190,7 @@ int usb_add_gadget(struct usb_gadget *gadget)
 	usb_gadget_set_state(gadget, USB_STATE_NOTATTACHED);
 	udc->vbus = true;
 
-	ret = gadget_id_numbers++;
-	if (ret < 0)
-		goto err_del_udc;
-	gadget->id_number = ret;
+	gadget->id_number = gadget_id_numbers;
 	dev_set_name(&gadget->dev, "gadget");
 	gadget->dev.id = ret;
 
@@ -1215,10 +1212,10 @@ int usb_add_gadget(struct usb_gadget *gadget)
 	dev_add_param_string(&gadget->dev, "serialnumber", NULL, NULL,
 			     &gadget->serialnumber, NULL);
 
+	gadget_id_numbers++;
 	return 0;
 
  err_free_id:
- err_del_udc:
 	unregister_device(&udc->dev);
 
  err_unlist_udc:
