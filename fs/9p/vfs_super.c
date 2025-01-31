@@ -19,6 +19,7 @@
 #include <linux/magic.h>
 #include <net/9p/9p.h>
 #include <net/9p/client.h>
+#include <net/9p/transport.h>
 
 #include "v9fs.h"
 #include "v9fs_vfs.h"
@@ -57,6 +58,25 @@ v9fs_fill_super(struct super_block *sb, struct v9fs_session_info *v9ses)
 	sb->s_op = &v9fs_super_ops_dotl;
 
 	return 0;
+}
+
+static void v9fs_set_rootarg(struct v9fs_session_info *v9ses,
+			     struct fs_device *fsdev)
+{
+	const char *tag, *trans, *path;
+	char *str;
+
+	tag = v9ses->clnt->trans_tag;
+	trans = v9ses->clnt->trans_mod->name;
+	path = v9ses->aname;
+
+	str = basprintf("root=%s rootfstype=9p rootflags=trans=%s,msize=%d,"
+			"cache=loose,uname=%s,dfltuid=0,dfltgid=0,aname=%s",
+			tag, trans, v9ses->clnt->msize, tag, path);
+
+	fsdev_set_linux_rootarg(fsdev, str);
+
+	free(str);
 }
 
 /**
@@ -116,6 +136,9 @@ int v9fs_mount(struct device *dev)
 
 	dev->priv = sb;
 	devinfo_add(dev, v9fs_devinfo);
+
+	v9fs_set_rootarg(v9ses, fsdev);
+
 
 	return 0;
 // TODO: label here and goto?
