@@ -58,11 +58,11 @@ omap4_usbboot-target-userldlibs += -lpthread `$(CROSS_PKG_CONFIG) --libs libusb-
 rk-usb-loader-target-userccflags += `$(CROSS_PKG_CONFIG) --cflags libusb-1.0`
 rk-usb-loader-target-userldlibs += `$(CROSS_PKG_CONFIG) --libs libusb-1.0`
 
-userccflags += -I $(src)/include -isystem $(srctree)/scripts/include
-
 subdir-y			+= mod
 subdir-y			+= imx
 subdir-$(CONFIG_ARCH_TEGRA)	+= tegra
+
+userccflags += -isystem $(srctree)/scripts/include
 
 # Let clean descend into subdirs
 subdir-	+= basic dtc kconfig
