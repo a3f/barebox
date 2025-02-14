@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <fcntl.h>
+#include <list_types.h>
 
 typedef uint64_t __u64;
 typedef int64_t __s64;
@@ -78,17 +79,5 @@ typedef struct {
 #ifndef __aligned_u64
 # define __aligned_u64 __u64 __attribute__((aligned(8)))
 #endif
-
-struct list_head {
-	struct list_head *next, *prev;
-};
-
-struct hlist_head {
-	struct hlist_node *first;
-};
-
-struct hlist_node {
-	struct hlist_node *next, **pprev;
-};
 
 #endif /* _TOOLS_LINUX_TYPES_H_ */
