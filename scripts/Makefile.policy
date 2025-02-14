@@ -8,7 +8,7 @@ targets         += $(addsuffix .tmp, $(real-policy-y))
 # ---------------------------------------------------------------------------
 
 ifneq ($(policy-y)$(policy-),)
-always-y        += $(obj)/policy-list
+always-y        += policy-list
 
 $(obj)/policy-list: $(real-policy-y) FORCE
 	$(call if_changed,gen_order_src)
