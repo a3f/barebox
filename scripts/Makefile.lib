@@ -232,7 +232,7 @@ dtc_cpp_flags  = -Wp,-MD,$(depfile).pre -nostdinc                        \
 		 -undef -D__DTS__
 
 ifdef CONFIG_BOOTM_FITIMAGE_PUBKEY
-ifneq ($(CONFIG_BOOTM_FITIMAGE_PUBKEY),"")
+ifneq ($(CONFIG_BOOTM_FITIMAGE_PUBKEY),)
 dtc_cpp_flags += -DCONFIG_BOOTM_FITIMAGE_PUBKEY=\"$(CONFIG_BOOTM_FITIMAGE_PUBKEY)\"
 endif
 endif
@@ -322,7 +322,7 @@ MAKE_FIT := $(srctree)/scripts/make_fit.py
 FIT_COMPRESSION ?= none
 
 quiet_cmd_fit = FIT     $@
-      cmd_fit = $(MAKE_FIT) -o $@ --arch $(CONFIG_ARCH_MKIMAGE_NAME) --os linux \
+      cmd_fit = $(MAKE_FIT) -o $@ --arch "$(CONFIG_ARCH_MKIMAGE_NAME)" --os linux \
 		--name 'barebox-$(KERNELRELEASE)' \
 		$(if $(findstring 1,$(KBUILD_VERBOSE)),-v) \
 		$(if $(FIT_DECOMPOSE_DTBS),--decompose-dtbs) \
@@ -412,7 +412,7 @@ $(obj)/%.dtbo.S: $(obj)/%.dtbo $(srctree)/scripts/gen-dtbo-s FORCE
 $(obj)/%.dtb.z: $(obj)/%.dtb FORCE
 	$(call if_changed,$(suffix_y))
 
-dts-frags = $(subst $(quote),,$(CONFIG_EXTERNAL_DTS_FRAGMENTS))
+dts-frags = $(CONFIG_EXTERNAL_DTS_FRAGMENTS)
 quiet_cmd_dtc = DTC     $@
 cmd_dtc = $(CPP) $(dtc_cpp_flags) -x assembler-with-cpp -o $(dtc-tmp) \
 	-D'$(subst -,_,$(*F))_dts=1' $(foreach f,$< $(2),-include '$(f)') /dev/null ; \
