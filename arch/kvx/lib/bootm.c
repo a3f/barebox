@@ -70,7 +70,7 @@ static int do_boot_elf(struct image_data *data, struct elf_image *elf)
 	initrd_res = bootm_load_initrd(data, initrd_address);
 	if (IS_ERR(initrd_res)) {
 		printf("Failed to load initrd\n");
-		return ret;
+		return PTR_ERR(initrd_res);
 	} else if (initrd_res) {
 		printf("Loading initrd at 0x%lx\n", initrd_address);
 		if (data->initrd_address == UIMAGE_INVALID_ADDRESS) {
