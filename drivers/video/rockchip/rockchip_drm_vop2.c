@@ -852,7 +852,7 @@ static unsigned long rk3588_set_intf_mux(struct vop2_video_port *vp, int id, u32
 					 unsigned int clock)
 {
 	struct vop2 *vop2 = vp->vop2;
-	int dclk_core_div, dclk_out_div, if_pixclk_div, if_dclk_div;
+	int dclk_core_div, dclk_out_div = 0, if_pixclk_div = 0, if_dclk_div = 0;
 	u32 die, dip, div, vp_clk_div, val;
 
 	clock = rk3588_calc_cru_cfg(vp, id, &dclk_core_div, &dclk_out_div,
