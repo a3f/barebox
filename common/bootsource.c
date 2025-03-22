@@ -127,12 +127,17 @@ struct device_node *bootsource_of_node_get(struct device_node *root)
 struct cdev *bootsource_of_cdev_find(void)
 {
 	struct device_node *np;
+	struct cdev *cdev;
 
 	np = bootsource_of_node_get(NULL);
 	if (!np)
 		return NULL;
 
-	return of_cdev_find(np);
+	cdev = of_cdev_find(np);
+	if (IS_ERR(cdev))
+		return NULL;
+
+	return cdev;
 }
 
 void bootsource_set_alias_name(const char *name)
