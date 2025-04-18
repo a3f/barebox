@@ -83,5 +83,6 @@ config COMMON_CLK_GPIO
 	depends on COMMON_CLK_OF_PROVIDER
 
 source "drivers/clk/sifive/Kconfig"
+source "drivers/clk/mediatek/Kconfig"
 
 endif
