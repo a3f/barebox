@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+menu "Mediatek SoCs"
+        depends on ARCH_MEDIATEK
+
+config ARCH_MEDIATEK_V8
+	bool
+	select CPU_V8
+	select CPU_SUPPORTS_64BIT_KERNEL
+	select CLOCKSOURCE_ARM_ARCHITECTED_TIMER
+
+config ARCH_MT8186
+	bool "Mediatek mt98186 SoC"
+	select ARCH_MEDIATEK_V8
+	depends on 64BIT
+	default y
+
+endmenu
