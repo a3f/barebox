@@ -510,6 +510,10 @@ struct clk_hw *clk_hw_register_fixed_rate(struct device *dev,
 					  unsigned long flags,
 					  unsigned long rate);
 
+static inline void clk_hw_unregister_fixed_rate(struct clk_hw *hw)
+{
+}
+
 static inline struct clk *clk_fixed(const char *name, int rate)
 {
 	return clk_register_fixed_rate(name, NULL, 0, rate);
@@ -578,6 +582,9 @@ struct clk *clk_register_divider(struct device *dev, const char *name,
 				 const char *parent_name, unsigned long flags,
 				 void __iomem *reg, u8 shift, u8 width,
 				 u8 clk_divider_flags, spinlock_t *lock);
+static inline void clk_hw_unregister_divider(struct clk_hw *hw)
+{
+}
 struct clk *clk_divider_one_based(const char *name, const char *parent,
 				  unsigned clk_flags, void __iomem *reg,
 				  u8 shift, u8 width, unsigned div_flags);
@@ -637,6 +644,10 @@ struct clk_hw *clk_hw_register_fixed_factor(struct device *dev,
 					    unsigned long flags,
 					    unsigned int mult,
 					    unsigned int div);
+
+static inline void clk_hw_unregister_fixed_factor(struct clk_hw *hw)
+{
+}
 
 /**
  * struct clk_fractional_divider - adjustable fractional divider clock
