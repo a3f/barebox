@@ -12,6 +12,7 @@
 
 #include <linux/err.h>
 #include <linux/types.h>
+#include <linux/notifier.h>
 #include <linux/spinlock.h>
 #include <linux/stringify.h>
 #include <linux/string.h>
@@ -32,6 +33,63 @@ struct clk;
 struct clk_hw;
 
 struct clk_rate_request;
+
+/**
+ * DOC: clk notifier callback types
+ *
+ * PRE_RATE_CHANGE - called immediately before the clk rate is changed,
+ *     to indicate that the rate change will proceed.  Drivers must
+ *     immediately terminate any operations that will be affected by the
+ *     rate change.  Callbacks may either return NOTIFY_DONE, NOTIFY_OK,
+ *     NOTIFY_STOP or NOTIFY_BAD.
+ *
+ * ABORT_RATE_CHANGE: called if the rate change failed for some reason
+ *     after PRE_RATE_CHANGE.  In this case, all registered notifiers on
+ *     the clk will be called with ABORT_RATE_CHANGE. Callbacks must
+ *     always return NOTIFY_DONE or NOTIFY_OK.
+ *
+ * POST_RATE_CHANGE - called after the clk rate change has successfully
+ *     completed.  Callbacks must always return NOTIFY_DONE or NOTIFY_OK.
+ *
+ */
+#define PRE_RATE_CHANGE			BIT(0)
+#define POST_RATE_CHANGE		BIT(1)
+#define ABORT_RATE_CHANGE		BIT(2)
+
+/**
+ * struct clk_notifier - associate a clk with a notifier
+ * @clk: struct clk * to associate the notifier with
+ * @notifier_head: a blocking_notifier_head for this clk
+ * @node: linked list pointers
+ *
+ * A list of struct clk_notifier is maintained by the notifier code.
+ * An entry is created whenever code registers the first notifier on a
+ * particular @clk.  Future notifiers on that @clk are added to the
+ * @notifier_head.
+ */
+struct clk_notifier {
+	struct clk			*clk;
+	struct notifier_head		notifier_head;
+	struct list_head		node;
+};
+
+/**
+ * struct clk_notifier_data - rate data to pass to the notifier callback
+ * @clk: struct clk * being changed
+ * @old_rate: previous rate of this clk
+ * @new_rate: new rate of this clk
+ *
+ * For a pre-notifier, old_rate is the clk's rate before this rate
+ * change, and new_rate is what the rate will be in the future.  For a
+ * post-notifier, old_rate and new_rate are both set to the clk's
+ * current rate (this was done to optimize the implementation).
+ */
+struct clk_notifier_data {
+	struct clk		*clk;
+	unsigned long		old_rate;
+	unsigned long		new_rate;
+};
+
 
 /**
  * struct clk_bulk_data - Data used for bulk clk operations.
@@ -415,11 +473,14 @@ struct clk {
  * @clk: pointer to the per-user struct clk instance that can be used to call
  * into the clk API
  *
+ * @clk: number of notifier clients on this clock
+ *
  * @init: pointer to struct clk_init_data that contains the init data shared
  * with the common clock framework.
  */
 struct clk_hw {
 	struct clk clk;
+	unsigned int notifier_count;
 	const struct clk_init_data *init;
 };
 
@@ -984,6 +1045,24 @@ bool clk_have_nonfixed_providers(void);
 
 
 /**
+ * clk_notifier_register - register a clock rate-change notifier callback
+ * @clk: clock whose rate we are interested in
+ * @nb: notifier block with callback function pointer
+ *
+ * ProTip: debugging across notifier chains can be frustrating. Make sure that
+ * your notifier callback function prints a nice big warning in case of
+ * failure.
+ */
+int clk_notifier_register(struct clk *clk, struct notifier_block *nb);
+
+/**
+ * clk_notifier_unregister - unregister a clock rate-change notifier callback
+ * @clk: clock whose rate we are no longer interested in
+ * @nb: notifier block which will be unregistered
+ */
+int clk_notifier_unregister(struct clk *clk, struct notifier_block *nb);
+
+/**
  * clk_bulk_get - lookup and obtain a number of references to clock producer.
  * @dev: device for clock "consumer"
  * @num_clks: the number of clk_bulk_data
@@ -1116,6 +1195,11 @@ void clk_bulk_disable(int num_clks, const struct clk_bulk_data *clks);
 static inline bool clk_have_nonfixed_providers(void)
 {
 	return false;
+}
+
+static inline int clk_notifier_register(struct clk *clk, struct notifier_block *nb)
+{
+	return 0;
 }
 
 static inline int __must_check clk_bulk_get(struct device *dev, int num_clks,

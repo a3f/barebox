@@ -12,12 +12,14 @@
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
 #include <linux/err.h>
+#include <linux/notifier.h>
 #include <linux/clk/clk-conf.h>
 #include <pinctrl.h>
 
 #include "clk-fixed.h"
 
 static LIST_HEAD(clks);
+static LIST_HEAD(clk_notifier_list);
 
 bool clk_have_nonfixed_providers(void)
 {
@@ -295,6 +297,53 @@ unsigned long clk_hw_round_rate(struct clk_hw *hw, unsigned long rate)
 	return clk_round_rate(&hw->clk, rate);
 }
 
+/**
+ * __clk_notify - call clk notifier chain
+ * @core: clk that is changing rate
+ * @msg: clk notifier type (see include/linux/clk.h)
+ * @old_rate: old clk rate
+ * @new_rate: new clk rate
+ *
+ * Triggers a notifier call chain on the clk rate-change notification
+ * for 'clk'.  Passes a pointer to the struct clk and the previous
+ * and current rates to the notifier callback.  Intended to be called by
+ * internal clock code only.  Returns NOTIFY_DONE from the last driver
+ * called if all went well, or NOTIFY_STOP or NOTIFY_BAD immediately if
+ * a driver returns that.
+ */
+static int __clk_notify(struct clk *core, unsigned long msg,
+		unsigned long old_rate, unsigned long new_rate)
+{
+	struct clk_notifier *cn;
+	struct clk_notifier_data cnd;
+	int ret = NOTIFY_DONE;
+
+	if (!IS_ENABLED(CONFIG_COMMON_CLK_NOTIFY))
+		return 0;
+
+	cnd.old_rate = old_rate;
+	cnd.new_rate = new_rate;
+
+	list_for_each_entry(cn, &clk_notifier_list, node) {
+		if (cn->clk == core) {
+			cnd.clk = cn->clk;
+			ret = notifier_call_chain(&cn->notifier_head, msg, &cnd);
+			if (ret & NOTIFY_STOP_MASK)
+				return ret;
+		}
+	}
+
+	return ret;
+}
+
+static bool clk_notifier_count(struct clk *clk)
+{
+	if (!IS_ENABLED(CONFIG_COMMON_CLK_NOTIFY))
+		return 0;
+
+	return clk_to_clk_hw(clk)->notifier_count;
+}
+
 static void
 clk_hw_forward_rate_req(struct clk_hw *hw,
 			const struct clk_rate_request *old_req,
@@ -414,6 +463,7 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 	struct clk_hw *hw;
 	struct clk *parent;
 	unsigned long parent_rate = 0, current_rate;
+	unsigned long old_rate;
 	int ret;
 
 	if (!clk)
@@ -454,10 +504,16 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
 
 	hw = clk_to_clk_hw(clk);
 
+	if (clk_notifier_count(clk))
+		old_rate = clk_get_rate(clk);
+
 	ret = clk->ops->set_rate(hw, rate, parent_rate);
 
 	if (parent && clk->flags & CLK_OPS_PARENT_ENABLE)
 		clk_disable(parent);
+
+	if (clk_notifier_count(clk) && old_rate != rate)
+		__clk_notify(clk, POST_RATE_CHANGE, old_rate, rate);
 
 out:
 	if (clk->flags & CLK_SET_RATE_UNGATE)
@@ -897,6 +953,93 @@ int clk_parent_set_rate(struct clk_hw *hw, unsigned long rate,
 		return 0;
 	return clk_set_rate(clk_get_parent(clk), rate);
 }
+
+/**
+ * clk_notifier_register - add a clk rate change notifier
+ * @clk: struct clk * to watch
+ * @nb: struct notifier_block * with callback info
+ *
+ * Request notification when clk's rate changes.  This uses an SRCU
+ * notifier because we want it to block and notifier unregistrations are
+ * uncommon.  The callbacks associated with the notifier must not
+ * re-enter into the clk framework by calling any top-level clk APIs;
+ * this will cause a nested prepare_lock mutex.
+ *
+ * In all notification cases (pre, post and abort rate change) the original
+ * clock rate is passed to the callback via struct clk_notifier_data.old_rate
+ * and the new frequency is passed via struct clk_notifier_data.new_rate.
+ *
+ * clk_notifier_register() must be called from non-atomic context.
+ * Returns -EINVAL if called with null arguments, -ENOMEM upon
+ * allocation failure; otherwise, passes along the return value of
+ * srcu_notifier_chain_register().
+ */
+int clk_notifier_register(struct clk *clk, struct notifier_block *nb)
+{
+	struct clk_notifier *cn;
+	int ret = -ENOMEM;
+
+	if (!clk || !nb)
+		return -EINVAL;
+
+	/* search the list of notifiers for this clk */
+	list_for_each_entry(cn, &clk_notifier_list, node)
+		if (cn->clk == clk)
+			goto found;
+
+	/* if clk wasn't in the notifier list, allocate new clk_notifier */
+	cn = calloc(sizeof(*cn), 1);
+	if (!cn)
+		goto out;
+
+	cn->clk = clk;
+
+	list_add(&cn->node, &clk_notifier_list);
+
+found:
+	ret = notifier_chain_register(&cn->notifier_head, nb);
+
+	clk_to_clk_hw(clk)->notifier_count++;
+
+out:
+	return ret;
+}
+EXPORT_SYMBOL_GPL(clk_notifier_register);
+
+/**
+ * clk_notifier_unregister - remove a clk rate change notifier
+ * @clk: struct clk *
+ * @nb: struct notifier_block * with callback info
+ *
+ * Request no further notification for changes to 'clk' and frees memory
+ * allocated in clk_notifier_register.
+ *
+ * Returns -EINVAL if called with null arguments; otherwise, passes
+ * along the return value of srcu_notifier_chain_unregister().
+ */
+int clk_notifier_unregister(struct clk *clk, struct notifier_block *nb)
+{
+	struct clk_notifier *cn;
+	int ret = -ENOENT;
+
+	if (!clk || !nb)
+		return -EINVAL;
+
+	list_for_each_entry(cn, &clk_notifier_list, node) {
+		if (cn->clk == clk) {
+			ret = notifier_chain_unregister(&cn->notifier_head, nb);
+
+			clk_to_clk_hw(clk)->notifier_count--;
+
+			list_del(&cn->node);
+			kfree(cn);
+			break;
+		}
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(clk_notifier_unregister);
 
 int clk_name_set_parent(const char *clkname, const char *clkparentname)
 {
