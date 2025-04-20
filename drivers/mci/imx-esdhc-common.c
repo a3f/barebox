@@ -289,9 +289,9 @@ void esdhc_populate_sdhci(struct fsl_esdhc_host *host)
 	}
 }
 
-static bool esdhc_use_pio_mode(void)
+static bool esdhc_use_pio_mode(struct fsl_esdhc_host *host)
 {
-	return IN_PBL || IS_ENABLED(CONFIG_MCI_IMX_ESDHC_PIO);
+	return IN_PBL || host->xfer_mode == XFER_PIO;
 }
 
 static int esdhc_setup_data(struct fsl_esdhc_host *host, struct mci_data *data,
@@ -311,7 +311,7 @@ static int esdhc_setup_data(struct fsl_esdhc_host *host, struct mci_data *data,
 
 	host->sdhci.sdma_boundary = 0;
 
-	if (esdhc_use_pio_mode())
+	if (esdhc_use_pio_mode(host))
 		sdhci_setup_data_pio(&host->sdhci, data);
 	else
 		sdhci_setup_data_dma(&host->sdhci, data, dma);
@@ -405,7 +405,7 @@ int __esdhc_send_cmd(struct fsl_esdhc_host *host, struct mci_cmd *cmd,
 
 	/* Wait until all of the blocks are transferred */
 	if (data) {
-		if (esdhc_use_pio_mode())
+		if (esdhc_use_pio_mode(host))
 			ret = sdhci_transfer_data_pio(&host->sdhci, cmd, data);
 		else
 			ret = sdhci_transfer_data_dma(&host->sdhci, cmd, data, dma);

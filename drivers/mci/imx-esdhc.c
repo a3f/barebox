@@ -570,6 +570,11 @@ static bool usdhc_setup_tuning(struct fsl_esdhc_host *host)
 	return true;
 }
 
+static const char *transfer_modes[] = {
+	[XFER_PIO] = "pio",
+	[XFER_DMA] = "dma",
+};
+
 static int fsl_esdhc_probe(struct device *dev)
 {
 	struct resource *iores;
@@ -639,9 +644,18 @@ static int fsl_esdhc_probe(struct device *dev)
 
 	fsl_esdhc_probe_dt(dev, host);
 
+	if (IS_ENABLED(CONFIG_MCI_IMX_ESDHC_PIO))
+		host->xfer_mode = XFER_PIO;
+	else
+		host->xfer_mode = XFER_DMA;
+
 	ret = mci_register(&host->mci);
 	if (ret)
 		goto err_release_res;
+
+	dev_add_param_enum(&host->mci.mci->dev, "transfer_mode", NULL,
+			   NULL, (int *)&host->xfer_mode, transfer_modes,
+			   ARRAY_SIZE(transfer_modes), mci);
 
 	return 0;
 

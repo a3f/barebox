@@ -179,6 +179,8 @@ struct esdhc_platform_data {
 	unsigned int tuning_start_tap;	/* The start delay cell point in tuning procedure */
 };
 
+enum xfer_mode { XFER_PIO, XFER_DMA };
+
 struct fsl_esdhc_host {
 	struct mci_host		mci;
 	struct clk		*clk;
@@ -190,6 +192,7 @@ struct fsl_esdhc_host {
 	struct esdhc_platform_data boarddata;
 	u32		last_cmd;
 	struct sdhci	sdhci;
+	enum xfer_mode	xfer_mode;
 };
 
 static inline int esdhc_is_usdhc(struct fsl_esdhc_host *data)
