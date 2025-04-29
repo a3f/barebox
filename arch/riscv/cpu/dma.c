@@ -13,15 +13,22 @@ static void *__dma_alloc_coherent(struct device *dev,
 				  size_t size, dma_addr_t *dma_handle)
 {
 	void *ret;
+	dma_addr_t dma_addr;
 
 	ret = memalign(PAGE_SIZE, size);
 	if (!ret)
 		return NULL;
 
+	dma_addr = cpu_to_dma_coherent(dev, ret);
+	if (dma_addr == DMA_ERROR_CODE) {
+		free(ret);
+		return NULL;
+	}
+
 	memset(ret, 0, size);
 
 	if (dma_handle)
-		*dma_handle = (dma_addr_t)ret;
+		*dma_handle = dma_addr;
 
 	return ret;
 }

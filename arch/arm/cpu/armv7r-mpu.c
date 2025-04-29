@@ -215,12 +215,19 @@ postmem_initcall(armv7r_request_pool);
 void *dma_alloc_coherent(struct device *dev, size_t size, dma_addr_t *dma_handle)
 {
 	void *ret = tlsf_memalign(dma_coherent_pool, DMA_ALIGNMENT, size);
+	dma_addr_t dma_addr;
 
 	if (!ret)
 		return NULL;
 
+	dma_addr = cpu_to_dma_coherent(dev, ret);
+	if (dma_addr == DMA_ERROR_CODE) {
+		tlsf_free(dma_coherent_pool, ret);
+		return NULL;
+	}
+
 	if (dma_handle)
-		*dma_handle = (dma_addr_t)ret;
+		*dma_handle = dma_addr;
 
 	memset(ret, 0, size);
 

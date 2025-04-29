@@ -69,12 +69,37 @@ static inline void dma_set_mask(struct device *dev, u64 dma_mask)
 	dev->dma_mask = dma_mask;
 }
 
+static inline int dma_set_coherent_mask(struct device *dev, u64 dma_mask)
+{
+	dev->coherent_dma_mask = dma_mask;
+	return 0;
+}
+
+/* Set both the DMA mask and the coherent DMA mask to the same thing.  */
+static inline int dma_set_mask_and_coherent(struct device *dev, u64 mask)
+{
+	dma_set_mask(dev, mask);
+	return dma_set_coherent_mask(dev, mask);
+}
+
 #define DMA_ERROR_CODE  (~(dma_addr_t)0)
 
 static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
 {
 	return dma_addr == DMA_ERROR_CODE ||
 		(dev->dma_mask && dma_addr > dev->dma_mask);
+}
+
+static inline dma_addr_t cpu_to_dma_coherent(struct device *dev, void *cpu_addr)
+{
+	dma_addr_t dma_addr = virt_to_phys(cpu_addr);
+
+	/* FIXME: take into account dma-ranges? */
+	if (dev != DMA_DEVICE_BROKEN && dev->coherent_dma_mask &&
+	    WARN_ON(dma_addr > dev->coherent_dma_mask))
+	    return DMA_ERROR_CODE;
+
+	return dma_addr;
 }
 
 static inline dma_addr_t cpu_to_dma(struct device *dev, void *cpu_addr)

@@ -35,7 +35,11 @@ static inline void *dma_alloc_coherent(struct device *dev,
 	if (!ptr)
 		return NULL;
 
-	dma_addr = virt_to_phys(ptr);
+	dma_addr = cpu_to_dma_coherent(ptr);
+	if (dma_addr == DMA_ERROR_CODE) {
+		free(ptr);
+		return NULL
+	}
 
 	memset(ptr, 0, size);
 

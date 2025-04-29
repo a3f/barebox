@@ -89,6 +89,7 @@ struct device {
 	const struct of_device_id *of_id_entry;
 
 	u64 dma_mask;
+	u64 coherent_dma_mask;
 
 	unsigned long dma_offset;
 
