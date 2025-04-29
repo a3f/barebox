@@ -29,17 +29,20 @@ static inline void *dma_alloc_coherent(struct device *dev,
 {
 	void *ptr;
 	unsigned long virt;
+	dma_addr_t dma_addr;
 
 	ptr = memalign(PAGE_SIZE, size);
 	if (!ptr)
 		return NULL;
+
+	dma_addr = virt_to_phys(ptr);
 
 	memset(ptr, 0, size);
 
 	virt = (unsigned long)ptr;
 
 	if (dma_handle)
-		*dma_handle = CPHYSADDR(virt);
+		*dma_handle = dma_addr;
 
 	dma_flush_range(virt, virt + size);
 
