@@ -155,7 +155,7 @@ static inline struct device_node *dev_of_node(struct device *dev)
 
 static inline bool dev_is_dma_coherent(struct device *dev)
 {
-	if (dev) {
+	if (!IS_ENABLED(CONFIG_ARCH_DMA_FULLY_COHERENT) && dev) {
 		switch (dev->dma_coherent) {
 		case DEV_DMA_NON_COHERENT:
 			return false;

@@ -52,12 +52,19 @@ endmenu
 config ARCH_HAS_CTRLC
 	bool
 
-#
-# Select this option if the architecture assumes DMA devices are coherent
-# by default.
-#
 config ARCH_DMA_DEFAULT_COHERENT
 	bool
+	help
+	  This hidden option is selected by architectures that they assume
+	  DMA devices to be coherent by default.
+
+config ARCH_DMA_FULLY_COHERENT
+	bool
+	select ARCH_DMA_DEFAULT_COHERENT
+	help
+	  This hidden option is selected by architectures that assume
+	  all DMA devices to be coherent and that no DMA non-coherent
+	  devices can exist.
 
 config ARCH_HAS_ASAN_FIBER_API
 	bool

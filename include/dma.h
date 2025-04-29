@@ -22,6 +22,10 @@
 #define DMA_ALIGNMENT	32
 #endif
 
+#ifndef DMA_COHERENT_ALIGNMENT
+#define DMA_COHERENT_ALIGNMENT	DMA_ALIGNMENT
+#endif
+
 #ifndef ARCH_DMA_MINALIGN
 #define ARCH_DMA_MINALIGN	DMA_ALIGNMENT
 #endif
@@ -90,13 +94,23 @@ static inline void *dma_to_cpu(struct device *dev, dma_addr_t addr)
 }
 
 #ifndef arch_sync_dma_for_cpu
+#ifdef CONFIG_ARCH_DMA_FULLY_COHERENT
+static inline void arch_sync_dma_for_cpu(void *vaddr, size_t size,
+			   enum dma_data_direction dir) { }
+#else
 void arch_sync_dma_for_cpu(void *vaddr, size_t size,
 			   enum dma_data_direction dir);
 #endif
+#endif
 
 #ifndef arch_sync_dma_for_device
+#ifdef CONFIG_ARCH_DMA_FULLY_COHERENT
+static inline void arch_sync_dma_for_device(void *vaddr, size_t size,
+			      enum dma_data_direction dir) { }
+#else
 void arch_sync_dma_for_device(void *vaddr, size_t size,
 			      enum dma_data_direction dir);
+#endif
 #endif
 
 #if IN_PROPER
