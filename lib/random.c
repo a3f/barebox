@@ -109,6 +109,14 @@ u32 random32(void)
 	return rand_r(&prng_state);
 }
 
+static int late_prng_seed(void)
+{
+	/* Most HW drivers have probed now, so factor in the jitter */
+	clocksource_srand();
+	return 0;
+}
+late_initcall(late_prng_seed);
+
 int hwrng_get_crypto_bytes(struct hwrng *rng, void *buf, int len)
 {
 	while (len) {
