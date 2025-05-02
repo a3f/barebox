@@ -36,3 +36,4 @@ obj-$(CONFIG_DRIVER_VIDEO_DW_HDMI) += dw-hdmi.o
 obj-$(CONFIG_DRIVER_VIDEO_DW_MIPI_DSI) += dw_mipi_dsi.o
 obj-$(CONFIG_DRIVER_VIDEO_BOCHS) += bochs/
 obj-$(CONFIG_DRIVER_VIDEO_ROCKCHIP) += rockchip/
+obj-$(CONFIG_DRM_PANEL_SITRONIX_ST7703) += panel-sitronix-st7703.o
