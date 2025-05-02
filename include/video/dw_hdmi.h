@@ -152,7 +152,7 @@ struct dw_hdmi_plat_data {
 
 	/* Vendor PHY support */
 	const struct dw_hdmi_phy_ops *phy_ops;
-	const char *phy_name;
+	char *phy_name;
 	void *phy_data;
 	unsigned int phy_force_vendor;
 
