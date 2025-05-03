@@ -2223,6 +2223,22 @@ config CMD_MIPI_DBI
 		  -d DEVICE	select specific device (default is first registered)
 		  -w		issue write command
 
+config CMD_MIPI_DSI
+	bool
+	depends on DRIVER_VIDEO_MIPI_DSI
+	select PRINTF_HEXSTR
+	prompt "mipi_dsi command"
+	help
+	  write/read from MIPI DBI SPI device
+
+	  Usage: mipi_dsi [-wild] [REG] [DATA...]
+
+	  Options:
+		  -w		issue write command
+		  -i		get display id
+		  -l		list all MIPI DSI devices
+		  -d DEVICE	select specific device (default is first registered)
+
 config CMD_LED_TRIGGER
 	bool
 	depends on LED_TRIGGERS
