@@ -85,15 +85,4 @@ static __always_inline u64 ___raw_readq(const volatile void __iomem *addr)
 #define __raw_readl(a) ___raw_readl(__IOMEM(a))
 #define __raw_readq(a) ___raw_readq(__IOMEM(a))
 
-/*
- * io{read,write}{16,32,64}be() macros
- */
-#define ioread16be(p)		({ __u16 __v = be16_to_cpu((__force __be16)__raw_readw(p)); __v; })
-#define ioread32be(p)		({ __u32 __v = be32_to_cpu((__force __be32)__raw_readl(p)); __v; })
-#define ioread64be(p)		({ __u64 __v = be64_to_cpu((__force __be64)__raw_readq(p)); __v; })
-
-#define iowrite16be(v,p)	({ __raw_writew((__force __u16)cpu_to_be16(v), p); })
-#define iowrite32be(v,p)	({ __raw_writel((__force __u32)cpu_to_be32(v), p); })
-#define iowrite64be(v,p)	({ __raw_writeq((__force __u64)cpu_to_be64(v), p); })
-
 #endif	/* __ASM_IO64_H */
