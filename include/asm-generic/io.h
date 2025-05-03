@@ -17,8 +17,10 @@
 #include <linux/types.h>
 #include <asm/byteorder.h>
 
-#ifndef __LINUX_IO_STRICT_PROTOTYPES__
-#include <asm-generic/io-typeconfused.h>
+#ifdef __LINUX_IO_STRICT_PROTOTYPES__
+#define __IOMEM(a)	(a)
+#else
+#define __IOMEM(a)	((void __force __iomem *)(a))
 #endif
 
 #define __io_br()      barrier()
@@ -121,7 +123,6 @@ static inline void __raw_writeq(u64 value, volatile void __iomem *addr)
  */
 
 #ifndef readb
-#define readb readb
 static inline u8 readb(const volatile void __iomem *addr)
 {
 	u8 val;
@@ -133,10 +134,10 @@ static inline u8 readb(const volatile void __iomem *addr)
 	log_post_read_mmio(val, 8, addr, _THIS_IP_, _RET_IP_);
 	return val;
 }
+#define readb(addr) readb(__IOMEM(addr))
 #endif
 
 #ifndef readw
-#define readw readw
 static inline u16 readw(const volatile void __iomem *addr)
 {
 	u16 val;
@@ -148,10 +149,10 @@ static inline u16 readw(const volatile void __iomem *addr)
 	log_post_read_mmio(val, 16, addr, _THIS_IP_, _RET_IP_);
 	return val;
 }
+#define readw(addr) readw(__IOMEM(addr))
 #endif
 
 #ifndef readl
-#define readl readl
 static inline u32 readl(const volatile void __iomem *addr)
 {
 	u32 val;
@@ -163,11 +164,11 @@ static inline u32 readl(const volatile void __iomem *addr)
 	log_post_read_mmio(val, 32, addr, _THIS_IP_, _RET_IP_);
 	return val;
 }
+#define readl(addr) readl(__IOMEM(addr))
 #endif
 
 #ifdef CONFIG_64BIT
 #ifndef readq
-#define readq readq
 static inline u64 readq(const volatile void __iomem *addr)
 {
 	u64 val;
@@ -179,11 +180,11 @@ static inline u64 readq(const volatile void __iomem *addr)
 	log_post_read_mmio(val, 64, addr, _THIS_IP_, _RET_IP_);
 	return val;
 }
+#define readq(addr) readq(__IOMEM(addr))
 #endif
 #endif /* CONFIG_64BIT */
 
 #ifndef writeb
-#define writeb writeb
 static inline void writeb(u8 value, volatile void __iomem *addr)
 {
 	log_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
@@ -192,10 +193,10 @@ static inline void writeb(u8 value, volatile void __iomem *addr)
 	__io_aw();
 	log_post_write_mmio(value, 8, addr, _THIS_IP_, _RET_IP_);
 }
+#define writeb(value, addr) writeb((value), __IOMEM(addr))
 #endif
 
 #ifndef writew
-#define writew writew
 static inline void writew(u16 value, volatile void __iomem *addr)
 {
 	log_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
@@ -204,10 +205,10 @@ static inline void writew(u16 value, volatile void __iomem *addr)
 	__io_aw();
 	log_post_write_mmio(value, 16, addr, _THIS_IP_, _RET_IP_);
 }
+#define writew(value, addr) writew((value), __IOMEM(addr))
 #endif
 
 #ifndef writel
-#define writel writel
 static inline void writel(u32 value, volatile void __iomem *addr)
 {
 	log_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
@@ -215,12 +216,12 @@ static inline void writel(u32 value, volatile void __iomem *addr)
 	__raw_writel((u32 __force)__cpu_to_le32(value), addr);
 	__io_aw();
 	log_post_write_mmio(value, 32, addr, _THIS_IP_, _RET_IP_);
+#define writel(value, addr) writel((value), __IOMEM(addr))
 }
 #endif
 
 #ifdef CONFIG_64BIT
 #ifndef writeq
-#define writeq writeq
 static inline void writeq(u64 value, volatile void __iomem *addr)
 {
 	log_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
@@ -229,6 +230,7 @@ static inline void writeq(u64 value, volatile void __iomem *addr)
 	__io_aw();
 	log_post_write_mmio(value, 64, addr, _THIS_IP_, _RET_IP_);
 }
+#define writeq(value, addr) writeq((value), __IOMEM(addr))
 #endif
 #endif /* CONFIG_64BIT */
 

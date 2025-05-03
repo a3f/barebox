@@ -69,12 +69,6 @@ static __always_inline u64 ___raw_readq(const volatile void __iomem *addr)
 }
 
 
-#ifdef __LINUX_IO_STRICT_PROTOTYPES__
-#define __IOMEM(a)	(a)
-#else
-#define __IOMEM(a)	((void __force __iomem *)(a))
-#endif
-
 #define __raw_writeb(v, a) ___raw_writeb(v, __IOMEM(a))
 #define __raw_writew(v, a) ___raw_writew(v, __IOMEM(a))
 #define __raw_writel(v, a) ___raw_writel(v, __IOMEM(a))
