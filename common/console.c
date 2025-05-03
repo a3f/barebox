@@ -4,6 +4,7 @@
  * Paolo Scaffardi, AIRVENT SAM s.p.a - RIMINI(ITALY), arsenio@tin.it
  */
 
+#define __DISABLE_TRACE_MMIO__
 #include <config.h>
 #include <common.h>
 #include <stdarg.h>
@@ -12,6 +13,7 @@
 #include <console.h>
 #include <driver.h>
 #include <fs.h>
+#include <trace.h>
 #include <of.h>
 #include <init.h>
 #include <clock.h>
@@ -276,6 +278,8 @@ static int __console_puts(struct console_device *cdev, const char *s,
 {
 	size_t i;
 
+	tracing_mask();
+
 	for (i = 0; i < nbytes; i++) {
 		if (*s == '\n') {
 			cdev->putc(cdev, '\r');
@@ -286,6 +290,9 @@ static int __console_puts(struct console_device *cdev, const char *s,
 		cdev->putc(cdev, *s);
 		s++;
 	}
+
+	tracing_unmask();
+
 	return i;
 }
 
@@ -573,6 +580,8 @@ void console_putc(unsigned int ch, char c)
 	struct console_device *cdev;
 	int init = initialized;
 
+	tracing_mask();
+
 	switch (init) {
 	case CONSOLE_UNINITIALIZED:
 		console_init_early();
@@ -582,7 +591,7 @@ void console_putc(unsigned int ch, char c)
 		if (c == '\n')
 			putc_ll('\r');
 		putc_ll(c);
-		return;
+		break;
 
 	case CONSOLE_INIT_FULL:
 		for_each_console(cdev) {
@@ -592,13 +601,15 @@ void console_putc(unsigned int ch, char c)
 				cdev->putc(cdev, c);
 			}
 		}
-		return;
+		break;
 	default:
 		/* If we have problems inititalizing our data
 		 * get them early
 		 */
 		hang();
 	}
+
+	tracing_unmask();
 }
 EXPORT_SYMBOL(console_putc);
 
@@ -608,13 +619,15 @@ int console_puts(unsigned int ch, const char *str)
 	const char *s = str;
 	int n = 0;
 
+	tracing_mask();
+
 	if (initialized == CONSOLE_INIT_FULL) {
 		for_each_console(cdev) {
 			if (cdev->f_active & ch) {
 				n = cdev->puts(cdev, str, strlen(str));
 			}
 		}
-		return n;
+		goto out;
 	}
 
 	while (*s) {
@@ -625,7 +638,11 @@ int console_puts(unsigned int ch, const char *str)
 		n++;
 		s++;
 	}
+
+out:
+	tracing_unmask();
 	return n;
+
 }
 EXPORT_SYMBOL(console_puts);
 

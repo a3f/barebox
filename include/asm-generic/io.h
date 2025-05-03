@@ -32,6 +32,16 @@
 #define __io_pbr()     __io_br()
 #define __io_par(v)     __io_ar(v)
 
+#if IS_ENABLED(CONFIG_TRACE_MMIO_ACCESS) && IN_PROPER && !defined(__DISABLE_TRACE_MMIO__)
+void log_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
+		    unsigned long caller_addr, unsigned long caller_addr0);
+void log_post_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
+			 unsigned long caller_addr, unsigned long caller_addr0);
+void log_read_mmio(u8 width, const volatile void __iomem *addr,
+		   unsigned long caller_addr, unsigned long caller_addr0);
+void log_post_read_mmio(u64 val, u8 width, const volatile void __iomem *addr,
+			unsigned long caller_addr, unsigned long caller_addr0);
+#else
 static inline void log_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
 				  unsigned long caller_addr, unsigned long caller_addr0) {}
 static inline void log_post_write_mmio(u64 val, u8 width, volatile void __iomem *addr,
@@ -40,6 +50,7 @@ static inline void log_read_mmio(u8 width, const volatile void __iomem *addr,
 				 unsigned long caller_addr, unsigned long caller_addr0) {}
 static inline void log_post_read_mmio(u64 val, u8 width, const volatile void __iomem *addr,
 				      unsigned long caller_addr, unsigned long caller_addr0) {}
+#endif
 
 /*
  * __raw_{read,write}{b,w,l,q}() access memory in native endianness.

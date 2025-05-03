@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
+#define __DISABLE_TRACE_MMIO__
 #include <config.h>
 #include <common.h>
 #include <fs.h>

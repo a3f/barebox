@@ -121,6 +121,16 @@ config FSL_QE_FIRMWARE
 	select CRC32
 	bool
 
+config TRACING
+	bool "Tracing"
+
+config TRACE_MMIO_ACCESS
+	bool "Register read/write tracing"
+	depends on TRACING
+	help
+	  Create tracepoints for MMIO read/write operations. These trace events
+	  can be used for logging all MMIO read/write operations.
+
 config LIBFDT
 	bool
 
