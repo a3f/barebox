@@ -9,4 +9,14 @@ config FEATURE_CONTROLLER
 config SOC_BUS
 	bool
 
+config FAUX_BUS
+	bool "Faux bus suppport" if COMPILE_TEST
+	help
+	  The "simple" faux bus that allows devices to be created and added
+	  automatically to it.  This is to be used whenever you need to create a
+	  device that is not associated with any "real" system resources, and do
+	  not want to have to deal with a bus/driver binding logic.  It is
+	  intended to be very simple, with only a create and a destroy function
+	  available.
+
 source "drivers/base/regmap/Kconfig"
