@@ -541,31 +541,6 @@ int mipi_dsi_compression_mode(struct mipi_dsi_device *dsi, bool enable)
 EXPORT_SYMBOL(mipi_dsi_compression_mode);
 
 /**
- * mipi_dsi_picture_parameter_set() - transmit the DSC PPS to the peripheral
- * @dsi: DSI peripheral device
- * @pps: VESA DSC 1.1 Picture Parameter Set
- *
- * Transmit the VESA DSC 1.1 Picture Parameter Set to the peripheral.
- * This function is deprecated. Use mipi_dsi_picture_parameter_set_multi() instead.
- *
- * Return: 0 on success or a negative error code on failure.
- */
-int mipi_dsi_picture_parameter_set(struct mipi_dsi_device *dsi,
-				   const struct drm_dsc_picture_parameter_set *pps)
-{
-	struct mipi_dsi_msg msg = {
-		.channel = dsi->channel,
-		.type = MIPI_DSI_PICTURE_PARAMETER_SET,
-		.tx_len = sizeof(*pps),
-		.tx_buf = pps,
-	};
-	int ret = mipi_dsi_device_transfer(dsi, &msg);
-
-	return (ret < 0) ? ret : 0;
-}
-EXPORT_SYMBOL(mipi_dsi_picture_parameter_set);
-
-/**
  * mipi_dsi_generic_write() - transmit data using a generic write packet
  * @dsi: DSI peripheral device
  * @payload: buffer containing the payload
@@ -1282,33 +1257,6 @@ int mipi_dsi_dcs_get_display_brightness_large(struct mipi_dsi_device *dsi,
 	return 0;
 }
 EXPORT_SYMBOL(mipi_dsi_dcs_get_display_brightness_large);
-
-/**
- * mipi_dsi_picture_parameter_set_multi() - transmit the DSC PPS to the peripheral
- * @ctx: Context for multiple DSI transactions
- * @pps: VESA DSC 1.1 Picture Parameter Set
- *
- * Like mipi_dsi_picture_parameter_set() but deals with errors in a way that
- * makes it convenient to make several calls in a row.
- */
-void mipi_dsi_picture_parameter_set_multi(struct mipi_dsi_multi_context *ctx,
-				   const struct drm_dsc_picture_parameter_set *pps)
-{
-	struct mipi_dsi_device *dsi = ctx->dsi;
-	struct device *dev = &dsi->dev;
-	ssize_t ret;
-
-	if (ctx->accum_err)
-		return;
-
-	ret = mipi_dsi_picture_parameter_set(dsi, pps);
-	if (ret < 0) {
-		ctx->accum_err = ret;
-		dev_err(dev, "sending PPS failed: %d\n",
-			ctx->accum_err);
-	}
-}
-EXPORT_SYMBOL(mipi_dsi_picture_parameter_set_multi);
 
 /**
  * mipi_dsi_compression_mode_ext_multi() - enable/disable DSC on the peripheral
