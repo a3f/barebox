@@ -1673,6 +1673,60 @@ void mipi_dsi_dcs_set_tear_scanline_multi(struct mipi_dsi_multi_context *ctx,
 }
 EXPORT_SYMBOL(mipi_dsi_dcs_set_tear_scanline_multi);
 
+static int mipi_dsi_report_dcs_read_result(struct mipi_dsi_device *dsi, u8 cmd)
+{
+	u8 buf[64];
+	int ret, i;
+	ret = mipi_dsi_dcs_read(dsi, cmd, buf, sizeof(buf));
+	if (ret > 0) {
+		printf("DCS command 0x%02X returned %2d bytes:", cmd, ret);
+		for (i = 0; i < ret; i++)
+			printf(" %02X", buf[i]);
+		printf("\n");
+	}
+
+	return ret < 0 ? ret : 0;
+}
+
+/*
+ * Try to use different DCS commands to identify the panel id and
+ * report it in the log.
+ */
+int mipi_dsi_report_panel_id(struct mipi_dsi_device *dsi)
+{
+	int ret, err = 0;
+
+	printf("Trying standard MIPI DSI commands to identify LCD panel:\n");
+
+	ret = mipi_dsi_report_dcs_read_result(dsi, MIPI_DCS_GET_DISPLAY_ID);
+	if (ret)
+		err = ret;
+
+	ret = mipi_dsi_report_dcs_read_result(dsi, MIPI_DCS_READ_DDB_START);
+	if (ret)
+		err = ret;
+
+	printf("Trying nonstandard MIPI DSI commands to identify LCD panel:\n");
+
+	/* Used by some LG panels (for example, LH350WS1-SD02.pdf) */
+	ret = mipi_dsi_report_dcs_read_result(dsi, 0xB1);
+	if (ret)
+		err = ret;
+
+	/* Used by many LCD panels (for example, DA8620.pdf) */
+	ret = mipi_dsi_report_dcs_read_result(dsi, 0xDA);
+	if (ret)
+		err = ret;
+	ret = mipi_dsi_report_dcs_read_result(dsi, 0xDB);
+	if (ret)
+		err = ret;
+	ret =mipi_dsi_report_dcs_read_result(dsi, 0xDC);
+	if (ret)
+		err = ret;
+
+	return err;
+}
+
 static int mipi_dsi_drv_probe(struct device *dev)
 {
 	struct mipi_dsi_driver *drv = to_mipi_dsi_driver(dev->driver);
