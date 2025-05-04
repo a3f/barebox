@@ -48,4 +48,15 @@ struct device_node *of_graph_get_remote_node(const struct device_node *node,
 struct device_node *of_graph_get_endpoint_by_regs(
 	const struct device_node *parent, int port_reg, int reg);
 
+int of_encoder_active_endpoint(const struct device_node *node,
+			       const struct device_node *crtc_port,
+			       struct of_endpoint *endpoint);
+
+static inline int of_encoder_active_endpoint_id(const struct device_node *node,
+						const struct device_node *crtc_port)
+{
+	struct of_endpoint endpoint;
+	return of_encoder_active_endpoint(node, crtc_port, &endpoint) ?: endpoint.id;
+}
+
 #endif /* __LINUX_OF_GRAPH_H */

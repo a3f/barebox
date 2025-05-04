@@ -3661,6 +3661,38 @@ int of_graph_port_is_available(struct device_node *node)
 }
 EXPORT_SYMBOL(of_graph_port_is_available);
 
+/*
+ * drm_of_encoder_active_endpoint - return the active encoder endpoint
+ * @node: device tree node containing encoder input ports
+ * @encoder: crtc port (via drm_encoder in Linux)
+ *
+ * Given an encoder device node and a crtc port,
+ * parse the encoder endpoint connecting to the crtc port.
+ */
+int of_encoder_active_endpoint(const struct device_node *node,
+			       const struct device_node *crtc_port,
+			       struct of_endpoint *endpoint)
+{
+	struct device_node *ep;
+	struct device_node *port;
+	int ret;
+
+	if (!node)
+		return -EINVAL;
+
+	for_each_endpoint_of_node(node, ep) {
+		port = of_graph_get_remote_port(ep);
+		if (port == crtc_port) {
+			ret = of_graph_parse_endpoint(ep, endpoint);
+			of_node_put(ep);
+			return ret;
+		}
+	}
+
+	return -EINVAL;
+}
+EXPORT_SYMBOL(of_encoder_active_endpoint);
+
 /**
  * of_alias_from_compatible - Lookup appropriate alias for a device node
  *			      depending on compatible
