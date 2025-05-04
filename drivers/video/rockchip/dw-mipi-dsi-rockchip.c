@@ -778,19 +778,19 @@ static int dw_mipi_dsi_rockchip_bind(struct dw_mipi_dsi_rockchip *dsi)
 
 	ret = clk_prepare_enable(dsi->pllref_clk);
 	if (ret) {
-		dev_err(dev, "failed to enable pllref_clk: %d\n", ret);
+		DRM_DEV_ERROR(dev, "Failed to enable pllref_clk: %d\n", ret);
 		goto out_pm_runtime;
 	}
 
 	/*
-	 * with the grf clock running, write lane and dual-mode configurations
-	 * that won't change immediately. if we waited until enable() to do
+	 * With the GRF clock running, write lane and dual-mode configurations
+	 * that won't change immediately. If we waited until enable() to do
 	 * this, things like panel preparation would not be able to send
-	 * commands over dsi.
+	 * commands over DSI.
 	 */
 	ret = clk_prepare_enable(dsi->grf_clk);
 	if (ret) {
-		dev_err(dsi->dev, "failed to enable grf_clk: %d\n", ret);
+		DRM_DEV_ERROR(dsi->dev, "Failed to enable grf_clk: %d\n", ret);
 		goto out_pll_clk;
 	}
 
@@ -799,12 +799,6 @@ static int dw_mipi_dsi_rockchip_bind(struct dw_mipi_dsi_rockchip *dsi)
 	clk_disable_unprepare(dsi->grf_clk);
 
 	dw_mipi_dsi_encoder_enable(dsi);
-
-	dsi->dmd = dw_mipi_dsi_bind(dev, &dsi->pdata);
-	if (IS_ERR(dsi->dmd)) {
-		dev_err(dev, "failed to bind: %pe\n", dsi->dmd);
-		goto out_pll_clk;
-	}
 
 	dsi->dsi_bound = true;
 
@@ -817,8 +811,10 @@ out_pm_runtime:
 	return ret;
 }
 
-static int dw_mipi_dsi_rockchip_host_attach(struct dw_mipi_dsi_rockchip *dsi)
+static int dw_mipi_dsi_rockchip_host_attach(void *priv_data,
+					    struct mipi_dsi_device *device)
 {
+	struct dw_mipi_dsi_rockchip *dsi = priv_data;
 	int ret;
 
 	if (dsi->usage_mode != DW_DSI_USAGE_IDLE) {
@@ -842,6 +838,10 @@ out:
 	return ret;
 }
 
+static const struct dw_mipi_dsi_host_ops dw_mipi_dsi_rockchip_host_ops = {
+	.attach = dw_mipi_dsi_rockchip_host_attach,
+};
+
 static int dw_mipi_dsi_dphy_init(struct phy *phy)
 {
 	struct dw_mipi_dsi_rockchip *dsi = phy_get_drvdata(phy);
@@ -859,7 +859,14 @@ static int dw_mipi_dsi_dphy_init(struct phy *phy)
 		if (ret < 0)
 			goto err_init;
 
+		ret = clk_prepare_enable(dsi->grf_clk);
+		if (ret) {
+			clk_disable_unprepare(dsi->pclk);
+			goto err_init;
+		}
+
 		ret = dsi->cdata->dphy_rx_init(phy);
+		clk_disable_unprepare(dsi->grf_clk);
 		clk_disable_unprepare(dsi->pclk);
 		if (ret < 0)
 			goto err_init;
@@ -919,6 +926,12 @@ static int dw_mipi_dsi_dphy_power_on(struct phy *phy)
 		goto err_pclk;
 	}
 
+	ret = clk_prepare_enable(dsi->grf_clk);
+	if (ret) {
+		DRM_DEV_ERROR(dsi->dev, "Failed to enable grf_clk: %d\n", ret);
+		goto err_grf_clk;
+	}
+
 	ret = clk_prepare_enable(dsi->phy_cfg_clk);
 	if (ret) {
 		DRM_DEV_ERROR(dsi->dev, "Failed to enable phy_cfg_clk: %d\n", ret);
@@ -949,12 +962,15 @@ static int dw_mipi_dsi_dphy_power_on(struct phy *phy)
 	dw_mipi_dsi_phy_write(dsi, 0x0, 0);
 
 	clk_disable_unprepare(dsi->phy_cfg_clk);
+	clk_disable_unprepare(dsi->grf_clk);
 
 	return ret;
 
 err_pwr_on:
 	clk_disable_unprepare(dsi->phy_cfg_clk);
 err_phy_cfg_clk:
+	clk_disable_unprepare(dsi->grf_clk);
+err_grf_clk:
 	clk_disable_unprepare(dsi->pclk);
 err_pclk:
 	return ret;
@@ -977,6 +993,7 @@ static int dw_mipi_dsi_dphy_power_off(struct phy *phy)
 			DRM_DEV_ERROR(dsi->dev, "hardware-specific phy shutdown failed: %d\n", ret);
 	}
 
+	clk_disable_unprepare(dsi->grf_clk);
 	clk_disable_unprepare(dsi->pclk);
 
 	return ret;
@@ -1068,7 +1085,7 @@ static int dw_mipi_dsi_rockchip_probe(struct device *dev)
 	}
 
 	if (dsi->cdata->flags & DW_MIPI_NEEDS_GRF_CLK) {
-		dsi->grf_clk = clk_get_enabled(dev, "grf");
+		dsi->grf_clk = clk_get(dev, "grf");
 		if (IS_ERR(dsi->grf_clk)) {
 			ret = PTR_ERR(dsi->grf_clk);
 			DRM_DEV_ERROR(dev, "Unable to get grf_clk: %d\n", ret);
@@ -1086,6 +1103,7 @@ static int dw_mipi_dsi_rockchip_probe(struct device *dev)
 	dsi->pdata.base = dsi->base;
 	dsi->pdata.max_data_lanes = dsi->cdata->max_data_lanes;
 	dsi->pdata.phy_ops = &dw_mipi_dsi_rockchip_phy_ops;
+	dsi->pdata.host_ops = &dw_mipi_dsi_rockchip_host_ops;
 	dsi->pdata.priv_data = dsi;
 	dev_set_drvdata(dev, dsi);
 
@@ -1108,7 +1126,13 @@ static int dw_mipi_dsi_rockchip_probe(struct device *dev)
 
 	dw_mipi_dsi_rockchip_config(dsi);
 
-	return dw_mipi_dsi_rockchip_host_attach(dsi);
+	dsi->dmd = dw_mipi_dsi_bind(dev, &dsi->pdata);
+	if (IS_ERR(dsi->dmd)) {
+		dev_err(dev, "failed to bind: %pe\n", dsi->dmd);
+		return PTR_ERR(dsi->dmd);
+	}
+
+	return 0;
 }
 
 static const struct rockchip_dw_dsi_chip_data px30_chip_data[] = {
