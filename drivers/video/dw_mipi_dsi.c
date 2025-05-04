@@ -13,6 +13,7 @@
 #include <linux/printk.h>
 #include <errno.h>
 #include <fb.h>
+#include <of_graph.h>
 #include <linux/io.h>
 #include <linux/bitops.h>
 #include <clock.h>
@@ -235,14 +236,15 @@ struct dw_mipi_dsi {
 	unsigned long mode_flags;
 
 	struct {
-		bool vpg;
-		bool vpg_horizontal;
-		bool vpg_ber_pattern;
+		int vpg;
+		int vpg_horizontal;
+		int vpg_ber_pattern;
 	} vpg_defs;
 
 	const struct dw_mipi_dsi_plat_data *plat_data;
 	struct vpl vpl;
 	struct fb_videomode *mode;
+	int output_port;
 };
 
 /*
@@ -462,6 +464,23 @@ static const struct mipi_dsi_host_ops dw_mipi_dsi_host_ops = {
 	.attach = dw_mipi_dsi_host_attach,
 	.transfer = dw_mipi_dsi_host_transfer,
 };
+
+#if 0 /* TODO? */
+static int dw_mipi_dsi_bridge_atomic_check(struct drm_bridge *bridge,
+					   struct drm_bridge_state *bridge_state,
+					   struct drm_crtc_state *crtc_state,
+					   struct drm_connector_state *conn_state)
+{
+	struct dw_mipi_dsi *dsi = bridge_to_dsi(bridge);
+	const struct dw_mipi_dsi_plat_data *pdata = dsi->plat_data;
+	bool ret;
+
+	bridge_state->input_bus_cfg.flags =
+		DRM_BUS_FLAG_DE_HIGH | DRM_BUS_FLAG_PIXDATA_SAMPLE_NEGEDGE;
+
+	return 0;
+}
+#endif
 
 static void dw_mipi_dsi_video_mode_config(struct dw_mipi_dsi *dsi)
 {
@@ -798,7 +817,6 @@ static void dw_mipi_dsi_clear_err(struct dw_mipi_dsi *dsi)
 
 static void dw_mipi_dsi_bridge_post_atomic_disable(struct dw_mipi_dsi *dsi)
 {
-	struct dw_mipi_dsi *dsi = bridge_to_dsi(bridge);
 	const struct dw_mipi_dsi_phy_ops *phy_ops = dsi->plat_data->phy_ops;
 
 	/*
@@ -867,35 +885,52 @@ static void dw_mipi_dsi_mode_set(struct dw_mipi_dsi *dsi,
 		phy_ops->power_on(dsi->plat_data->priv_data);
 }
 
+static int vpg_param_set(struct param_d *param, void *data)
+{
+	struct dw_mipi_dsi *dsi = data;
+	u32 mode_cfg;
+
+	mode_cfg = dsi_read(dsi, DSI_VID_MODE_CFG);
+
+	mode_cfg &= ~(VID_MODE_VPG_ENABLE | VID_MODE_VPG_HORIZONTAL |
+		      VID_MODE_VPG_MODE);
+
+	if (dsi->vpg_defs.vpg) {
+		mode_cfg |= VID_MODE_VPG_ENABLE;
+		mode_cfg |= dsi->vpg_defs.vpg_horizontal ?
+		       VID_MODE_VPG_HORIZONTAL : 0;
+		mode_cfg |= dsi->vpg_defs.vpg_ber_pattern ? VID_MODE_VPG_MODE : 0;
+	}
+
+	dsi_write(dsi, DSI_VID_MODE_CFG, mode_cfg);
+
+	return 0;
+}
+
 static int dw_mipi_dsi_ioctl(struct vpl *vpl, unsigned int port,
 			 unsigned int cmd, void *data)
 {
-	struct dw_mipi_dsi *mipi_dsi = container_of(vpl, struct dw_mipi_dsi, vpl);
+	struct dw_mipi_dsi *dsi = container_of(vpl, struct dw_mipi_dsi, vpl);
 	struct drm_display_mode mode = {};
-	int ret;
-
-	if (mipi_dsi->plat_data->vpl_ioctl) {
-		ret = mipi_dsi->plat_data->vpl_ioctl(mipi_dsi->plat_data->priv_data,
-						     port, cmd, data);
-		if (ret)
-			return ret;
-	}
 
 	switch (cmd) {
 	case VPL_ENABLE:
 		// TODO merge PREPARE here?
 		/* Switch to video mode for panel-bridge enable & panel enable */
-		dw_mipi_dsi_set_mode(mipi_dsi, MIPI_DSI_MODE_VIDEO);
-		return 0;
+		dw_mipi_dsi_set_mode(dsi, MIPI_DSI_MODE_VIDEO);
+		break;
 	case VPL_DISABLE:
-		dw_mipi_dsi_bridge_post_atomic_disable(mipi_dsi);
-		return 0;
+		dw_mipi_dsi_bridge_post_atomic_disable(dsi);
+		break;
 	case VPL_PREPARE:
-		mipi_dsi->mode = data; //TODO: remove?
-		fb_videomode_to_drm_display_mode(mipi_dsi->mode, &mode);
-		dw_mipi_dsi_mode_set(mipi_dsi, &mode);
-		return 0;
+		dsi->mode = data; //TODO: remove?
+		fb_videomode_to_drm_display_mode(dsi->mode, &mode);
+		dw_mipi_dsi_mode_set(dsi, &mode);
+		break;
 	}
+
+	if (dsi->output_port >= 0)
+		return vpl_ioctl(vpl, dsi->output_port, cmd, data);
 
 	return 0;
 }
@@ -929,7 +964,7 @@ dw_mipi_dsi_probe(struct device *dev,
 		dsi->base = plat_data->base;
 	}
 
-	dsi->pclk = clk_get_enabled(dev, "pclk");
+	dsi->pclk = clk_get(dev, "pclk");
 	if (IS_ERR(dsi->pclk))
 		return dev_err_cast_probe(dev, dsi->pclk,
 					  "Unable to get pclk\n");
@@ -957,6 +992,10 @@ dw_mipi_dsi_probe(struct device *dev,
 		clk_disable_unprepare(dsi->pclk);
 	}
 
+	dsi->output_port = 1;
+	if (!of_graph_get_port_by_id(dev->device_node, dsi->output_port))
+		dsi->output_port = -1;
+
 	dsi->dsi_host.ops = &dw_mipi_dsi_host_ops;
 	dsi->dsi_host.dev = dev;
 	ret = mipi_dsi_host_register(&dsi->dsi_host);
@@ -970,6 +1009,15 @@ dw_mipi_dsi_probe(struct device *dev,
 	if (ret)
 		return ERR_PTR(ret);
 
+	dev_add_param_bool(dsi->dsi_host.dev, "vpg", vpg_param_set, NULL,
+			   &dsi->vpg_defs.vpg, dsi);
+
+	dev_add_param_bool(dsi->dsi_host.dev, "vpg_horizontal", vpg_param_set, NULL,
+			   &dsi->vpg_defs.vpg_horizontal, dsi);
+
+	dev_add_param_bool(dsi->dsi_host.dev, "vpg_ber_pattern", vpg_param_set, NULL,
+			   &dsi->vpg_defs.vpg_horizontal, dsi);
+
 	return dsi;
 }
 
@@ -982,7 +1030,7 @@ EXPORT_SYMBOL_GPL(dw_mipi_dsi_bind);
 
 struct device_node *dw_mipi_dsi_crtc_node(struct dw_mipi_dsi *dsi)
 {
-	return dsi->vpl.node;
+	return dsi->dsi_host.dev->of_node;
 }
 EXPORT_SYMBOL_GPL(dw_mipi_dsi_crtc_node);
 
