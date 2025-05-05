@@ -749,10 +749,13 @@ static void dw_mipi_dsi_encoder_enable(struct dw_mipi_dsi_rockchip *dsi)
 {
 	int ret, mux;
 
+#if 0 /* FIXME */
 	mux = of_encoder_active_endpoint_id(dsi->dev->of_node,
 					    dw_mipi_dsi_crtc_node(dsi->dmd));
 	if (mux < 0)
 		return;
+#endif
+	mux = 1;
 
 	/*
 	 * For the RK3399, the clk of grf must be enabled before writing grf

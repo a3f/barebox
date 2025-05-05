@@ -15,6 +15,7 @@
 #include <linux/err.h>
 #include <mfd/syscon.h>
 #include <linux/regmap.h>
+#include <soc/rockchip/io-domain.h>
 #include <regulator.h>
 
 #define MAX_SUPPLIES		16
@@ -126,6 +127,11 @@ static const struct of_device_id rockchip_iodomain_match[] = {
 	{ /* sentinel */ },
 };
 MODULE_DEVICE_TABLE(of, rockchip_iodomain_match);
+
+void rockchip_iodomain_ensure_probed(void)
+{
+	of_devices_ensure_probed_by_dev_id(rockchip_iodomain_match);
+}
 
 static int rockchip_iodomain_probe(struct device *dev)
 {

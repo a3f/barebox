@@ -412,7 +412,7 @@ static const struct st7703_panel_desc rg353v2_desc = {
 	.mode = &rg353v2_mode,
 	.lanes = 4,
 	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
-		      MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_MODE_LPM,
+		      MIPI_DSI_MODE_NO_EOT_PACKET, // | MIPI_DSI_MODE_LPM,
 	.format = MIPI_DSI_FMT_RGB888,
 	.init_sequence = rg353v2_init_sequence,
 };
@@ -496,7 +496,7 @@ static const struct st7703_panel_desc rgb30panel_desc = {
 	.mode = &rgb30panel_mode,
 	.lanes = 4,
 	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
-		      MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_MODE_LPM,
+		      MIPI_DSI_MODE_NO_EOT_PACKET, // | MIPI_DSI_MODE_LPM,
 	.format = MIPI_DSI_FMT_RGB888,
 	.init_sequence = rgb30panel_init_sequence,
 };
@@ -582,7 +582,7 @@ static const struct st7703_panel_desc rgb10max3_panel_desc = {
 	.mode = &rgb10max3_panel_mode,
 	.lanes = 4,
 	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
-		      MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_MODE_LPM,
+		      MIPI_DSI_MODE_NO_EOT_PACKET, // | MIPI_DSI_MODE_LPM,
 	.format = MIPI_DSI_FMT_RGB888,
 	.init_sequence = rgb10max3_panel_init_sequence,
 };
@@ -664,7 +664,7 @@ static const struct st7703_panel_desc gameforcechi_desc = {
 	.mode = &gameforcechi_mode,
 	.lanes = 2,
 	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST |
-		      MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_MODE_LPM,
+		      MIPI_DSI_MODE_NO_EOT_PACKET, // | MIPI_DSI_MODE_LPM,
 	.format = MIPI_DSI_FMT_RGB888,
 	.init_sequence = gameforcechi_init_sequence,
 };
@@ -673,6 +673,20 @@ static int st7703_enable(struct st7703 *ctx)
 {
 	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
 	struct mipi_dsi_multi_context dsi_ctx = {.dsi = dsi};
+
+#if 0
+	u8 val[2];
+	int ret;
+
+	mipi_dsi_set_maximum_return_packet_size(dsi, sizeof(val));
+	ret = mipi_dsi_dcs_read(dsi, MIPI_DCS_GET_DISPLAY_ID, &val,
+				sizeof(val));
+	if (ret < 0) {
+		printf("DCS read for command 0x%02x failed: %pe\n",
+		       MIPI_DCS_GET_DISPLAY_ID, ERR_PTR(ret));
+	} else
+		pr_notice("got ID %*phN\n", (int)ret, val);
+#endif
 
 	ctx->desc->init_sequence(&dsi_ctx);
 
@@ -809,19 +823,26 @@ static int st7703_ioctl(struct vpl *vpl, unsigned int port,
 
 	switch (cmd) {
 	case VPL_PREPARE:
+		pr_info("VPL_PREPARE\n");
 		return st7703_prepare(ctx);
 	case VPL_ENABLE:
+		pr_info("VPL_ENABLE\n");
 		return st7703_enable(ctx);
 	case VPL_DISABLE:
+		pr_info("VPL_DISABLE\n");
 		return st7703_disable(ctx);
 	case VPL_UNPREPARE:
+		pr_info("VPL_UNPREPARE\n");
 		return st7703_unprepare(ctx);
 	case VPL_GET_VIDEOMODES:
+		pr_info("VPL_GET_VIDEOMODES\n");
 		return st7703_get_modes(ctx, ptr);
 	case VPL_GET_BUS_FORMAT:
+		pr_info("VPL_GET_BUS_FORMAT\n");
 		*(u32 *)ptr = MEDIA_BUS_FMT_RGB888_1X24;
 		return 0;
 	default:
+		pr_info("%x\n", cmd);
 		return 0;
 	}
 }
@@ -899,7 +920,6 @@ static void st7703_remove(struct mipi_dsi_device *dsi)
 	ret = mipi_dsi_detach(dsi);
 	if (ret < 0)
 		dev_err(&dsi->dev, "Failed to detach from DSI host: %d\n", ret);
-
 }
 
 static const struct of_device_id st7703_of_match[] = {
