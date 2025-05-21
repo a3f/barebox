@@ -44,6 +44,7 @@
 #include <linux/mtd/mtd.h>
 #include <fastboot.h>
 #include <system-partitions.h>
+#include <sconfig.h>
 
 #define FASTBOOT_VERSION		"0.4"
 
@@ -964,6 +965,12 @@ static const struct cmd_dispatch_info cmd_oem_dispatch_info[] = {
 
 static void __maybe_unused cb_oem(struct fastboot *fb, const char *cmd)
 {
+	if (!IS_ALLOWED(SCONFIG_FASTBOOT_CMD_OEM)) {
+		fastboot_tx_print(fb, FASTBOOT_MSG_FAIL, "unknown command %s",
+				  cmd);
+		return;
+	}
+
 	pr_debug("%s: \"%s\"\n", __func__, cmd);
 
 	fb_run_command(fb, cmd, cmd_oem_dispatch_info, ARRAY_SIZE(cmd_oem_dispatch_info));

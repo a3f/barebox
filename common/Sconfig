@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+menu "Flashing Policy"
+
+config FASTBOOT_CMD_BASE
+	bool "Allow fastboot flash/erase commands"
+	depends on $(kconfig-enabled,FASTBOOT_BASE)
+	help
+	  This option enables the fastboot "flash" and "erase" commands.
+
+config FASTBOOT_CMD_OEM
+	bool "Allow fastboot OEM commands"
+	depends on $(kconfig-enabled,FASTBOOT_CMD_OEM)
+	help
+	  This option enables the fastboot "oem" group of commands. They allow to
+	  executing arbitrary barebox commands and should be disabled in secure
+	  environments.
+
+config SHELL
+	bool "Allow non-interactive shell"
+	depends on !$(kconfig-enabled,SHELL_NONE)
+
+config SHELL_INTERACTIVE
+	bool "Allow interactive Shell"
+	depends on SHELL
+
+endmenu

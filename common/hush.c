@@ -117,6 +117,7 @@
 #include <binfmt.h>
 #include <init.h>
 #include <shell.h>
+#include <sconfig.h>
 
 /*cmd_boot.c*/
 extern int do_bootd(int flag, int argc, char *argv[]);      /* do_bootd */
@@ -1909,6 +1910,9 @@ int run_command(const char *cmd)
 	struct p_context ctx = {};
 	int ret;
 
+	if (!IS_ALLOWED(SCONFIG_SHELL))
+		return -EPERM;
+
 	initialize_context(&ctx);
 
 	ret = parse_string_outer(&ctx, cmd, FLAG_PARSE_SEMICOLON);
@@ -1961,6 +1965,9 @@ int run_shell(void)
 	struct in_str input;
 	struct p_context ctx = {};
 	int exit = 0;
+
+	if (!IS_ALLOWED(SCONFIG_SHELL_INTERACTIVE))
+		return -EPERM;
 
 	login();
 
@@ -2079,6 +2086,9 @@ BAREBOX_MAGICVAR(PROMPT_COMMAND, "command to execute prior to each primary promp
 
 static int binfmt_sh_excute(struct binfmt_hook *b, char *file, int argc, char **argv)
 {
+	if (!IS_ALLOWED(SCONFIG_SHELL))
+		return -EPERM;
+
 	return execute_script(file, argc, argv);
 }
 
