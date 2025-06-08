@@ -674,6 +674,20 @@ static int st7703_enable(struct st7703 *ctx)
 	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
 	struct mipi_dsi_multi_context dsi_ctx = {.dsi = dsi};
 
+#if 0
+	u8 val[2];
+	int ret;
+
+	mipi_dsi_set_maximum_return_packet_size(dsi, sizeof(val));
+	ret = mipi_dsi_dcs_read(dsi, MIPI_DCS_GET_DISPLAY_ID, &val,
+				sizeof(val));
+	if (ret < 0) {
+		printf("DCS read for command 0x%02x failed: %pe\n",
+		       MIPI_DCS_GET_DISPLAY_ID, ERR_PTR(ret));
+	} else
+		pr_notice("got ID %*phN\n", (int)ret, val);
+#endif
+
 	ctx->desc->init_sequence(&dsi_ctx);
 
 	mipi_dsi_dcs_exit_sleep_mode_multi(&dsi_ctx);
