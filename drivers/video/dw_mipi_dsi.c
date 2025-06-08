@@ -1031,7 +1031,7 @@ EXPORT_SYMBOL_GPL(dw_mipi_dsi_bind);
 
 struct device_node *dw_mipi_dsi_crtc_node(struct dw_mipi_dsi *dsi)
 {
-	return dsi->dsi_host.dev->of_node;
+	return dev_of_node(dsi->dev);
 }
 EXPORT_SYMBOL_GPL(dw_mipi_dsi_crtc_node);
 
