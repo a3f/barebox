@@ -385,8 +385,18 @@ static int __genpd_dev_pm_attach(struct device *dev,
 		if (ret == -ENOENT)
 			ret = -EPROBE_DEFER;
 
-		if (!have_genpd_providers && ret == -EPROBE_DEFER)
-			return 0;
+		if (ret == -EPROBE_DEFER) {
+			/*
+			 * New platforms should have power domain drivers, even if
+			 * they don't do anything.
+			 */
+			if (deep_probe_is_supported()) {
+				dev_warn(dev, "power domain not found (ignoring)\n");
+				return 0;
+			}
+			if (!have_genpd_providers)
+				return 0;
+		}
 
 		/*
 		 * Assume that missing genpds are unresolved
