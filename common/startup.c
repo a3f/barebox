@@ -58,6 +58,7 @@ static int mount_root(void)
 	mount("none", "ramfs", "/", NULL);
 	mkdir("/dev", 0);
 	mkdir("/tmp", 0);
+	mkdir("/mnt", 0);
 	mount("none", "devfs", "/dev", NULL);
 
 	if (IS_ENABLED(CONFIG_FS_EFIVARFS) && efi_is_payload()) {
@@ -72,6 +73,11 @@ static int mount_root(void)
 
 	if (IS_ENABLED(CONFIG_9P_FS))
 		mkdir("/mnt/9p", 0);
+
+	if (IS_ENABLED(CONFIG_FS_SMHFS)) {
+		mkdir("/mnt/smhfs", 0);
+		automount_add("/mnt/smhfs", "mount -t smhfs /dev/null /mnt/smhfs");
+	}
 
 	return 0;
 }

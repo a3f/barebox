@@ -228,6 +228,13 @@ static struct device_node *__of_unflatten_dtb(const void *infdt, int size,
 				goto err;
 			}
 
+			dt_struct = dt_struct_advance(&f, dt_struct,
+					sizeof(struct fdt_node_header) + len + 1);
+			if (!dt_struct) {
+				ret = -ESPIPE;
+				goto err;
+			}
+
 			if (!node) {
 				/* The root node must have an empty name */
 				if (*pathp) {
@@ -244,9 +251,6 @@ static struct device_node *__of_unflatten_dtb(const void *infdt, int size,
 				node = of_new_node(node, pathp);
 			}
 
-			dt_struct = dt_struct_advance(&f, dt_struct,
-					sizeof(struct fdt_node_header) + len + 1);
-
 			break;
 
 		case FDT_END_NODE:
@@ -259,6 +263,10 @@ static struct device_node *__of_unflatten_dtb(const void *infdt, int size,
 			node = node->parent;
 
 			dt_struct = dt_struct_advance(&f, dt_struct, FDT_TAGSIZE);
+			if (!dt_struct) {
+				ret = -ESPIPE;
+				goto err;
+			}
 
 			break;
 
@@ -273,7 +281,14 @@ static struct device_node *__of_unflatten_dtb(const void *infdt, int size,
 			nodep = fdt_prop->data;
 
 			name = dt_string(&f, dt_strings, fdt32_to_cpu(fdt_prop->nameoff));
-			if (!name || !node || is_reserved_name(name)) {
+			if (!name || !node ||  is_reserved_name(name)) {
+				ret = -ESPIPE;
+				goto err;
+			}
+
+			dt_struct = dt_struct_advance(&f, dt_struct,
+					sizeof(struct fdt_property) + len);
+			if (!dt_struct) {
 				ret = -ESPIPE;
 				goto err;
 			}
@@ -286,13 +301,15 @@ static struct device_node *__of_unflatten_dtb(const void *infdt, int size,
 			if (!strcmp(name, "phandle") && len == 4)
 				node->phandle = be32_to_cpup(of_property_get_value(p));
 
-			dt_struct = dt_struct_advance(&f, dt_struct,
-					sizeof(struct fdt_property) + len);
 
 			break;
 
 		case FDT_NOP:
 			dt_struct = dt_struct_advance(&f, dt_struct, FDT_TAGSIZE);
+			if (!dt_struct) {
+				ret = -ESPIPE;
+				goto err;
+			}
 
 			break;
 
@@ -302,11 +319,6 @@ static struct device_node *__of_unflatten_dtb(const void *infdt, int size,
 		default:
 			pr_err("unflatten: Unknown tag 0x%08X\n", tag);
 			ret = -EINVAL;
-			goto err;
-		}
-
-		if (!dt_struct) {
-			ret = -ESPIPE;
 			goto err;
 		}
 	}
@@ -711,7 +723,7 @@ static int fdt_string_is_compatible(const char *haystack, int haystack_len,
 	const char *p;
 	int index = 0;
 
-	while (haystack_len >= needle_len) {
+	while (haystack_len > needle_len) {
 		if (memcmp(needle, haystack, needle_len + 1) == 0)
 			return OF_DEVICE_COMPATIBLE_MAX_SCORE - (index << 2);
 
@@ -765,6 +777,8 @@ int fdt_machine_is_compatible(const struct fdt_header *fdt, size_t fdt_size, con
 
 			dt_struct = dt_struct_advance(&f, dt_struct,
 					sizeof(struct fdt_node_header) + 1);
+			if (!dt_struct)
+				return 0;
 
 			/*
 			 * Quoting Device Tree Specification v0.4 §5.4.2:
@@ -788,24 +802,25 @@ int fdt_machine_is_compatible(const struct fdt_header *fdt, size_t fdt_size, con
 			if (!name)
 				return 0;
 
-			if (strcmp(name, "compatible")) {
-				dt_struct = dt_struct_advance(&f, dt_struct,
-							      sizeof(struct fdt_property) + len);
-				break;
-			}
+			dt_struct = dt_struct_advance(&f, dt_struct,
+						      sizeof(struct fdt_property) + len);
+			if (!dt_struct)
+				return 0;
+
+			if (strcmp(name, "compatible"))
+				continue;
 
 			return fdt_string_is_compatible(fdt_prop->data, len, compat, compat_len);
 
 		case FDT_NOP:
 			dt_struct = dt_struct_advance(&f, dt_struct, FDT_TAGSIZE);
+			if (!dt_struct)
+				return 0;
 			break;
 
 		default:
 			return 0;
 		}
-
-		if (!dt_struct)
-			return 0;
 	}
 
 	return 0;
