@@ -133,6 +133,7 @@ struct omap_rng_dev;
  * @data_present: Callback to determine if data is available.
  * @init: Callback for IP specific initialization sequence.
  * @cleanup: Callback for IP specific cleanup sequence.
+ * @ignore_clocks: assume clocks are enabled (barebox-specific)
  */
 struct omap_rng_pdata {
 	u16	*regs;
@@ -140,6 +141,7 @@ struct omap_rng_pdata {
 	u32	(*data_present)(struct omap_rng_dev *priv);
 	int	(*init)(struct omap_rng_dev *priv);
 	void	(*cleanup)(struct omap_rng_dev *priv);
+	bool	ignore_clocks;
 };
 
 struct omap_rng_dev {
@@ -230,6 +232,7 @@ static struct omap_rng_pdata omap2_rng_pdata = {
 	.data_present	= omap2_rng_data_present,
 	.init		= omap2_rng_init,
 	.cleanup	= omap2_rng_cleanup,
+	.ignore_clocks	= true,
 };
 
 static inline u32 omap4_rng_data_present(struct omap_rng_dev *priv)
@@ -299,6 +302,7 @@ static struct omap_rng_pdata omap4_rng_pdata = {
 	.data_present	= omap4_rng_data_present,
 	.init		= omap4_rng_init,
 	.cleanup	= omap4_rng_cleanup,
+	.ignore_clocks	= true,
 };
 
 static struct omap_rng_pdata eip76_rng_pdata = {
