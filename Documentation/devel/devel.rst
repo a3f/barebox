@@ -11,6 +11,7 @@ Contents:
    porting
    filesystems
    background-execution
+   security-policies
    project-ideas
    fuzzing
 

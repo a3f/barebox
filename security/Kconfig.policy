@@ -54,11 +54,11 @@ config SECURITY_POLICY_INIT
 	  the restrictions if needed instead of the other way round.
 
 choice
-	prompt "Initial Security Policy"
+	prompt "Behavior on missing security policy"
 	default SECURITY_POLICY_DEFAULT_PERMISSIVE
 
 config SECURITY_POLICY_DEFAULT_PERMISSIVE
-	bool "Permissive by default"
+	bool "Permissive"
 	select HAS_INSECURE_DEFAULTS
 	help
 	  In absence of a selected security policy, everything is allowed.
