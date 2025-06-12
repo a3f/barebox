@@ -66,12 +66,6 @@ void *booti_load_image(struct image_data *data, phys_addr_t *oftree)
 		unsigned long devicetree;
 		const struct resource *initrd_res;
 
-		fdt = bootm_get_devicetree(data);
-		if (IS_ERR(fdt))
-			return fdt;
-		if (!fdt)
-			goto out;
-
 		initrd_res = bootm_load_initrd(data, image_end);
 		if (IS_ERR(initrd_res)) {
 			return ERR_CAST(initrd_res);
@@ -81,6 +75,15 @@ void *booti_load_image(struct image_data *data, phys_addr_t *oftree)
 		}
 
 		devicetree = image_end;
+
+		fdt = bootm_get_devicetree(data);
+		if (IS_ERR(fdt))
+			return fdt;
+		if (!fdt) {
+			if (initrd_res)
+				pr_warn("initrd discarded due to missing devicetree.\n");
+			goto out;
+		}
 
 		ret = bootm_load_devicetree(data, fdt, devicetree);
 		free(fdt);
