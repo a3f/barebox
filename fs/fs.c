@@ -2563,14 +2563,8 @@ int openat(int dirfd, const char *pathname, int flags)
 	struct dentry *dentry = NULL;
 	struct path path;
 
-	if (flags & O_TMPFILE) {
-		error = filename_lookup(dirfd, getname(pathname), LOOKUP_DIRECTORY, &path);
-		if (error)
-			return errno_set(error);
-
-		fsdev = get_fsdevice_by_dentry(path.dentry);
-		path_put(&path);
-
+	if ((flags & O_TMPFILE) == O_TMPFILE) {
+		fsdev = get_fsdevice_by_path(dirfd, pathname);
 		if (!fsdev) {
 			errno = ENOENT;
 			return -errno;

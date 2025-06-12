@@ -33,9 +33,11 @@
 #define O_RWSIZE_4	004000000
 #define O_RWSIZE_8	010000000
 
-#define O_TMPFILE	020000000	/* open as temporary file in ramfs */
+#define __O_TMPFILE	020000000
 #define O_PATH		040000000	/* open as path */
 #define O_CHROOT	0100000000	/* dirfd: stay within filesystem root */
+
+#define O_TMPFILE       (__O_TMPFILE | O_DIRECTORY)
 
 #if IN_PROPER
 int openat(int dirfd, const char *pathname, int flags);
