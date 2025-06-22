@@ -41,6 +41,7 @@ static int global_default_priority = 1;
 static int disable_on_zero_attempts;
 static int retry;
 static int last_boot_successful;
+static bool attempts_locked;
 
 struct bootchooser {
 	struct list_head targets;
@@ -400,12 +401,13 @@ struct bootchooser *bootchooser_get(void)
 	}
 
 	/* this is an optional value */
-	bc->attempts_locked = false;
+	bc->attempts_locked = attempts_locked;
 	ret = getenv_u32(bc->state_prefix, "attempts_locked", &locked);
-	if (!ret && locked) {
+	if (!ret && locked)
 		bc->attempts_locked = true;
+
+	if (bc->attempts_locked)
 		pr_debug("remaining attempt counter is locked\n");
-	}
 
 	INIT_LIST_HEAD(&bc->targets);
 
@@ -632,7 +634,7 @@ void bootchooser_info(struct bootchooser *bc)
 	printf("\nlast booted target: %s\n", bc->last_chosen ?
 	       bc->last_chosen->name : "unknown");
 
-	printf("Locking of boot attempt counter: %s",
+	printf("Locking of boot attempt counter: %s\n",
 	       bc->attempts_locked ? "enabled" : "disabled");
 }
 
@@ -822,7 +824,6 @@ struct bootchooser_target *bootchooser_get_last_chosen(struct bootchooser *bc)
 
 /**
  * bootchooser_lock_attempts - lock the bootchooser attempt counter
- * @bc:		The bootchooser
  * @locked:     Whether the attempt counter is locked or not.
  *
  * Instruct bootchooser to lock the boot attempts counter.
@@ -830,19 +831,9 @@ struct bootchooser_target *bootchooser_get_last_chosen(struct bootchooser *bc)
  *
  * Return: 0 for success, negative error code otherwise
  */
-int bootchooser_lock_attempts(struct bootchooser *bc, bool locked)
+void bootchooser_lock_attempts(bool locked)
 {
-	uint32_t not_needed;
-	/* We just need to check here, if the value exists in the device tree
-	 * So if it doesn't exist, inform user about it for easier debugging
-	 */
-	if (getenv_u32(bc->state_prefix, "attempts_locked", &not_needed)) {
-		pr_warn("Missing attempts_locked property in state DT node\n");
-		return -ENOENT;
-	}
-
-	bc->attempts_locked = locked;
-	return 0;
+	attempts_locked = locked;
 }
 
 static int bootchooser_boot_one(struct bootchooser *bc, int *tryagain)

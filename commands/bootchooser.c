@@ -117,7 +117,7 @@ static int do_bootchooser(int argc, char *argv[])
 	}
 
 	if (lock_state >= 0) {
-		ret = bootchooser_lock_attempts(bootchooser, lock_state);
+		bootchooser_lock_attempts(lock_state);
 		done_something = true;
 	}
 
