@@ -16,6 +16,7 @@ targets:
       - virtio-mmio
       - network
       - testfs
+      - barebox-state
     runner:
       tuxmake_arch: arm64
 images:
