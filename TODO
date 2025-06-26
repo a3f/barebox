@@ -1,0 +1,68 @@
+Nomenclature:
+
+  - Sconfig refers to the options in the top-level Sconfig file and its includes
+  - Policy (or Spolicy?) refers to a (.config) file with specific values
+
+Functionality:
+[ ] external media no
+[-] src dir -> dann build dir
+[x] Implement SECURITY_POLICY_PATH so policies can be defined outside
+    [ ] POLICY=aaaa bitbake -c security_menuconfig barebox
+[ ] Add way to lock interactive shell while already in shell (ske's angebliches CVE)
+[ ] rename .sconfig to .spolicy?
+[x] implement CONFIG_SECURITY_POLICY_ALL
+[x] check that include directories aren't added to sourcetree
+[x] build with sourcetree and add to .gitignore
+[x] set default policy name per Kconfig symbol
+[x] add predefined policies and change prompt color depending on it?
+    red for lockdown!
+[x] check that IS_ENABLED with enum spolicy fails and the IS_ALLOWED with
+    CONFIG_ symbol fails as well
+[x] SConfig parsing generates define with all values
+[x] SConfig .config (policy) parsing can generate array with runtime decision
+[x] implement notifiers on setting an option (e.g. to remove now-incorrect
+  [x] . bootm.verify -> signature only when unsigned
+      boot is disabled. See bootm_force_signed_images
+[x] Add way to define policies in the Makefile, maybe policy-y += file.sconfig?
+[x] fix collecting all policies
+[x] enforce policies to have no changes compared against olddefconfig
+[-] Consider operating on a default .security_config if none is specified?
+    Just ask user which policy they want?
+[x] Each compiled policy needs to be identifiable by a name, so it can be reference
+    in code
+    [x] decide if name should be a symbol or just a string?
+[x] multiple boards defining policy with same name clashes on symbol.
+    -> symbol needs to be unique
+    -> maybe store into sconfig? menu + custom
+[x] collect name of known policies
+   -> just call security_menuconfig for each of them?
+[x] Add sample board code that takes a built-in policy and applies it depending on
+    a flag. Maybe for QEMU, evaluate qemu_fw_cfg or something very early in board
+    code and then set policy accordingly. This would allow something like
+    pytest --lg-env test/arm/multi_v8_defconfig.yaml --bootarg barebox.security.policy=lockdown
+ [x] embed strings
+[x] make security_menuconfig in fresh checkout doesnt build sconfigpost?
+[x] make selecting a policy an sconfig option, e.g. can't select anymore after lcokdown is selected
+    [-] allow factory to go into lockdown, but not factory into devel?
+        do we need this? or is it enough that board code selects this. shell is dev feature
+[x] make security_olddefconfig work again
+[x] add handler that checks for only a given option
+[-] add assert for SCONFIG_NUM into arrays
+[-] enforce size of profile name during parsing
+[-] replace linked list for policies with linker list and do direct lookup there
+   [-] check in core_initcall level if handoff data policy exists
+[x] add option to panic on first IS_ALLOWED without policy selected
+   [x] alternative is to print big error message and allow all
+
+Future:
+[ ] Make USB an option
+    [ ] probe only if barebox,policy= ?
+[ ] fix use of directories, even external
+[ ] panic only if there is no handoff data that selects a state at this time
+[ ] add handoff data structure with policy name
+
+To test:
+[ ] When a Kconfig option changes that affects SConfig, sconfig include is regen
+[ ] When a Sconfig option changes that affects a file, file is rebuilt
+[ ] security_autoconf.cmd should be like autoconf.cmd
+[ ] check that non boolean throw an error in Sconfig
