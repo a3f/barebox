@@ -6,3 +6,4 @@ source "scripts/Sconfig.include"
 
 source "security/Sconfig"
 source "common/Sconfig"
+source "commands/Sconfig"
