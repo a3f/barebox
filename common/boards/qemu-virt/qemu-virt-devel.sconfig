@@ -1,0 +1,28 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# Barebox/arm Security Configuration
+#
+SCONFIG_POLICY_NAME="devel"
+SCONFIG_SECURITY_POLICY_SELECT=y
+
+#
+# Boot Policy
+#
+SCONFIG_BOOT_UNSIGNED_IMAGES=y
+# end of Boot Policy
+
+#
+# Flashing Policy
+#
+SCONFIG_FASTBOOT_CMD_BASE=y
+SCONFIG_FASTBOOT_CMD_OEM=y
+# SCONFIG_RATP is not set
+SCONFIG_SHELL=y
+SCONFIG_SHELL_INTERACTIVE=y
+# end of Flashing Policy
+
+#
+# Command Policy
+#
+SCONFIG_CMD_GO=y
+# end of Command Policy

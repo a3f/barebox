@@ -4,6 +4,7 @@
  *
  */
 #include <common.h>
+#include <sconfig.h>
 #include <init.h>
 #include <of.h>
 #include <deep-probe.h>
@@ -82,6 +83,11 @@ static int virt_board_driver_init(void)
 	of_alias_scan();
 
 	/* of_probe() will happen later at of_populate_initcall */
+
+	security_policy_add(qemu_virt_devel);
+	security_policy_add(qemu_virt_factory);
+	security_policy_add(qemu_virt_lockdown);
+	security_policy_add(qemu_virt_tamper);
 
 	return 0;
 }
