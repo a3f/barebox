@@ -1,0 +1,24 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# Barebox/arm Security Configuration
+#
+SCONFIG_POLICY_NAME="tamper"
+# SCONFIG_SECURITY_POLICY_SELECT is not set
+
+#
+# General Settings
+#
+# SCONFIG_RATP is not set
+# end of General Settings
+
+#
+# Boot Policy
+#
+# SCONFIG_BOOT_UNSIGNED_IMAGES is not set
+# end of Boot Policy
+
+#
+# Command Policy
+#
+# SCONFIG_CMD_GO is not set
+# end of Command Policy

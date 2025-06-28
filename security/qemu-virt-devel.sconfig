@@ -1,0 +1,24 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# Barebox/arm Security Configuration
+#
+SCONFIG_POLICY_NAME="devel"
+SCONFIG_SECURITY_POLICY_SELECT=y
+
+#
+# General Settings
+#
+SCONFIG_RATP=y
+# end of General Settings
+
+#
+# Boot Policy
+#
+SCONFIG_BOOT_UNSIGNED_IMAGES=y
+# end of Boot Policy
+
+#
+# Command Policy
+#
+SCONFIG_CMD_GO=y
+# end of Command Policy
