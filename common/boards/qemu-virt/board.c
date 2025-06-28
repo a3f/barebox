@@ -9,6 +9,7 @@
 #include <of.h>
 #include <deep-probe.h>
 #include "qemu-virt-flash.h"
+#include "commandline.h"
 
 #ifdef CONFIG_64BIT
 #define MACHINE "virt64"
@@ -88,6 +89,8 @@ static int virt_board_driver_init(void)
 	security_policy_add(qemu_virt_factory);
 	security_policy_add(qemu_virt_lockdown);
 	security_policy_add(qemu_virt_tamper);
+
+	qemu_virt_parse_commandline(root);
 
 	return 0;
 }
