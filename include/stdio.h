@@ -92,7 +92,7 @@ static inline int ctrlc (void)
 	return 0;
 }
 
-int ctrlc_non_interruptible(void)
+static inline int ctrlc_non_interruptible(void)
 {
 	return 0;
 }
