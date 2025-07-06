@@ -25,6 +25,7 @@
 #include <fs.h>
 #include <errno.h>
 #include <slice.h>
+#include <sconfig.h>
 #include <linux/stat.h>
 #include <envfs.h>
 #include <magicvar.h>
@@ -187,9 +188,10 @@ enum autoboot_state do_autoboot_countdown(void)
 	if (autoboot_state != AUTOBOOT_UNKNOWN)
 		return autoboot_state;
 
-	if (!console_get_first_active() &&
-	    global_autoboot_state != AUTOBOOT_ABORT &&
-	    global_autoboot_state != AUTOBOOT_HALT) {
+	if ((!console_get_first_active() &&
+	     global_autoboot_state != AUTOBOOT_ABORT &&
+	     global_autoboot_state != AUTOBOOT_HALT) ||
+	    !IS_ALLOWED(SCONFIG_SHELL_INTERACTIVE)) {
 		printf("\nNon-interactive console, booting system\n");
 		return autoboot_state = AUTOBOOT_BOOT;
 	}
