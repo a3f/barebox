@@ -16,6 +16,10 @@ config FASTBOOT_CMD_OEM
 	  executing arbitrary barebox commands and should be disabled in secure
 	  environments.
 
+config RATP
+	bool "Allow remote control via RATP"
+	depends on $(kconfig-enabled,CONSOLE_RATP)
+
 config SHELL
 	bool "Allow non-interactive shell"
 	depends on !$(kconfig-enabled,SHELL_NONE)
