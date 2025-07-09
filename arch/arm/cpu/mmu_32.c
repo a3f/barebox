@@ -518,7 +518,7 @@ static void create_guard_page(void)
 /*
  * Map vectors and zero page
  */
-static void vectors_init(void)
+void setup_trap_pages(void)
 {
 	create_guard_page();
 
@@ -595,8 +595,6 @@ void __mmu_init(bool mmu_on)
 
 		remap_range((void *)pos, bank->start + bank->size - pos, MAP_CACHED);
 	}
-
-	vectors_init();
 }
 
 /*

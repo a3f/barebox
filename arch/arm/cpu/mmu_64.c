@@ -345,6 +345,14 @@ static void create_guard_page(void)
 	pr_debug("Created guard page\n");
 }
 
+void setup_trap_pages(void)
+{
+	/* Vectors are already registered by aarch64_init_vectors */
+	/* Make zero page faulting to catch NULL pointer derefs */
+	zero_page_faulting();
+	create_guard_page();
+}
+
 /*
  * Prepare MMU for usage enable it.
  */
@@ -380,10 +388,6 @@ void __mmu_init(bool mmu_on)
 
 		remap_range((void *)pos, bank->start + bank->size - pos, MAP_CACHED);
 	}
-
-	/* Make zero page faulting to catch NULL pointer derefs */
-	zero_page_faulting();
-	create_guard_page();
 }
 
 void mmu_disable(void)

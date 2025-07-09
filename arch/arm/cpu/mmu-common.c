@@ -95,6 +95,8 @@ static int mmu_init(void)
 
 	__mmu_init(get_cr() & CR_M);
 
+	setup_trap_pages();
+
 	return 0;
 }
 mmu_initcall(mmu_init);
