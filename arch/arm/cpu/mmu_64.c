@@ -359,7 +359,6 @@ void setup_trap_pages(void)
 void __mmu_init(bool mmu_on)
 {
 	uint64_t *ttb = get_ttb();
-	struct memory_bank *bank;
 
 	// TODO: remap writable only while remapping?
 	// TODO: What memtype for ttb when barebox is EFI loader?
@@ -373,21 +372,6 @@ void __mmu_init(bool mmu_on)
 		 *   the ttb will get corrupted.
 		 */
 		pr_crit("Can't request SDRAM region for ttb at %p\n", ttb);
-
-	for_each_memory_bank(bank) {
-		struct resource *rsv;
-		resource_size_t pos;
-
-		pos = bank->start;
-
-		/* Skip reserved regions */
-		for_each_reserved_region(bank, rsv) {
-			remap_range((void *)pos, rsv->start - pos, MAP_CACHED);
-			pos = rsv->end + 1;
-		}
-
-		remap_range((void *)pos, bank->start + bank->size - pos, MAP_CACHED);
-	}
 }
 
 void mmu_disable(void)
