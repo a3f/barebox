@@ -69,6 +69,19 @@ void zero_page_faulting(void)
 	remap_range(0x0, PAGE_SIZE, MAP_FAULT);
 }
 
+/**
+ * remap_range_end - remap a range identified by [start, end)
+ *
+ * @start:    start of the range
+ * @end:      end of the first range (exclusive)
+ * @map_type: mapping type to apply
+ */
+static inline void remap_range_end(unsigned long start, unsigned long end,
+				   unsigned map_type)
+{
+	remap_range((void *)start, end - start, map_type);
+}
+
 static void mmu_remap_memory_banks(void)
 {
 	struct memory_bank *bank;
@@ -87,11 +100,11 @@ static void mmu_remap_memory_banks(void)
 
 		/* Skip reserved regions */
 		for_each_reserved_region(bank, rsv) {
-			remap_range((void *)pos, rsv->start - pos, MAP_CACHED);
+			remap_range_end(pos, rsv->start, MAP_CACHED);
 			pos = rsv->end + 1;
 		}
 
-		remap_range((void *)pos, bank->start + bank->size - pos, MAP_CACHED);
+		remap_range_end(pos, bank->start + bank->size, MAP_CACHED);
 	}
 
 	setup_trap_pages();
