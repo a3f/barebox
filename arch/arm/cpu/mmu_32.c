@@ -555,7 +555,6 @@ void setup_trap_pages(void)
  */
 void __mmu_init(bool mmu_on)
 {
-	struct memory_bank *bank;
 	uint32_t *ttb = get_ttb();
 
 	// TODO: remap writable only while remapping?
@@ -574,27 +573,6 @@ void __mmu_init(bool mmu_on)
 					ttb);
 
 	pr_debug("ttb: 0x%p\n", ttb);
-
-	/*
-	 * Early mmu init will have mapped everything but the initial memory area
-	 * (excluding final OPTEE_SIZE bytes) uncached. We have now discovered
-	 * all memory banks, so let's map all pages, excluding reserved memory areas,
-	 * cacheable and executable.
-	 */
-	for_each_memory_bank(bank) {
-		struct resource *rsv;
-		resource_size_t pos;
-
-		pos = bank->start;
-
-		/* Skip reserved regions */
-		for_each_reserved_region(bank, rsv) {
-			remap_range((void *)pos, rsv->start - pos, MAP_CACHED);
-			pos = rsv->end + 1;
-		}
-
-		remap_range((void *)pos, bank->start + bank->size - pos, MAP_CACHED);
-	}
 }
 
 /*

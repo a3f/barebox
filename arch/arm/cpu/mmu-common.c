@@ -69,6 +69,34 @@ void zero_page_faulting(void)
 	remap_range(0x0, PAGE_SIZE, MAP_FAULT);
 }
 
+static void mmu_remap_memory_banks(void)
+{
+	struct memory_bank *bank;
+
+	/*
+	 * Early mmu init will have mapped everything but the initial memory area
+	 * (excluding final OPTEE_SIZE bytes) uncached. We have now discovered
+	 * all memory banks, so let's map all pages, excluding reserved memory areas,
+	 * cacheable and executable.
+	 */
+	for_each_memory_bank(bank) {
+		struct resource *rsv;
+		resource_size_t pos;
+
+		pos = bank->start;
+
+		/* Skip reserved regions */
+		for_each_reserved_region(bank, rsv) {
+			remap_range((void *)pos, rsv->start - pos, MAP_CACHED);
+			pos = rsv->end + 1;
+		}
+
+		remap_range((void *)pos, bank->start + bank->size - pos, MAP_CACHED);
+	}
+
+	setup_trap_pages();
+}
+
 static int mmu_init(void)
 {
 	if (efi_is_payload())
@@ -94,8 +122,7 @@ static int mmu_init(void)
 	}
 
 	__mmu_init(get_cr() & CR_M);
-
-	setup_trap_pages();
+	mmu_remap_memory_banks();
 
 	return 0;
 }
