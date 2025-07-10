@@ -133,9 +133,6 @@ static void mmu_remap_memory_banks(void)
 	/* Do this while interrupt vectors are still writable */
 	setup_trap_pages();
 
-	if (!IS_ENABLED(CONFIG_ARM_MMU_PERMISSIONS))
-		return;
-
 	remap_range((void *)code_start, code_size, MAP_CODE);
 	remap_range((void *)rodata_start, rodata_size, ARCH_MAP_CACHED_RO);
 }
