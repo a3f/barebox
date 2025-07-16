@@ -8,6 +8,9 @@ obj-pbl-$(CONFIG_HAVE_OPTEE)	+= optee.o
 obj-$(CONFIG_BLOBGEN)		+= blobgen.o
 obj-$(CONFIG_PASSWORD)		+= password.o
 
+# Default password handling
+# ---------------------------------------------------------------------------
+#
 ifdef CONFIG_PASSWORD
 
 ifeq ($(CONFIG_PASSWORD_DEFAULT),"")
@@ -29,3 +32,35 @@ include/generated/passwd.h: FORCE
 
 $(obj)/password.o: include/generated/passwd.h
 endif # CONFIG_PASSWORD
+
+# External security policy handling
+# ---------------------------------------------------------------------------
+
+external-policy := $(foreach p, \
+	$(call remove_quotes,$(CONFIG_SECURITY_POLICY_PATH)), $p)
+
+external-policy-tmp := $(addsuffix .tmp,$(external-policy))
+
+ifneq ($(external-policy),)
+obj-y	+= default.sconfig.o
+extra-y	+= default.sconfig.c
+always-y += policy-list
+$(foreach p, $(external-policy), \
+	$(if $(findstring /,$p),$(error \
+	CONFIG_SECURITY_POLICY_PATH contains path separators.\
+	$(newline)"$p" must be a file name relative to security/)))
+$(foreach p, $(external-policy), \
+	$(if $(wildcard $(srctree)/$(src)/$p),,$(error \
+	CONFIG_SECURITY_POLICY_PATH contains non-existent files.\
+	$(newline)"$p" does not exit in $$(srctree)/security)))
+endif
+
+$(obj)/policy-list: $(addprefix $(src)/,$(external-policy)) FORCE
+	$(call if_changed,gen_order_src)
+
+targets += $(external-policy-tmp)
+
+$(obj)/default.sconfig.c: $(addprefix $(obj)/,$(external-policy-tmp)) FORCE
+	+$(Q)$(foreach p, $(filter %.sconfig %.sconfig.tmp,$^), \
+		$(call noop_cmd,security_checkconfig,$p) ;)
+	$(call if_changed_dep,sconfigpost_c)
