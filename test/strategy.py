@@ -3,10 +3,9 @@ import enum
 import attr
 import pytest
 import subprocess
-import os
-import shutil
-import sys
+from test.py import fixups
 import re
+from types import MethodType
 
 from labgrid import target_factory, step, driver
 from labgrid.strategy import Strategy, StrategyError
@@ -42,6 +41,7 @@ class BareboxTestStrategy(Strategy):
         super().__attrs_post_init__()
         if isinstance(self.console, driver.QEMUDriver):
             self.qemu = self.console
+        self.barebox._run = MethodType(fixups.barebox_run_thorough, self.barebox)
 
     @step(args=['status'])
     def transition(self, status, *, step):
