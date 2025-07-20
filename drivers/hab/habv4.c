@@ -689,7 +689,7 @@ int imx8m_hab_print_status(void)
 
 int imx6_hab_print_status(void)
 {
-	remap_range(0x0, SZ_1M, MAP_CODE);
+	remap_range(0x0, SZ_1M, MAP_CACHED);
 
 	imx6_hab_get_status();
 
