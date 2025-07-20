@@ -7,6 +7,8 @@
 #include <init.h>
 #include <of.h>
 #include <deep-probe.h>
+#include <tee/optee.h>
+#include <asm-generic/memory_layout.h>
 #include "qemu-virt-flash.h"
 
 #ifdef CONFIG_64BIT
@@ -65,6 +67,14 @@ static int virt_board_driver_init(void)
 	if (id->data) {
 		init = id->data;
 		init();
+	}
+
+	if (OPTEE_SIZE > 0) {
+		static struct of_optee_fixup_data optee_fixup_data = {
+			.shm_size = OPTEE_SHM_SIZE,
+		};
+
+		of_optee_fixup(of_get_root_node(), &optee_fixup_data);
 	}
 
 	/*
