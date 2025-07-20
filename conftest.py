@@ -26,6 +26,29 @@ def barebox_config(request, strategy, target):
     command = target.get_driver("BareboxDriver")
     return helper.get_config(command)
 
+
+@pytest.fixture(scope="session")
+def barebox_iomem(request, strategy, target, barebox_config):
+    transition_to_barebox(request, strategy)
+    command = target.get_driver("BareboxDriver")
+    helper.skip_disabled(barebox_config, "CONFIG_CMD_IOMEM")
+    return helper.get_iomem(command)
+
+
+@pytest.fixture(scope="session")
+def barebox_arm(request, strategy, target):
+    transition_to_barebox(request, strategy)
+    command = target.get_driver("BareboxDriver")
+    [arch] = command.run_check("echo $global.arch")
+
+    arch = arch.rstrip()
+
+    if arch not in ['arm', 'arm64']:
+        pytest.skip("ARM32/ARM64 required for test")
+
+    return arch
+
+
 def pytest_configure(config):
     if 'LG_BUILDDIR' not in os.environ:
         if 'KBUILD_OUTPUT' in os.environ:

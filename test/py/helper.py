@@ -3,6 +3,7 @@ import pytest
 import os
 import re
 import shlex
+import json
 from itertools import filterfalse
 
 
@@ -30,6 +31,25 @@ def get_config(command):
         if line and line.startswith("CONFIG_"):
             options.add(line.split('=')[0])
     return options
+
+
+def get_iomem(command, dupes=False):
+    """Returns a dictionary with the iomem reservations done
+    in barebox
+    Args:
+        command (BareboxDriver): An instance of the BareboxDriver
+    Returns:
+        dict: nested dicts of iomem reservations
+    """
+    assert isinstance(command, BareboxDriver)
+
+    out, _, returncode = command.run("iomem -j")
+    if returncode != 0:
+        return None
+
+    iomem = json.loads('\n'.join(out))
+    return iomem if dupes else transform_named_objects(iomem)
+
 
 def devinfo(barebox, device):
     info = {}
@@ -104,6 +124,70 @@ def of_get_property(barebox, path):
             # Also drop the semicolon
             return line[len(prefix):-1]
     return False
+
+
+def transform_named_objects(obj):
+    if 'children' not in obj:
+        return obj
+
+    children = obj['children']
+    name_counts = {}
+    for child in children:
+        name_counts[child['name']] = name_counts.get(child['name'], 0) + 1
+
+    new_children = {}
+    for child in children:
+        new_child = transform_named_objects(child)
+        name = new_child['name']
+        parts = name.split('@', 1)
+
+        try:
+            if len(parts) == 2 and \
+               int(parts[1], 16) == int(new_child['start'], 16):
+                name = parts[0]
+        except ValueError:
+            pass
+        if name_counts[new_child['name']] == 1:
+            new_children[name] = new_child
+        # if duplicate, skip adding to dict
+
+    obj['children'] = new_children
+    return obj
+
+
+def deep_lookup(data, lookup):
+    if isinstance(lookup, dict):
+        target_dict = lookup
+        target_key = None
+    else:
+        target_dict = None
+        target_key = lookup
+
+    def matches(obj):
+        if not isinstance(obj, dict):
+            return False
+        return all(obj.get(k) == v for k, v in target_dict.items())
+
+    if isinstance(data, dict):
+        if target_dict is not None:
+            if target_dict == {}:
+                yield data
+                return
+            elif matches(data):
+                yield data
+        if target_key:
+            for key, value in data.items():
+                if key == target_key:
+                    yield value
+                yield from deep_lookup(value, lookup)
+        else:
+            for value in data.values():
+                yield from deep_lookup(value, lookup)
+
+    elif isinstance(data, list):
+        for item in data:
+            yield from deep_lookup(item, lookup)
+
 
 def skip_disabled(config, *options):
     if bool(config):
