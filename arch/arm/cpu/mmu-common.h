@@ -9,8 +9,6 @@
 #include <linux/kernel.h>
 #include <linux/sizes.h>
 
-#define ARCH_MAP_WRITECOMBINE	((unsigned)-1)
-
 struct device;
 
 void dma_inv_range(void *ptr, size_t size);
