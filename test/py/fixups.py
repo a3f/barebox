@@ -10,6 +10,10 @@ These should eventually be upstreamed into Labgrid
 
 import shlex
 from labgrid.util import gen_marker, re_vt100
+from .exceptions import (BareboxReboot, BareboxBug, BareboxPanic,
+                         BareboxAbort, BareboxPrefetchAbort, BareboxDataAbort,
+                         BareboxGuardPageAbort, BareboxNullPointerAbort,
+                         BareboxShellRestart)
 
 
 def barebox_run_thorough(self, cmd: str, *, timeout: int = 30,
@@ -39,14 +43,55 @@ def barebox_run_thorough(self, cmd: str, *, timeout: int = 30,
 
     if self._status == 1:
         self.console.sendline(cmp_command)
-        _, _, match, _ = self.console.expect(
-            rf'{marker}(.*){marker}\s+(\d+)\s+.*{self.prompt}',
+        idx, before, match, _ = self.console.expect(
+            [r'PANIC: unable to handle (.*?) at address (.*)',
+             r'PANIC: unable to handle (.*)',
+             r'PANIC: (.*)',
+             r'BUG: (.*)',
+             r'\r\n\r\n(barebox \d\d\d\d\.\d\d\.\d(?:.*?))\r\n' +
+             r'(?:Buildsystem version: (?:.*?)\r\n)?\r\n\r\n',
+             rf'{marker}(.*){marker}\s+(\d+)\s+.*{self.prompt}',
+             self.prompt],
             timeout=timeout)
-        # Remove VT100 Codes and split by newline
-        data = re_vt100.sub('', match.group(1).decode('utf-8')).split('\r\n')[1:-1]
-        self.logger.debug("Received Data: %s", data)
-        # Get exit code
-        exitcode = int(match.group(2))
-        return (data, [], exitcode)
+        try:
+            arg = match.group(1).decode('utf-8')
+        except (IndexError, AttributeError):
+            arg = None
+
+        match idx:
+            case 0 | 1:  # unhandled exception
+                self.target.deactivate(self)
+                self.target.activate(self)
+                try:
+                    addr = match.group(2).decode('utf-8')
+                except IndexError:
+                    addr = None
+                match arg:
+                    case "prefetch abort":
+                        raise BareboxPrefetchAbort()
+                    case "NULL pointer dereference":
+                        raise BareboxNullPointerAbort(addr)
+                    case "stack overflow":
+                        raise BareboxGuardPageAbort(addr)
+                    case "paging request":
+                        raise BareboxDataAbort(addr)
+                    case _:
+                        raise BareboxAbort(arg)
+            case 2:  # PANIC:
+                raise BareboxPanic(arg)
+            case 3:  # BUG:
+                raise BareboxBug(arg)
+            case 4:  # barebox banner
+                raise BareboxReboot(arg)
+            case 5:  # marker followed by prompt
+                # Remove VT100 Codes and split by newline
+                data = re_vt100.sub('', match.group(1).decode('utf-8')).split('\r\n')[1:-1]
+                self.logger.debug("Received Data: %s", data)
+
+                # Get exit code
+                exitcode = int(match.group(2))
+                return (data, [], exitcode)
+            case 6:  # plain prompt
+                raise BareboxShellRestart(before + match.group(0))
 
     return None
