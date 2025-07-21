@@ -112,6 +112,14 @@ jobs:
           echo "Testing $cfg"
           labgrid-pytest --lg-env $i test/py --verbosity=1 \
           --junitxml=$cfg.tests.xml --lg-log=log/$cfg $extraargs
+
+          echo
+          echo "=========================================================="
+          echo "================= Labgrid Console Output ================="
+          echo "=========================================================="
+          echo
+          echo
+          cat log/$cfg || true
         done
 
     - name: Print Labgrid Console Output
