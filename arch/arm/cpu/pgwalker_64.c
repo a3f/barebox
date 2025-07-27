@@ -303,3 +303,105 @@ void dump_pagetable(u64 ttbr, u64 tcr)
 	       va_bits, va_bits < 39 ? 3 : 4);
 	walk_pagetable(ttbr, tcr, pagetable_print_entry, NULL);
 }
+
+static void pretty_print_block_attrs_compact(u64 pte)
+{
+	u64 attrs = pte & PTE_ATTRINDX_MASK;
+	u64 perm_attrs = pte & PTE_ATTRMASK;
+	char mem_attrs[16] = { 0 };
+	int cnt = 0;
+
+	if (perm_attrs & PTE_BLOCK_PXN)
+		cnt += snprintf(mem_attrs + cnt, sizeof(mem_attrs) - cnt, "PXN ");
+	if (perm_attrs & PTE_BLOCK_UXN) {
+		if (get_effective_el() == 1)
+			cnt += snprintf(mem_attrs + cnt, sizeof(mem_attrs) - cnt, "UXN ");
+		else
+			cnt += snprintf(mem_attrs + cnt, sizeof(mem_attrs) - cnt, "XN ");
+	}
+	if (perm_attrs & PTE_BLOCK_RO)
+		cnt += snprintf(mem_attrs + cnt, sizeof(mem_attrs) - cnt, "RO ");
+	if (attrs == PTE_ATTRINDX(MT_NORMAL))
+		cnt += snprintf(mem_attrs + cnt, sizeof(mem_attrs) - cnt, "C");
+	else if (attrs == PTE_ATTRINDX(MT_NORMAL_NC))
+		cnt += snprintf(mem_attrs + cnt, sizeof(mem_attrs) - cnt, "WC");
+	else
+		cnt += snprintf(mem_attrs + cnt, sizeof(mem_attrs) - cnt, "UC");
+
+	printf(" | %-10s", mem_attrs);
+}
+
+static void print_pte2(u64 pte, int level)
+{
+	pretty_print_pte_type(pte);
+	pretty_print_block_attrs_compact(pte);
+	printf("\n");
+}
+
+struct last_region {
+	bool    valid;
+	u64     start_pte;
+	u64     attrs;
+	u64     start_addr;
+	u64     end_addr;
+	int     level;
+};
+
+static struct last_region last = { .valid = false };
+
+static void flush_last_region(void)
+{
+	if (!last.valid)
+		return;
+
+	printf("[%#016llx - %#016llx] ", (unsigned long long)last.start_addr,
+		(unsigned long long)last.end_addr);
+	printf("|");
+	print_pte2(last.start_pte, last.level);
+
+	last.valid = false;
+}
+
+static bool merge_regions(u64 start_pte, u64 end, int va_bits, int level, void *priv)
+{
+	/* no need for tables */
+	if (PTE_IS_TABLE(start_pte, level))
+		return false;
+
+	u64 start_addr = start_pte & GENMASK_ULL(va_bits - 1, PAGE_SHIFT);
+	u64 attrs = start_pte & ALL_ATTRS;
+
+	if (!last.valid) {
+		/* start the first region */
+		last.valid = true;
+		last.start_pte = start_pte;
+		last.attrs = attrs;
+		last.start_addr = start_addr;
+		last.end_addr = end;
+		last.level = level;
+		return false;
+	}
+
+	if (last.level == level && last.attrs == attrs && start_addr == last.end_addr) {
+		/* extend region */
+		last.end_addr = end;
+		return false;
+	}
+
+	/* not mergable: flush last and start a new last region */
+	flush_last_region();
+
+	last.valid = true;
+	last.start_pte = start_pte;
+	last.attrs = attrs;
+	last.start_addr = start_addr;
+	last.end_addr = end;
+	last.level = level;
+	return false;
+}
+
+void dump_pagetable_regions(u64 ttbr, u64 tcr)
+{
+	walk_pagetable(ttbr, tcr, merge_regions, NULL);
+	flush_last_region();
+}

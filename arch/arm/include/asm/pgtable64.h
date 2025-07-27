@@ -161,10 +161,13 @@ void walk_pagetable(u64 ttbr, u64 tcr, pte_walker_cb_t cb, void *priv);
  * @tcr: TCR value to use
  */
 void dump_pagetable(u64 ttbr, u64 tcr);
+
+void dump_pagetable_regions(u64 ttbr, u64 tcr);
 #else
 
 static inline void walk_pagetable(u64 ttbr, u64 tcr, pte_walker_cb_t cb, void *priv) {}
 static inline void dump_pagetable(u64 ttbr, u64 tcr) {}
+static inline void dump_pagetable_regions(u64 ttbr, u64 tcr) {}
 #endif
 #endif
 
