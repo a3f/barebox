@@ -3,7 +3,7 @@
 #ifndef __ARM_ASM_MMUINFO_H__
 #define __ARM_ASM_MMUINFO_H__
 
-int mmuinfo_v7(void *addr);
-int mmuinfo_v8(void *addr);
+int mmuinfo_v7(void *addr, unsigned flags);
+int mmuinfo_v8(void *addr, unsigned flags);
 
 #endif

@@ -12,19 +12,20 @@
 #include <zero_page.h>
 #include <mmu.h>
 
-int mmuinfo(void *addr)
+int mmuinfo(void *addr, unsigned flags)
 {
 	if (IS_ENABLED(CONFIG_CPU_V8))
-		return mmuinfo_v8(addr);
+		return mmuinfo_v8(addr, flags);
 	if (IS_ENABLED(CONFIG_CPU_V7) && cpu_architecture() == CPU_ARCH_ARMv7)
-		return mmuinfo_v7(addr);
+		return mmuinfo_v7(addr, flags);
 
 	return -ENOSYS;
 }
 
 static __maybe_unused int do_mmuinfo(int argc, char *argv[])
 {
-	unsigned long addr;
+	unsigned flags = 0;
+	unsigned long addr = 0;
 	int access_zero_page = -1;
 	int opt;
 
@@ -58,18 +59,26 @@ static __maybe_unused int do_mmuinfo(int argc, char *argv[])
 		return 0;
 	}
 
-	if (argc - optind != 1)
+	argv += optind;
+	argc -= optind;
+
+	if (argc == 0) {
+		flags |= MMUINFO_ALL;
+	} else if (argc == 1) {
+		flags |= MMUINFO_SINGLE;
+		addr = strtoul_suffix(argv[0], NULL, 0);
+	} else {
 		return COMMAND_ERROR_USAGE;
+	}
 
-	addr = strtoul_suffix(argv[1], NULL, 0);
-
-	return mmuinfo((void *)addr);
+	return mmuinfo((void *)addr, flags);
 }
 
 BAREBOX_CMD_HELP_START(mmuinfo)
 BAREBOX_CMD_HELP_TEXT("Show MMU/cache information using the cp15/model-specific registers.")
 BAREBOX_CMD_HELP_TEXT("")
 BAREBOX_CMD_HELP_TEXT("Options:")
+BAREBOX_CMD_HELP_OPT ("-v",  "verbose output when dumping all regions")
 BAREBOX_CMD_HELP_OPT ("-z",  "enable access to zero page")
 BAREBOX_CMD_HELP_OPT ("-Z",  "disable access to zero page")
 BAREBOX_CMD_HELP_END

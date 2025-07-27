@@ -68,10 +68,13 @@ static inline int remap_range(void *start, size_t size, maptype_t map_type)
 	return arch_remap_range(start, virt_to_phys(start), size, map_type);
 }
 
+#define MMUINFO_SINGLE		0
+#define MMUINFO_ALL		BIT(0)
+
 #ifdef CONFIG_MMUINFO
-int mmuinfo(void *addr);
+int mmuinfo(void *addr, unsigned flags);
 #else
-static inline int mmuinfo(void *addr)
+static inline int mmuinfo(void *addr, unsigned flags)
 {
 	return -ENOSYS;
 }
