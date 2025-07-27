@@ -70,6 +70,7 @@ static inline int remap_range(void *start, size_t size, maptype_t map_type)
 
 #define MMUINFO_SINGLE		0
 #define MMUINFO_ALL		BIT(0)
+#define MMUINFO_VERBOSE		BIT(1)
 
 #ifdef CONFIG_MMUINFO
 int mmuinfo(void *addr, unsigned flags);

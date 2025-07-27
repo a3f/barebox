@@ -29,8 +29,11 @@ static __maybe_unused int do_mmuinfo(int argc, char *argv[])
 	int access_zero_page = -1;
 	int opt;
 
-	while ((opt = getopt(argc, argv, "zZ")) > 0) {
+	while ((opt = getopt(argc, argv, "vzZ")) > 0) {
 		switch (opt) {
+		case 'v':
+			flags |= MMUINFO_VERBOSE;
+			break;
 		case 'z':
 			access_zero_page = true;
 			break;
@@ -87,7 +90,7 @@ BAREBOX_CMD_HELP_END
 BAREBOX_CMD_START(mmuinfo)
 	.cmd            = do_mmuinfo,
 	BAREBOX_CMD_DESC("show MMU/cache information of an address")
-	BAREBOX_CMD_OPTS("[-zZ | ADDRESS]")
+	BAREBOX_CMD_OPTS("[-v] [-zZ | ADDRESS]")
 	BAREBOX_CMD_GROUP(CMD_GRP_INFO)
 	BAREBOX_CMD_HELP(cmd_mmuinfo_help)
 BAREBOX_CMD_END

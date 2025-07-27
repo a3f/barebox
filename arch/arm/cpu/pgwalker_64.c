@@ -295,6 +295,12 @@ void walk_pagetable(u64 ttbr, u64 tcr, pte_walker_cb_t cb, void *priv)
 	__pagetable_walk(ttbr, tcr, 0, cb, priv);
 }
 
+void dump_active_pagetable(void (*dumper)(u64 ttbr, u64 tcr))
+{
+	int el = current_el();
+	dumper(get_ttbr(el), calc_tcr(el, BITS_PER_VA));
+}
+
 void dump_pagetable(u64 ttbr, u64 tcr)
 {
 	u64 va_bits = 64 - (tcr & (BIT(6) - 1));
