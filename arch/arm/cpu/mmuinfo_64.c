@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <mmu.h>
 #include <asm/mmuinfo.h>
 #include <asm/system.h>
 #include <asm/sysreg.h>
@@ -179,10 +180,13 @@ static void decode_par(unsigned long par)
 	}
 }
 
-int mmuinfo_v8(void *_addr)
+int mmuinfo_v8(enum mmuinfo type, void *_addr)
 {
 	unsigned long addr = (unsigned long)_addr;
 	unsigned long priv_read, priv_write;
+
+	if (type == MMUINFO_DUMP)
+		return -ENOSYS;
 
 	switch (current_el()) {
 	case 3:

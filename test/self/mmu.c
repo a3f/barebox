@@ -54,8 +54,8 @@ static inline int __check_mirroring(void __iomem *a, void __iomem *b, bool is_mi
 	       is_mirror ? "failed" : "succeeded",
 	       a, readl(a), is_mirror ? "!=" : "==", b, readl(b));
 
-	mmuinfo(a);
-	mmuinfo(b);
+	mmuinfo(MMUINFO_ADDR, a);
+	mmuinfo(MMUINFO_ADDR, b);
 
 	return -EILSEQ;
 }

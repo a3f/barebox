@@ -3,7 +3,9 @@
 #ifndef __ARM_ASM_MMUINFO_H__
 #define __ARM_ASM_MMUINFO_H__
 
-int mmuinfo_v7(void *addr);
-int mmuinfo_v8(void *addr);
+enum mmuinfo;
+
+int mmuinfo_v7(enum mmuinfo, void *addr);
+int mmuinfo_v8(enum mmuinfo, void *addr);
 
 #endif

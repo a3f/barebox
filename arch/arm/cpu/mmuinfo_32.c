@@ -6,6 +6,7 @@
 
 #include <common.h>
 #include <asm/mmuinfo.h>
+#include <mmu.h>
 
 static char *inner_attr[] = {
 	"0b000 Non-cacheable",
@@ -41,10 +42,13 @@ static void decode_par(unsigned long par)
 	printf("  Failure [0]:              0x%lx\n", (par >> 0) & 0x1);
 }
 
-int mmuinfo_v7(void *_addr)
+int mmuinfo_v7(enum mmuinfo type, void *_addr)
 {
 	unsigned long addr = (unsigned long)_addr;
 	unsigned long priv_read, priv_write;
+
+	if (type == MMUINFO_DUMP)
+		return -ENOSYS;
 
 	__asm__ __volatile__(
 		"mcr    p15, 0, %0, c7, c8, 0   @ write VA to PA translation (priv read)\n"

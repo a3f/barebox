@@ -12,19 +12,20 @@
 #include <zero_page.h>
 #include <mmu.h>
 
-int mmuinfo(void *addr)
+int mmuinfo(enum mmuinfo type, void *addr)
 {
 	if (IS_ENABLED(CONFIG_CPU_V8))
-		return mmuinfo_v8(addr);
+		return mmuinfo_v8(type, addr);
 	if (IS_ENABLED(CONFIG_CPU_V7) && cpu_architecture() == CPU_ARCH_ARMv7)
-		return mmuinfo_v7(addr);
+		return mmuinfo_v7(type, addr);
 
 	return -ENOSYS;
 }
 
 static __maybe_unused int do_mmuinfo(int argc, char *argv[])
 {
-	unsigned long addr;
+	enum mmuinfo type;
+	unsigned long addr = 0;
 	int access_zero_page = -1;
 	int opt;
 
@@ -58,12 +59,19 @@ static __maybe_unused int do_mmuinfo(int argc, char *argv[])
 		return 0;
 	}
 
-	if (argc - optind != 1)
+	argv += optind;
+	argc -= optind;
+
+	if (argc == 0) {
+		type = MMUINFO_DUMP;
+	} else if (argc == 1) {
+		type = MMUINFO_ADDR;
+		addr = strtoul_suffix(argv[0], NULL, 0);
+	} else {
 		return COMMAND_ERROR_USAGE;
+	}
 
-	addr = strtoul_suffix(argv[1], NULL, 0);
-
-	return mmuinfo((void *)addr);
+	return mmuinfo(type, (void *)addr);
 }
 
 BAREBOX_CMD_HELP_START(mmuinfo)
