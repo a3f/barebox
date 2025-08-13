@@ -5,7 +5,7 @@ import pytest
 
 def test_security_policies(barebox, env):
     if 'policies' not in env.get_target_features():
-        pytest.xfail('policies feature flag missing')
+        pytest.skip('policies feature flag missing')
 
     assert 'Active Policy: devel' in barebox.run_check('sconfig')
 
@@ -13,7 +13,7 @@ def test_security_policies(barebox, env):
            ['devel', 'factory', 'lockdown', 'tamper']
 
     assert barebox.run_check('varinfo global.bootm.verify') == \
-        ['bootm.verify: available (type: enum) ' + \
+        ['bootm.verify: available (type: enum) '
          '(values: "none", "hash", "signature", "available")']
 
     barebox.run_check('sconfig -s factory')
