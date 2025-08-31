@@ -37,6 +37,8 @@ obj-$(CONFIG_ARM_BOOTM_FIP)	+= bootm-fip.o
 
 ifeq ($(CONFIG_MMU),)
 obj-$(CONFIG_CPU_32v7) += no-mmu.o
+else
+obj-pbl-$(CONFIG_CPU_V8) += pgwalker_64.o
 endif
 
 obj-$(CONFIG_ARM_PSCI) += psci.o

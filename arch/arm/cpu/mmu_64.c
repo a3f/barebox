@@ -168,8 +168,6 @@ static unsigned long get_pte_attrs(maptype_t map_type)
 	}
 }
 
-#define MAX_PTE_ENTRIES 512
-
 /* Splits a block PTE into table with subpages spanning the old block */
 static void split_block(uint64_t *pte, int level, bool bbm)
 {
