@@ -363,6 +363,12 @@ static int socfpga_fpgamgr_program_finish(struct firmware_handler *fh)
 
 	remap_range((void *)CYCLONE5_OCRAM_ADDRESS, PAGE_SIZE, MAP_CODE);
 
+	/*
+	 * FIXME: Replacing sync_caches_for_execution_anywhere might lead
+	 * to issues, because prefetching could result in cache lines being
+	 * evicted. We should probably disable the MMU and the instruction
+	 * prefetcher before changing the below to sync_caches_for_execution.
+	 */
 	sync_caches_for_execution_anywhere();
 
 	ocram_func((void __iomem *) (CYCLONE5_SDR_ADDRESS +
