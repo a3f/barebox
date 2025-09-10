@@ -26,7 +26,7 @@ static void omap_hsmmc_fat_start_image(struct pbl_bio *bio, void *buf)
 		return;
 	}
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	asm volatile ("bx  %0\n" : : "r"(buf) :);
 	__builtin_unreachable();

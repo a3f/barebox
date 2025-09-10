@@ -61,7 +61,7 @@ ENTRY(relocate_to_adr)
 
 	bl	__memcpy		/* copy binary */
 
-	bl	sync_caches_for_execution
+	bl	sync_caches_for_execution_anywhere
 
 	adr_l	x0, 1f
 	sub	x0, x0, x20

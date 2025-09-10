@@ -30,7 +30,7 @@ ENTRY(setup_c)
 	ldr	r2, =__bss_stop
 	sub	r2, r2, r0
 	bl	__memset			/* clear bss */
-	bl	sync_caches_for_execution
+	bl	sync_caches_for_execution_anywhere
 	sub	lr, r5, r4		/* adjust return address to new location */
 	pop	{r4, r5}
 	ret	lr
@@ -72,7 +72,7 @@ ENTRY(relocate_to_adr)
 
 	bl	__memcpy			/* copy binary */
 
-	bl	sync_caches_for_execution
+	bl	sync_caches_for_execution_anywhere
 
 	ldr	r0,=1f
 	sub	r0, r0, r8

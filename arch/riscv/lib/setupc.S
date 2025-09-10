@@ -46,7 +46,7 @@ ENTRY(relocate_to_adr)
 
 	jal	__memcpy
 
-	jal	sync_caches_for_execution
+	jal	sync_caches_for_execution_anywhere
 
 	REG_L	a0, (sp)
 	jr	a0 			/* jump to relocated address */

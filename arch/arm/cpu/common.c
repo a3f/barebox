@@ -15,13 +15,13 @@
 #include <debug_ll.h>
 
 /**
- * sync_caches_for_execution - synchronize caches for code execution
+ * sync_caches_for_execution_anywhere - synchronize caches for code execution anywhere
  *
  * Code has been modified in memory, call this before executing it.
  * This function flushes the data cache up to the point of unification
  * and invalidates the instruction cache.
  */
-void sync_caches_for_execution(void)
+void sync_caches_for_execution_anywhere(void)
 {
 	/* if caches are disabled, don't do data cache maintenance */
 	if (!(get_cr() & CR_C)) {
@@ -134,7 +134,7 @@ void __prereloc relocate_to_current_adr(void)
 #error "Architecture not specified"
 #endif
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 }
 
 #ifdef ARM_MULTIARCH

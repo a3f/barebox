@@ -18,7 +18,7 @@ void ls1046_start_tfa(void *barebox, struct dram_regions_info *dram_info)
 	get_builtin_firmware_ext(ls1046a_bl31_bin, barebox, &bl31_image, &bl31_size);
 	memcpy(bl31, bl31_image, bl31_size);
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	/* Setup an initial stack for EL2 */
 	asm volatile("msr sp_el2, %0" : : "r" ((unsigned long)barebox) : "cc");

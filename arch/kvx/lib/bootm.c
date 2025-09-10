@@ -37,7 +37,7 @@ static int do_boot_entry(struct image_data *data, boot_func_entry entry,
 	shutdown_barebox();
 
 	/* Synchronize I-cache with D-cache */
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	/**
 	 * Parameters passing

@@ -482,7 +482,7 @@ static int k3_r5_start_image(void)
 	/* Release all the exclusive devices held by SPL before starting ATF */
 	pr_info("Starting TF-A on A53 core\n");
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	ti_sci->ops.dev_ops.release_exclusive_devices(ti_sci);
 	arm64_rproc->ops->load(arm64_rproc, &fw);

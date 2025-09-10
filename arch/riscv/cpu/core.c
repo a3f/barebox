@@ -111,6 +111,6 @@ postcore_platform_driver(riscv_driver);
 
 static void arch_shutdown(void)
 {
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 }
 archshutdown_exitcall(arch_shutdown);

@@ -331,7 +331,7 @@ static int layerscape_esdhc_load_image(struct fsl_esdhc_host *host, void *adr, u
 		return ret;
 	}
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	return 0;
 }

@@ -32,7 +32,7 @@ static int layerscape_qspi_start_image(struct layerscape_base_addr *base,
 	if (IS_ENABLED(CONFIG_FIRMWARE_LS1046A_ATF))
 		ls1046_start_tfa(base->membase, dram_info);
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	printf("Starting barebox\n");
 

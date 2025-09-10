@@ -32,7 +32,7 @@ static inline void local_flush_icache_all(void)
 #endif
 }
 
-void sync_caches_for_execution(void);
+void sync_caches_for_execution_anywhere(void);
 
 #include <asm-generic/cache.h>
 

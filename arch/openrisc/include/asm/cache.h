@@ -30,6 +30,6 @@ void dcache_disable(void);
 void icache_enable(void);
 void icache_disable(void);
 
-void sync_caches_for_execution(void);
+void sync_caches_for_execution_anywhere(void);
 
 #endif /* __ASM_OPENRISC_CACHE_H_ */

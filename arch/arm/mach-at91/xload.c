@@ -29,7 +29,7 @@ static void at91_fat_start_image(struct pbl_bio *bio, void *buf, u32 r4)
 		return;
 	}
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	sama5_boot_xload(buf, r4);
 }
@@ -168,7 +168,7 @@ static void __noreturn sama5d2_qspi_start_image(u32 r4)
 				memcpy(dest + SZ_128K, mem + offs + SZ_128K,
 				       size - SZ_128K);
 
-			sync_caches_for_execution();
+			sync_caches_for_execution_anywhere();
 
 			sama5_boot_xload(dest, r4);
 		}

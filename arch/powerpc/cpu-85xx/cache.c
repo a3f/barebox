@@ -2,7 +2,7 @@
 
 #include <asm/cache.h>
 
-void sync_caches_for_execution(void)
+void sync_caches_for_execution_anywhere(void)
 {
 	flush_dcache();
 	invalidate_icache();

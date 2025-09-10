@@ -28,9 +28,10 @@ static inline void icache_invalidate(void)
 void arm_early_mmu_cache_flush(void);
 void arm_early_mmu_cache_invalidate(void);
 
-void sync_caches_for_execution(void);
+void sync_caches_for_execution_anywhere(void);
 
 #include <asm-generic/cache.h>
+
 #endif
 
 #endif

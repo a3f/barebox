@@ -363,7 +363,7 @@ static int socfpga_fpgamgr_program_finish(struct firmware_handler *fh)
 
 	remap_range((void *)CYCLONE5_OCRAM_ADDRESS, PAGE_SIZE, MAP_CODE);
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	ocram_func((void __iomem *) (CYCLONE5_SDR_ADDRESS +
 				     SDR_CTRLGRP_STATICCFG_ADDRESS));

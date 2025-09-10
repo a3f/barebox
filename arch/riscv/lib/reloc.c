@@ -25,7 +25,7 @@
 
 #define RISC_R_TYPE(x)	((x) & 0xFF)
 
-void sync_caches_for_execution(void)
+void sync_caches_for_execution_anywhere(void)
 {
 	local_flush_icache_all();
 }
@@ -74,5 +74,5 @@ void relocate_to_current_adr(void)
 		}
 	}
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 }

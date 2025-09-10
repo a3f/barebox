@@ -106,7 +106,7 @@ void __noreturn sam9263_atmci_start_image(u32 mmc_id, unsigned int clock,
 		goto out_panic;
 	}
 
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	((func)buf)(0, 0, NULL);
 

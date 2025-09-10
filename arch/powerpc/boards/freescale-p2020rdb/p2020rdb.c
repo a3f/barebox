@@ -246,7 +246,7 @@ static int board_init_r(void)
 	fsl_set_lbc_or(0, 0xff000ff7);
 
 	/* Flush d-cache and invalidate i-cache of any FLASH data */
-	sync_caches_for_execution();
+	sync_caches_for_execution_anywhere();
 
 	/* invalidate existing TLB entry for flash */
 	e500_disable_tlb(flash_esel);
