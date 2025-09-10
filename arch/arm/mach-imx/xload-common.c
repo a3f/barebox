@@ -164,7 +164,7 @@ int imx_load_image(ptrdiff_t address, ptrdiff_t entry, u32 offset,
 
 	bb = buf + ofs;
 
-	sync_caches_for_execution_anywhere();
+	sync_caches_for_execution(bb, len);
 
 	bb();
 }
