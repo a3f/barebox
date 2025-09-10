@@ -23,3 +23,8 @@ void invalidate_dcache_range(unsigned long addr, unsigned long stop)
 		__builtin_kvx_dinval();
 	}
 }
+
+void sync_caches_for_execution(void *addr, size_t size)
+{
+	sync_caches_for_execution_anywhere();
+}

@@ -32,4 +32,6 @@ void icache_disable(void);
 
 void sync_caches_for_execution_anywhere(void);
 
+#include <asm-generic/cache.h>
+
 #endif /* __ASM_OPENRISC_CACHE_H_ */

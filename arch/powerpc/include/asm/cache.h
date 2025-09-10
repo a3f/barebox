@@ -39,6 +39,9 @@ extern void sync_caches_for_execution_anywhere(void);
 #ifdef CFG_INIT_RAM_LOCK
 extern void unlock_ram_in_cache(void);
 #endif /* CFG_INIT_RAM_LOCK */
+
+#include <asm-generic/cache.h>
+
 #endif /* __ASSEMBLY__ */
 
 /* prep registers for L2 */

@@ -74,6 +74,11 @@ void flush_cache_all(void)
 	blast_scache();
 }
 
+void sync_caches_for_execution(void *addr, size_t size)
+{
+	sync_caches_for_execution_anywhere();
+}
+
 void dma_flush_range(unsigned long start, unsigned long end)
 {
 	blast_dcache_range(start, end);

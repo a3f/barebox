@@ -7,3 +7,8 @@ void sync_caches_for_execution_anywhere(void)
 	flush_dcache();
 	invalidate_icache();
 }
+
+void sync_caches_for_execution(void *addr, size_t size)
+{
+	sync_caches_for_execution_anywhere();
+}

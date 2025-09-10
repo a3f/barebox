@@ -8,4 +8,6 @@ void r4k_cache_init(void);
 
 #define sync_caches_for_execution_anywhere flush_cache_all
 
+#include <asm-generic/cache.h>
+
 #endif /* _ASM_MIPS_CACHE_H */

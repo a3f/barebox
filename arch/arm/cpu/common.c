@@ -36,6 +36,11 @@ void sync_caches_for_execution_anywhere(void)
 	arm_early_mmu_cache_flush();
 }
 
+void sync_caches_for_execution(void *addr, size_t size)
+{
+	sync_caches_for_execution_anywhere();
+}
+
 #define R_ARM_RELATIVE 23
 #define R_AARCH64_RELATIVE 1027
 

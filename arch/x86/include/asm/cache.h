@@ -14,4 +14,6 @@ static inline void sync_caches_for_execution_anywhere(void)
 		      : "a"(eax) : "memory");
 }
 
+#include <asm-generic/cache.h>
+
 #endif

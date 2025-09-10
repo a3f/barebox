@@ -155,3 +155,8 @@ void sync_caches_for_execution_anywhere(void)
 	flush_dcache_range(0, checkdcache());
 	invalidate_icache_range(0, checkicache());
 }
+
+void sync_caches_for_execution(void *addr, size_t size)
+{
+	sync_caches_for_execution_anywhere();
+}

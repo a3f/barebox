@@ -30,6 +30,11 @@ void sync_caches_for_execution_anywhere(void)
 	local_flush_icache_all();
 }
 
+void sync_caches_for_execution(void *addr, size_t size)
+{
+	local_flush_icache_all();
+}
+
 void relocate_to_current_adr(void)
 {
 	unsigned long offset;
