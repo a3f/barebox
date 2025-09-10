@@ -66,7 +66,7 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 
 	pbl_barebox_uncompress((void*)barebox_base, pg_start, pg_len);
 
-	sync_caches_for_execution_anywhere();
+	sync_caches_for_execution((void *)barebox_base, uncompressed_len);
 
 	barebox = (void *)barebox_base;
 

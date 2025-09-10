@@ -40,6 +40,7 @@ void relocate_to_current_adr(void)
 	unsigned long offset;
 	unsigned long *dynsym;
 	void *dstart, *dend;
+	void *stext, *etext;
 	Elf_Rela *rela;
 
 	/* Get offset between linked address and runtime address */
@@ -79,5 +80,8 @@ void relocate_to_current_adr(void)
 		}
 	}
 
-	sync_caches_for_execution_anywhere();
+	stext = runtime_address(_stext);
+	etext = runtime_address(_etext);
+
+	sync_caches_for_execution(stext, etext - stext);
 }

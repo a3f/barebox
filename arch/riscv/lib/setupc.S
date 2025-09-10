@@ -6,6 +6,29 @@
 #include <asm/asm.h>
 
 /*
+ * void __memcpy_exec(void *dst, void *src, size_t size)
+ *
+ * Copy executable memory region from src to dst while doing cache manintenance.
+ */
+.section .text.__memcpy_exec
+ENTRY(__memcpy_exec)
+	addi	sp, sp, -SZREG * 2
+	REG_S	s1, (sp)
+	REG_S	ra, SZREG(sp)
+
+	mv	s1, a2		/* s1: size */
+	jal	__memcpy
+				/* a0: dst */
+	mv	a1, s1		/* a1: size */
+	jal	sync_caches_for_execution
+
+	REG_L	ra, SZREG(sp)
+	REG_L	s1, (sp)
+	addi	sp, sp, SZREG * 2
+	ret
+ENDPROC(__memcpy_exec)
+
+/*
  * setup_c: clear bss
  */
 .section .text.setup_c
@@ -44,9 +67,7 @@ ENTRY(relocate_to_adr)
 	lla	a2, __bss_start
 	sub	a2, a2, a1		 /* a2: size */
 
-	jal	__memcpy
-
-	jal	sync_caches_for_execution_anywhere
+	jal	__memcpy_exec
 
 	REG_L	a0, (sp)
 	jr	a0 			/* jump to relocated address */
