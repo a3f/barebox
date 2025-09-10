@@ -68,6 +68,7 @@ void __prereloc relocate_to_current_adr(void)
 {
 	unsigned long offset;
 	unsigned long __maybe_unused *dynsym, *dynend;
+	void *stext, *etext;
 	void *dstart, *dend;
 
 	/* Get offset between linked address and runtime address */
@@ -139,7 +140,10 @@ void __prereloc relocate_to_current_adr(void)
 #error "Architecture not specified"
 #endif
 
-	sync_caches_for_execution_anywhere();
+	stext = runtime_address(_stext);
+	etext = runtime_address(_etext);
+
+	sync_caches_for_execution(stext, etext - stext);
 }
 
 #ifdef ARM_MULTIARCH

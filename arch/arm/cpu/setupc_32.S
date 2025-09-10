@@ -4,6 +4,25 @@
 #include <asm/sections.h>
 #include <asm/assembler.h>
 
+.section .text.__memcpy_exec
+
+/*
+ * void __memcpy_exec(void *dst, void *src, size_t size)
+ *
+ * Copy executable memory region from src to dst while doing cache manintenance.
+ */
+ENTRY(__memcpy_exec)
+	push	{r5, lr}
+
+	mov	r5, r2		/* r5: size */
+	bl	__memcpy
+				/* r0: dst */
+	mov	r1, r5		/* a1: size */
+
+	ldmia	sp!, {r5, lr}
+	b	sync_caches_for_execution
+ENDPROC(__memcpy_exec)
+
 .section .text.setupc
 
 /*
@@ -24,8 +43,7 @@ ENTRY(setup_c)
 	ldr	r2,=__bss_start
 	sub	r2, r2, r0
 	add	r1, r0, r4
-	bl	__memcpy			/* memcpy(_text, _text + offset, __bss_start - _text) */
-	bl	sync_caches_for_execution_anywhere
+	bl	__memcpy_exec		/* __memcpy_exec(_text, _text + offset, __bss_start - _text) */
 1:	ldr	r0, =__bss_start
 	mov	r1, #0
 	ldr	r2, =__bss_stop
@@ -70,9 +88,7 @@ ENTRY(relocate_to_adr)
 	sub	r7, r7, r1		/* sub address where we are actually running */
 	add	r7, r7, r0		/* add address where we are going to run */
 
-	bl	__memcpy			/* copy binary */
-
-	bl	sync_caches_for_execution_anywhere
+	bl	__memcpy_exec			/* copy binary */
 
 	ldr	r0,=1f
 	sub	r0, r0, r8

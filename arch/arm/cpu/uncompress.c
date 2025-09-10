@@ -92,7 +92,7 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 
 	handoff_data_move(handoff_data);
 
-	sync_caches_for_execution_anywhere();
+	sync_caches_for_execution((void *)barebox_base, uncompressed_len);
 
 	if (IS_ENABLED(CONFIG_THUMB2_BAREBOX))
 		barebox = (void *)(barebox_base + 1);
