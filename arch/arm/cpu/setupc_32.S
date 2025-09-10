@@ -25,12 +25,12 @@ ENTRY(setup_c)
 	sub	r2, r2, r0
 	add	r1, r0, r4
 	bl	__memcpy			/* memcpy(_text, _text + offset, __bss_start - _text) */
+	bl	sync_caches_for_execution_anywhere
 1:	ldr	r0, =__bss_start
 	mov	r1, #0
 	ldr	r2, =__bss_stop
 	sub	r2, r2, r0
 	bl	__memset			/* clear bss */
-	bl	sync_caches_for_execution_anywhere
 	sub	lr, r5, r4		/* adjust return address to new location */
 	pop	{r4, r5}
 	ret	lr
