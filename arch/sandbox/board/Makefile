@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
+obj-y += cache.o
 obj-y += io-ports.o
 obj-y += board.o
 obj-y += clock.o
