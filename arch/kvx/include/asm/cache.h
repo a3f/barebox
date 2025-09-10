@@ -10,7 +10,6 @@
 
 void invalidate_dcache_range(unsigned long addr, unsigned long stop);
 
-#define sync_caches_for_execution sync_caches_for_execution
 static inline void sync_caches_for_execution(void)
 {
 	__builtin_kvx_fence();
