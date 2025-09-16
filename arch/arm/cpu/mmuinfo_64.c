@@ -7,9 +7,12 @@
 #include <common.h>
 #include <mmu.h>
 #include <asm/mmuinfo.h>
+#include <asm/pgtable64.h>
 #include <asm/system.h>
 #include <asm/sysreg.h>
 #include <linux/bitfield.h>
+
+#include "mmu_64.h"
 
 #define at_par(reg, addr) ({ \
 		asm volatile("at " reg ", %0\n" :: "r" (addr)); \
@@ -185,8 +188,11 @@ int mmuinfo_v8(enum mmuinfo type, void *_addr)
 	unsigned long addr = (unsigned long)_addr;
 	unsigned long priv_read, priv_write;
 
-	if (type == MMUINFO_DUMP)
-		return -ENOSYS;
+	if (type == MMUINFO_DUMP) {
+		int el = current_el();
+		dump_pagetable(get_ttbr(el), calc_tcr(el, BITS_PER_VA));
+		return 0;
+	}
 
 	switch (current_el()) {
 	case 3:
