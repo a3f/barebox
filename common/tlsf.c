@@ -159,6 +159,9 @@ typedef struct control_t
 	/* Empty lists point at this block to indicate they are free. */
 	block_header_t block_null;
 
+	void (*request_store)(tlsf_t, size_t);
+
+
 	/* Bitmaps for free lists. */
 	unsigned int fl_bitmap;
 	unsigned int sl_bitmap[FL_INDEX_COUNT];
@@ -568,7 +571,7 @@ static block_header_t* block_trim_free_leading(control_t* control, block_header_
 	return remaining_block;
 }
 
-static block_header_t* block_locate_free(control_t* control, size_t size)
+static block_header_t* __block_locate_free(control_t* control, size_t size)
 {
 	int fl = 0, sl = 0;
 	block_header_t* block = 0;
@@ -596,6 +599,23 @@ static block_header_t* block_locate_free(control_t* control, size_t size)
 	}
 
 	return block;
+}
+
+static block_header_t* block_locate_free(control_t* control, size_t size)
+{
+	block_header_t *block;
+
+	block = __block_locate_free(control, size);
+	if (block)
+		return block;
+
+	if (!control->request_store || !size)
+		return NULL;
+
+	control->request_store(tlsf_cast(tlsf_t, control),
+			       size + tlsf_pool_overhead());
+
+	return __block_locate_free(control, size);
 }
 
 static void* block_prepare_used(control_t* control, block_header_t* block,
@@ -932,6 +952,13 @@ tlsf_t tlsf_create_with_pool(void* mem, size_t bytes)
 	tlsf_t tlsf = tlsf_create(mem);
 	tlsf_add_pool(tlsf, (char*)mem + tlsf_size(), bytes - tlsf_size());
 	return tlsf;
+}
+
+void tlsf_register_store(tlsf_t tlsf, void (*cb)(tlsf_t tlsf, size_t bytes))
+{
+	control_t* control = tlsf_cast(control_t*, tlsf);
+
+	control->request_store = cb;
 }
 
 void tlsf_destroy(tlsf_t tlsf)
