@@ -21,7 +21,7 @@ enum bootm_efi_mode {
 
 struct bootm_data {
 	const char *os_file;
-	const char *initrd_file;
+	const char *initrd_files;
 	const char *oftree_file;
 	const char *tee_file;
 	const char *root_dev;
@@ -87,8 +87,8 @@ struct image_data {
 	struct uimage_handle *initrd;
 	char *initrd_part;
 
-	/* otherwise only the filename will be provided */
-	char *initrd_file;
+	/* otherwise only the filename(s) will be provided */
+	char *initrd_files;
 
 	unsigned long initrd_address;
 
