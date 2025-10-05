@@ -20,28 +20,34 @@ static efi_status_t EFIAPI efi_initrd_load_file2(
 static const struct {
 	struct efi_device_path_vendor vendor;
 	struct efi_device_path end;
-} __packed initrd_dev_path = { { {
-					 DEVICE_PATH_TYPE_MEDIA_DEVICE,
-					 DEVICE_PATH_SUB_TYPE_VENDOR_PATH,
-					 sizeof(initrd_dev_path.vendor),
-				 },
-				 EFI_LINUX_INITRD_MEDIA_GUID },
-			       { DEVICE_PATH_TYPE_END, DEVICE_PATH_SUB_TYPE_END,
-				 DEVICE_PATH_END_LENGTH } };
-
-static struct efi_device_path_memory *initrd_dev;
-static efi_handle_t lf2_handle;
-static struct efi_load_file_protocol efi_lf2_p = {
-	.load_file = efi_initrd_load_file2
+} __packed initrd_dev_path = {
+	{ {
+		  DEVICE_PATH_TYPE_MEDIA_DEVICE,
+		  DEVICE_PATH_SUB_TYPE_VENDOR_PATH,
+		  sizeof(initrd_dev_path.vendor),
+	  },
+	EFI_LINUX_INITRD_MEDIA_GUID },
+	{ DEVICE_PATH_TYPE_END, DEVICE_PATH_SUB_TYPE_END,
+		DEVICE_PATH_END_LENGTH }
 };
+
+static struct linux_initrd {
+	struct efi_load_file_protocol base;
+	void *start;
+	size_t size;
+	efi_handle_t lf2_handle;
+} initrd;
+
+#define to_linux_initrd(x) container_of(x, struct linux_initrd, base)
 
 static efi_status_t EFIAPI efi_initrd_load_file2(
 	struct efi_load_file_protocol *this, struct efi_device_path *file_path,
 	bool boot_policy, unsigned long *buffer_size, void *buffer)
 {
-	size_t initrd_size;
 
-	if (!this || this != &efi_lf2_p || !buffer_size)
+	struct linux_initrd *initrd = to_linux_initrd(this);
+
+	if (!this || this != &initrd->base || !buffer_size)
 		return EFI_INVALID_PARAMETER;
 
 	if (file_path->type != initrd_dev_path.end.type ||
@@ -51,22 +57,18 @@ static efi_status_t EFIAPI efi_initrd_load_file2(
 	if (boot_policy)
 		return EFI_UNSUPPORTED;
 
-	initrd_size = initrd_dev->ending_address - initrd_dev->starting_address;
-	if (!buffer || *buffer_size < initrd_size) {
-		*buffer_size = initrd_size;
+	if (!buffer || *buffer_size < initrd->size) {
+		*buffer_size = initrd->size;
 		return EFI_BUFFER_TOO_SMALL;
-	}
-
-	else {
-		memcpy(buffer, (void *)(uintptr_t)initrd_dev->starting_address,
-		       initrd_size);
-		*buffer_size = initrd_size;
+	} else {
+		memcpy(buffer, initrd->start, initrd->size);
+		*buffer_size = initrd->size;
 	}
 
 	return EFI_SUCCESS;
 }
 
-int efi_initrd_register(void *initrd, size_t initrd_sz)
+int efi_initrd_register(void *initrd_base, size_t initrd_sz)
 {
 	efi_physical_addr_t mem;
 	efi_status_t efiret;
@@ -75,6 +77,7 @@ int efi_initrd_register(void *initrd, size_t initrd_sz)
 
 	sz = sizeof(struct efi_device_path_memory) +
 	     sizeof(struct efi_device_path);
+
 	efiret = BS->allocate_pool(EFI_BOOT_SERVICES_DATA, sz, (void **)&mem);
 	if (EFI_ERROR(efiret)) {
 		pr_err("Failed to allocate memory for INITRD %s\n",
@@ -83,18 +86,12 @@ int efi_initrd_register(void *initrd, size_t initrd_sz)
 		return ret;
 	}
 
-	initrd_dev = efi_phys_to_virt(mem);
-	initrd_dev->header.type = DEVICE_PATH_TYPE_HARDWARE_DEVICE;
-	initrd_dev->header.sub_type = DEVICE_PATH_SUB_TYPE_MEMORY;
-	initrd_dev->header.length = sizeof(struct efi_device_path_memory);
-	initrd_dev->memory_type = EFI_LOADER_DATA;
-	initrd_dev->starting_address = efi_virt_to_phys(initrd);
-	initrd_dev->ending_address = efi_virt_to_phys(initrd) + initrd_sz;
-
-	memcpy(&initrd_dev[1], &initrd_dev_path.end, DEVICE_PATH_END_LENGTH);
+	initrd.base.load_file = efi_initrd_load_file2;
+	initrd.start = initrd_base;
+	initrd.size = initrd_sz;
 
 	efiret = BS->install_multiple_protocol_interfaces(
-		&lf2_handle, &efi_load_file2_protocol_guid, &efi_lf2_p,
+		&initrd.lf2_handle, &efi_load_file2_protocol_guid, &initrd.base,
 		&efi_device_path_protocol_guid, &initrd_dev_path, NULL);
 	if (EFI_ERROR(efiret)) {
 		pr_err("Failed to install protocols for INITRD %s\n",
@@ -111,13 +108,12 @@ out:
 
 void efi_initrd_unregister(void)
 {
-	if (!initrd_dev)
+	if (!initrd.base.load_file)
 		return;
 
 	BS->uninstall_multiple_protocol_interfaces(
-		lf2_handle, &efi_device_path_protocol_guid, &initrd_dev_path,
-		&efi_load_file2_protocol_guid, &efi_lf2_p, NULL);
+		initrd.lf2_handle, &efi_device_path_protocol_guid, &initrd_dev_path,
+		&efi_load_file2_protocol_guid, &initrd.base, NULL);
 
-	BS->free_pool(initrd_dev);
-	initrd_dev = NULL;
+	initrd.base.load_file = NULL;
 }
