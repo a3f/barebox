@@ -89,7 +89,7 @@ void bootm_data_init_defaults(struct bootm_data *data)
 	getenv_ul("global.bootm.image.loadaddr", &data->os_address);
 	if (IS_ENABLED(CONFIG_BOOTM_INITRD)) {
 		getenv_ul("global.bootm.initrd.loadaddr", &data->initrd_address);
-		data->initrd_file = getenv_nonempty("global.bootm.initrd");
+		data->initrd_files = getenv_nonempty("global.bootm.initrd");
 	}
 	data->root_dev = getenv_nonempty("global.bootm.root_dev");
 	data->root_param = getenv_nonempty("global.bootm.root_param");
@@ -110,7 +110,7 @@ void bootm_data_restore_defaults(const struct bootm_data *data)
 	pr_setenv("global.bootm.image.loadaddr", "0x%lx", data->os_address);
 	if (IS_ENABLED(CONFIG_BOOTM_INITRD)) {
 		pr_setenv("global.bootm.initrd.loadaddr", "0x%lx", data->initrd_address);
-		globalvar_set("bootm.initrd", data->initrd_file);
+		globalvar_set("bootm.initrd", data->initrd_files);
 	}
 	globalvar_set("bootm.root_dev", data->root_dev);
 	globalvar_set("bootm.root_param", data->root_param);
@@ -299,9 +299,9 @@ bootm_load_initrd(struct image_data *data, unsigned long load_address)
 	if (WARN_ON(data->initrd_res))
 		return data->initrd_res;
 
-	bootm_get_override(&data->initrd_file, bootm_overrides.initrd_file);
+	bootm_get_override(&data->initrd_files, bootm_overrides.initrd_files);
 
-	initrd = data->initrd_file;
+	initrd = data->initrd_files;
 	if (initrd) {
 		ret = file_name_detect_type(initrd, &type);
 		if (ret) {
@@ -544,7 +544,7 @@ int bootm_boot(struct bootm_data *bootm_data)
 
 	bootm_image_name_and_part(bootm_data->os_file, &data->os_file, &data->os_part);
 	bootm_image_name_and_part(bootm_data->oftree_file, &data->oftree_file, &data->oftree_part);
-	bootm_image_name_and_part(bootm_data->initrd_file, &data->initrd_file, &data->initrd_part);
+	bootm_image_name_and_part(bootm_data->initrd_files, &data->initrd_files, &data->initrd_part);
 	if (bootm_data->tee_file)
 		data->tee_file = xstrdup(bootm_data->tee_file);
 	data->verbose = bootm_data->verbose;
@@ -580,7 +580,7 @@ int bootm_boot(struct bootm_data *bootm_data)
 		 * we boot is in the OS image and not given separately.
 		 */
 		data->oftree_file = NULL;
-		data->initrd_file = NULL;
+		data->initrd_files = NULL;
 		data->tee_file = NULL;
 		if (os_type != filetype_fit) {
 			pr_err("Signed boot and image is no FIT image, aborting\n");
@@ -747,7 +747,7 @@ int bootm_boot(struct bootm_data *bootm_data)
 
 	bootm_get_override(&data->oftree_file, bootm_overrides.oftree_file);
 
-	if (bootm_get_override(&data->initrd_file, bootm_overrides.initrd_file)) {
+	if (bootm_get_override(&data->initrd_files, bootm_overrides.initrd_files)) {
 		release_sdram_region(data->initrd_res);
 		data->initrd_res = NULL;
 	}
@@ -774,7 +774,7 @@ err_out:
 	free(data->os_header);
 	free(data->os_file);
 	free(data->oftree_file);
-	free(data->initrd_file);
+	free(data->initrd_files);
 	free(data->tee_file);
 	free(data);
 
@@ -819,7 +819,7 @@ static int do_bootm_compressed(struct image_data *img_data)
 {
 	struct bootm_data bootm_data = {
 		.oftree_file = img_data->oftree_file,
-		.initrd_file = img_data->initrd_file,
+		.initrd_files = img_data->initrd_files,
 		.tee_file = img_data->tee_file,
 		.verbose = img_data->verbose,
 		.verify = img_data->verify,
