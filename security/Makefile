@@ -52,7 +52,7 @@ $(foreach p, $(external-policy), \
 	CONFIG_SECURITY_POLICY_PATH contains path separators.\
 	$(newline)"$p" must start with security/)))
 $(foreach p, $(external-policy), \
-	$(if $(wildcard $(srctree)/$(src)/$p),,$(error \
+	$(if $(wildcard $(src)/$p),,$(error \
 	CONFIG_SECURITY_POLICY_PATH contains non-existent files.\
 	$(newline)"$p" does not exist in $$(srctree)/security)))
 endif
