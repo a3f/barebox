@@ -293,7 +293,7 @@ def build_fit(args):
 
     # Handle the kernel
     with open(args.kernel, 'rb') as inf:
-        comp_data = compress_data(inf, 'none')
+        comp_data = compress_data(inf, args.kernel_compress)
     size += os.path.getsize(args.kernel)
     write_kernel(fsw, comp_data, args)
 
