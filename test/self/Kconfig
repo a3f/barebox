@@ -55,6 +55,11 @@ config SELFTEST_MALLOC
 	help
 	  Tests barebox memory allocator
 
+config SELFTEST_TALLOC
+	bool "talloc() selftest"
+	help
+	  Tests barebox talloc allocator
+
 config SELFTEST_PRINTF
 	bool "printf selftest"
 	help
