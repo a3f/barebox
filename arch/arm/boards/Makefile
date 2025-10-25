@@ -186,6 +186,7 @@ obj-$(CONFIG_MACH_LS1046ARDB)			+= ls1046ardb/
 obj-$(CONFIG_MACH_TQMLS1046A)			+= tqmls1046a/
 obj-$(CONFIG_MACH_LS1021AIOT)			+= ls1021aiot/
 obj-$(CONFIG_MACH_MNT_REFORM)			+= mnt-reform/
+obj-$(CONFIG_MACH_MNT_REFORM2_RK3588)		+= mnt-reform2-rk3588/
 obj-$(CONFIG_MACH_SKOV_ARM9CPU)			+= skov-arm9cpu/
 obj-$(CONFIG_MACH_RK3562_EVB2)			+= rockchip-rk3562-evb2/
 obj-$(CONFIG_MACH_RK3562_KICKPI_K3)		+= rockchip-rk3562-kickpi-k3/

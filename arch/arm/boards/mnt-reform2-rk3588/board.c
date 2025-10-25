@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: GPL-2.0-only
+#include <bootsource.h>
+#include <common.h>
+#include <deep-probe.h>
+#include <init.h>
+#include <mach/rockchip/bbu.h>
+
+struct reform2_model {
+	const char *name;
+	const char *shortname;
+};
+
+static int reform2_rk3588_probe(struct device *dev)
+{
+	enum bootsource bootsource = bootsource_get();
+	int instance = bootsource_get_instance();
+	const struct reform2_model *model;
+	int bbu_flags_emmc = 0;
+	int bbu_flags_sd = 0;
+
+	model = device_get_match_data(dev);
+
+	if (bootsource == BOOTSOURCE_MMC && instance == 1) {
+		of_device_enable_path("/chosen/environment-sd");
+		bbu_flags_sd |= BBU_HANDLER_FLAG_DEFAULT;
+	} else {
+		of_device_enable_path("/chosen/environment-emmc");
+		bbu_flags_emmc |= BBU_HANDLER_FLAG_DEFAULT;
+	}
+
+	rockchip_bbu_mmc_register("emmc", bbu_flags_emmc, "/dev/mmc0");
+	rockchip_bbu_mmc_register("sd", bbu_flags_sd, "/dev/mmc1");
+
+	return 0;
+}
+
+static const struct reform2_model reform2_rk3588 = {
+	.name = "MNT Reform 2 with RCORE-RK3588 Module",
+	.shortname = "reform2_rk3588",
+};
+
+static const struct of_device_id reform2_rk3588_of_match[] = {
+	{
+		.compatible = "mntre,reform2-rcore",
+		.data = &reform2_rk3588,
+	},
+	{ /* sentinel */ },
+};
+
+static struct driver reform2_rk3588_board_driver = {
+	.name = "board-reform2-rk3588",
+	.probe = reform2_rk3588_probe,
+	.of_compatible = reform2_rk3588_of_match,
+};
+coredevice_platform_driver(reform2_rk3588_board_driver);
+
+BAREBOX_DEEP_PROBE_ENABLE(reform2_rk3588_of_match);

@@ -103,6 +103,12 @@ config MACH_PINE64_PINETAB2
 	  - v2.0: distributed to consumers. Use this if you intend to ship
 	          Barebox to the general public.
 
+config MACH_MNT_REFORM2_RK3588
+	select ARCH_RK3588
+	bool "MNT Reform with RCORE-RK3588"
+	help
+	  Say Y here if you are using a MNT Reform with RCORE-RK3588
+
 config MACH_PINE64_QUARTZ64
 	select ARCH_RK3568
 	bool "Pine64 Quartz64"
