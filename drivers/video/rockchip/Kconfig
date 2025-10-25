@@ -14,6 +14,17 @@ config DRIVER_VIDEO_ROCKCHIP_HDMI
         select OFTREE
         select DRIVER_VIDEO_EDID
         select DRIVER_VIDEO_DW_HDMI
+        help
+          Say y here if you want to use HDMI on RK356x based SoCs
+
+config DRIVER_VIDEO_ROCKCHIP_HDMI_QP
+        bool "Rockchip HDMI QP driver"
+        select VIDEO_VPL
+        select OFTREE
+        select DRIVER_VIDEO_EDID
+        select DRIVER_VIDEO_DW_HDMI
+        help
+          Say y here if you want to use HDMI on RK3588 based SoCs
 
 config DRIVER_VIDEO_ROCKCHIP_MIPI_DSI
         bool "Rockchip MIPI-DSI driver"
