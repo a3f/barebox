@@ -10,7 +10,7 @@
 
 extern char __dtb_rk3588_mnt_reform2_start[];
 
-ENTRY_FUNCTION(start_mnt_reform2, r0, r1, r2)
+ENTRY_FUNCTION(start_rk3588_mnt_reform2, r0, r1, r2)
 {
 	putc_ll('>');
 
