@@ -27,17 +27,22 @@
 #define RK3588_GRF_SOC_CON2		0x0308
 #define RK3588_HDMI0_HPD_INT_MSK	BIT(13)
 #define RK3588_HDMI0_HPD_INT_CLR	BIT(12)
+#define RK3588_HDMI1_HPD_INT_MSK	BIT(15)
+#define RK3588_HDMI1_HPD_INT_CLR	BIT(14)
 #define RK3588_GRF_SOC_CON7		0x031c
 #define RK3588_SET_HPD_PATH_MASK	GENMASK(13, 12)
 #define RK3588_GRF_SOC_STATUS1		0x0384
 #define RK3588_HDMI0_LEVEL_INT		BIT(16)
+#define RK3588_HDMI1_LEVEL_INT		BIT(24)
 #define RK3588_GRF_VO1_CON3		0x000c
+#define RK3588_GRF_VO1_CON6		0x0018
 #define RK3588_SCLIN_MASK		BIT(9)
 #define RK3588_SDAIN_MASK		BIT(10)
 #define RK3588_MODE_MASK		BIT(11)
 #define RK3588_I2S_SEL_MASK		BIT(13)
 #define RK3588_GRF_VO1_CON9		0x0024
 #define RK3588_HDMI0_GRANT_SEL		BIT(10)
+#define RK3588_HDMI1_GRANT_SEL		BIT(12)
 
 #define HIWORD_UPDATE(val, mask)	((val) | (mask) << 16)
 #define HOTPLUG_DEBOUNCE_MS		150
@@ -46,24 +51,21 @@ struct rockchip_hdmi_qp {
 	struct device *dev;
 	struct regmap *regmap;
 	struct regmap *vo_regmap;
-	struct clk *ref_clk;
 	struct dw_hdmi_qp *hdmi;
 	struct phy *phy;
 	struct gpio_desc *enable_gpio;
+	int port_id;
 };
 
 static int dw_hdmi_qp_rk3588_mode_set(struct dw_hdmi_qp *dw_hdmi, void *data,
 				      const struct drm_display_mode *mode)
 {
 	struct rockchip_hdmi_qp *hdmi = data;
-	long rate;
+
+	dev_err(hdmi->dev, "dw_hdmi_qp_rk3588_mode_set mode->clock: %d\n", mode->clock);
 
 	/* Unconditionally switch to TMDS as FRL is not yet supported */
 	gpiod_set_value(hdmi->enable_gpio, 1);
-
-	rate = clk_round_rate(hdmi->ref_clk, mode->clock * 1000);
-
-	clk_set_rate(hdmi->ref_clk, rate);
 
 	/*
 	 * FIXME: Temporary workaround to pass pixel clock rate
@@ -72,7 +74,7 @@ static int dw_hdmi_qp_rk3588_mode_set(struct dw_hdmi_qp *dw_hdmi, void *data,
 	 * comment in rk_hdptx_phy_power_on() from
 	 * drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
 	 */
-	phy_set_bus_width(hdmi->phy, rate / 100);
+	phy_set_bus_width(hdmi->phy, mode->clock * 10);
 
 	return 0;
 }
@@ -99,20 +101,24 @@ dw_hdmi_qp_rk3588_read_hpd(struct dw_hdmi_qp *dw_hdmi, void *data)
 	u32 val;
 
 	regmap_read(hdmi->regmap, RK3588_GRF_SOC_STATUS1, &val);
+	val &= hdmi->port_id ? RK3588_HDMI1_LEVEL_INT : RK3588_HDMI0_LEVEL_INT;
 
-	return val & RK3588_HDMI0_LEVEL_INT ?
-		connector_status_connected : connector_status_disconnected;
+	return val ? connector_status_connected : connector_status_disconnected;
 }
 
 static void dw_hdmi_qp_rk3588_setup_hpd(struct dw_hdmi_qp *dw_hdmi, void *data)
 {
 	struct rockchip_hdmi_qp *hdmi = (struct rockchip_hdmi_qp *)data;
+	u32 val;
 
-	regmap_write(hdmi->regmap,
-		     RK3588_GRF_SOC_CON2,
-		     HIWORD_UPDATE(RK3588_HDMI0_HPD_INT_CLR,
-				   RK3588_HDMI0_HPD_INT_CLR |
-				   RK3588_HDMI0_HPD_INT_MSK));
+	if (hdmi->port_id)
+		val = HIWORD_UPDATE(RK3588_HDMI1_HPD_INT_CLR,
+				    RK3588_HDMI1_HPD_INT_CLR | RK3588_HDMI1_HPD_INT_MSK);
+	else
+		val = HIWORD_UPDATE(RK3588_HDMI0_HPD_INT_CLR,
+				    RK3588_HDMI0_HPD_INT_CLR | RK3588_HDMI0_HPD_INT_MSK);
+
+	regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON2, val);
 }
 
 static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
@@ -154,6 +160,9 @@ static int dw_hdmi_qp_rockchip_probe(struct device *dev)
 	plat_data.phy_data = hdmi;
 	hdmi->dev = dev;
 
+  // FIXME check address!
+  hdmi->port_id = 1;
+
 	hdmi->regmap = syscon_regmap_lookup_by_phandle(dev->of_node,
 						       "rockchip,grf");
 	if (IS_ERR(hdmi->regmap)) {
@@ -179,7 +188,6 @@ static int dw_hdmi_qp_rockchip_probe(struct device *dev)
 			return ret;
 		}
 	}
-	hdmi->ref_clk = clk;
 
 	hdmi->enable_gpio = gpiod_get_optional(hdmi->dev, "enable",
 						    GPIOD_OUT_HIGH);
@@ -201,19 +209,30 @@ static int dw_hdmi_qp_rockchip_probe(struct device *dev)
 	      HIWORD_UPDATE(RK3588_SDAIN_MASK, RK3588_SDAIN_MASK) |
 	      HIWORD_UPDATE(RK3588_MODE_MASK, RK3588_MODE_MASK) |
 	      HIWORD_UPDATE(RK3588_I2S_SEL_MASK, RK3588_I2S_SEL_MASK);
-	regmap_write(hdmi->vo_regmap, RK3588_GRF_VO1_CON3, val);
+	regmap_write(hdmi->vo_regmap,
+		     hdmi->port_id ? RK3588_GRF_VO1_CON6 : RK3588_GRF_VO1_CON3,
+		     val);
 
 	val = HIWORD_UPDATE(RK3588_SET_HPD_PATH_MASK,
 			    RK3588_SET_HPD_PATH_MASK);
 	regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON7, val);
 
-	val = HIWORD_UPDATE(RK3588_HDMI0_GRANT_SEL,
-			    RK3588_HDMI0_GRANT_SEL);
-	regmap_write(hdmi->vo_regmap, RK3588_GRF_VO1_CON9, val);
+  if (hdmi->port_id) {
+    val = HIWORD_UPDATE(RK3588_HDMI0_GRANT_SEL,
+                        RK3588_HDMI0_GRANT_SEL);
+    regmap_write(hdmi->vo_regmap, RK3588_GRF_VO1_CON9, val);
 
-	val = HIWORD_UPDATE(RK3588_HDMI0_HPD_INT_MSK, RK3588_HDMI0_HPD_INT_MSK);
-	regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON2, val);
+    val = HIWORD_UPDATE(RK3588_HDMI0_HPD_INT_MSK, RK3588_HDMI0_HPD_INT_MSK);
+    regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON2, val);
+  } else {
+    val = HIWORD_UPDATE(RK3588_HDMI1_GRANT_SEL,
+                        RK3588_HDMI1_GRANT_SEL);
+    regmap_write(hdmi->vo_regmap, RK3588_GRF_VO1_CON9, val);
 
+    val = HIWORD_UPDATE(RK3588_HDMI1_HPD_INT_MSK, RK3588_HDMI1_HPD_INT_MSK);
+    regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON2, val);
+  }
+  
 	hdmi->hdmi = dw_hdmi_qp_bind(dev, &plat_data);
 	if (IS_ERR(hdmi->hdmi)) {
 		ret = PTR_ERR(hdmi->hdmi);

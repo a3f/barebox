@@ -4,6 +4,8 @@
  * Author: Andy Yan <andy.yan@rock-chips.com>
  */
 
+#define DEBUG
+
 #include <linux/bitfield.h>
 #include <linux/clk.h>
 #include <linux/iopoll.h>
@@ -160,6 +162,7 @@ struct vop2_win {
 struct vop2_video_port {
 	struct vop2 *vop2;
 	struct clk *dclk;
+	struct clk *dclk_src;
 	unsigned int id;
 	const struct vop2_video_port_data *data;
 
@@ -219,6 +222,9 @@ struct vop2 {
 	struct clk *hclk;
 	struct clk *aclk;
 	struct clk *pclk;
+	struct clk *pll_hdmiphy0;
+	struct clk *pll_hdmiphy1;
+
 
 	/* optional internal rgb encoder */
 	struct rockchip_rgb *rgb;
@@ -226,6 +232,9 @@ struct vop2 {
 	/* must be put at the end of the struct */
 	struct vop2_win win[];
 };
+
+#define VOP2_MAX_DCLK_RATE		600000000
+
 
 #define vop2_output_if_is_hdmi(x)	((x) == ROCKCHIP_VOP2_EP_HDMI0 || \
 					 (x) == ROCKCHIP_VOP2_EP_HDMI1)
@@ -521,6 +530,9 @@ static void vop2_crtc_atomic_disable(struct vop2_video_port *vp)
 
 	vop2_vp_write(vp, RK3568_VP_DSP_CTRL, RK3568_VP_DSP_CTRL__STANDBY);
 
+	if (vp->dclk_src)
+		clk_set_parent(vp->dclk, vp->dclk_src);
+
 	clk_disable_unprepare(vp->dclk);
 
 	vop2->enable_count--;
@@ -759,7 +771,7 @@ static unsigned long rk3588_calc_cru_cfg(struct vop2_video_port *vp, int id,
 					 u32 crtc_clock)
 {
 	struct vop2 *vop2 = vp->vop2;
-	unsigned long v_pixclk = crtc_clock * 1000LL; /* video timing pixclk */
+	unsigned long v_pixclk = crtc_clock*1000LL; /* video timing pixclk */
 	unsigned long dclk_core_rate = v_pixclk >> 2;
 	unsigned long dclk_rate = v_pixclk;
 	unsigned long dclk_out_rate;
@@ -1009,7 +1021,7 @@ static void vop2_crtc_atomic_enable(struct vop2_video_port *vp,
 	u32 val, polflags;
 	int ret;
 
-	dev_dbg(vop2->dev, "Update mode to %dx%dp%d, type: %d for vp%d\n",
+	dev_info(vop2->dev, "Update mode to %dx%dp%d, type: %d for vp%d\n",
 		hdisplay, vdisplay,
 		drm_mode_vrefresh(mode), vcstate->output_type, vp->id);
 
@@ -1038,9 +1050,20 @@ static void vop2_crtc_atomic_enable(struct vop2_video_port *vp,
 	 * process multi(1/2/4/8) pixels per cycle, so the dclk feed by the
 	 * system cru may be the 1/2 or 1/4 of mode->clock.
 	 */
-	clock = vop2_set_intf_mux(vp, vp->crtc_endpoint_id, polflags, mode->clock * 1000);
-	if (!clock)
+	dev_info(vop2->dev, "mode clock: %u\n", mode->clock);
+  
+	clock = vop2_set_intf_mux(vp, vp->crtc_endpoint_id, polflags, mode->clock);
+	if (!clock) {
+    dev_err(vop2->dev, "vop2_set_intf_mux failed!\n");
 		return;
+	}
+	dev_info(vop2->dev, "vop2_set_intf_mux ok.\n");
+	dev_info(vop2->dev, "htotal: %d\n", htotal);
+	dev_info(vop2->dev, "hact_st: %d\n", hact_st);
+	dev_info(vop2->dev, "hact_end: %d\n", hact_end);
+	dev_info(vop2->dev, "vtotal: %d\n", vtotal);
+	dev_info(vop2->dev, "vact_st: %d\n", vact_st);
+	dev_info(vop2->dev, "vact_end: %d\n", vact_end);
 
 	out_mode = vcstate->output_mode;
 
@@ -1071,6 +1094,33 @@ static void vop2_crtc_atomic_enable(struct vop2_video_port *vp,
 	vop2_vp_write(vp, RK3568_VP_DSP_VTOTAL_VS_END, vtotal << 16 | vsync_len);
 
 	vop2_vp_write(vp, RK3568_VP_MIPI_CTRL, 0);
+
+	/*
+	 * Switch to HDMI PHY PLL as DCLK source for display modes up
+	 * to 4K@60Hz, if available, otherwise keep using the system CRU.
+	 */
+	if ((vop2->pll_hdmiphy0 || vop2->pll_hdmiphy1) && clock <= VOP2_MAX_DCLK_RATE) {
+		if (vop2->pll_hdmiphy0 && vp->crtc_endpoint_id == ROCKCHIP_VOP2_EP_HDMI0) {
+			if (!vp->dclk_src)
+				vp->dclk_src = clk_get_parent(vp->dclk);
+
+			ret = clk_set_parent(vp->dclk, vop2->pll_hdmiphy0);
+			if (ret < 0)
+				dev_err(vop2->dev,
+						"Could not switch to HDMI0 PHY PLL: %d\n", ret);
+		}
+		if (vop2->pll_hdmiphy1 && vp->crtc_endpoint_id == ROCKCHIP_VOP2_EP_HDMI1) {
+			if (!vp->dclk_src) {
+				vp->dclk_src = clk_get_parent(vp->dclk);
+			}
+
+			ret = clk_set_parent(vp->dclk, vop2->pll_hdmiphy1);
+			if (ret < 0)
+				dev_err(vop2->dev,
+						"Could not switch to HDMI1 PHY PLL: %d\n", ret);
+		}
+	}
+
 
 	clk_set_rate(vp->dclk, clock);
 
@@ -1592,6 +1642,9 @@ static int vop2_register_plane(struct vop2_video_port *vp, struct vop2_win *win)
 	info->dev.parent = vop2->dev;
 
 	if (win->type == DRM_PLANE_TYPE_PRIMARY) {
+    
+    dev_err(vop2->dev, "vpl_ioctl to vp.vpl->node: %p vp_id: %d\n", &vp->vpl.node, vp->id);
+  
 		ret = vpl_ioctl(&vp->vpl, vp->id, VPL_GET_VIDEOMODES, &info->modes);
 		if (ret) {
 			dev_err(vop2->dev, "failed to get modes: %pe\n", ERR_PTR(ret));
@@ -2027,6 +2080,19 @@ int vop2_bind(struct device *dev)
 	if (IS_ERR(vop2->pclk))
 		return dev_err_probe(vop2->dev, PTR_ERR(vop2->pclk),
 				     "failed to get pclk source\n");
+
+	vop2->pll_hdmiphy0 = clk_get_optional(vop2->dev, "pll_hdmiphy0");
+	if (IS_ERR(vop2->pll_hdmiphy0)) {
+		dev_err(vop2->dev, "failed to get pll_hdmiphy0\n");
+		return PTR_ERR(vop2->pll_hdmiphy0);
+	}
+
+	vop2->pll_hdmiphy1 = clk_get_optional(vop2->dev, "pll_hdmiphy1");
+	if (IS_ERR(vop2->pll_hdmiphy1))
+		return dev_err_probe(vop2->dev, PTR_ERR(vop2->pll_hdmiphy1),
+				     "failed to get pll_hdmiphy1\n");
+
+
 
 	ret = vop2_create_crtcs(vop2);
 	if (ret)

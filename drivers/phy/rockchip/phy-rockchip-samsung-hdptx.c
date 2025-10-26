@@ -23,6 +23,8 @@
 #include <linux/reset.h>
 #include <linux/kernel.h>
 #include <linux/rational.h>
+#include <linux/atomic.h>
+#include <linux/clk-provider.h>
 
 #define GRF_HDPTX_CON0			0x00
 #define HDPTX_I_PLL_EN			BIT(7)
@@ -195,6 +197,9 @@
 #define LN3_TX_SER_RATE_SEL_HBR2	BIT(3)
 #define LN3_TX_SER_RATE_SEL_HBR3	BIT(2)
 
+#define HDMI14_MAX_RATE			340000000
+#define HDMI20_MAX_RATE			600000000
+
 struct lcpll_config {
 	u32 bit_rate;
 	u8 lcvco_mode_en;
@@ -267,16 +272,33 @@ enum rk_hdptx_reset {
 	RST_MAX
 };
 
+#define MAX_HDPTX_PHY_NUM	2
+
+struct rk_hdptx_phy_cfg {
+	unsigned int num_phys;
+	unsigned int phy_ids[MAX_HDPTX_PHY_NUM];
+};
+
+
 struct rk_hdptx_phy {
 	struct device *dev;
 	struct regmap *regmap;
 	struct regmap *grf;
+
+	/* PHY const config */
+	const struct rk_hdptx_phy_cfg *cfgs;
+	int phy_id;
 
 	struct phy *phy;
 	struct phy_config *phy_cfg;
 	struct clk_bulk_data *clks;
 	int nr_clks;
 	struct reset_control_bulk_data rsts[RST_MAX];
+
+	/* clk provider */
+	struct clk_hw hw;
+	unsigned long rate;
+	atomic_t usage_count;
 };
 
 static const struct ropll_config ropll_tmds_cfg[] = {
@@ -585,6 +607,8 @@ static int rk_hdptx_post_enable_lane(struct rk_hdptx_phy *hdptx)
 {
 	u32 val;
 	int ret;
+  
+	dev_info(hdptx->dev, "rk_hdptx_post_enable_lane...\n");
 
 	reset_control_deassert(hdptx->rsts[RST_LANE].rstc);
 
@@ -601,7 +625,7 @@ static int rk_hdptx_post_enable_lane(struct rk_hdptx_phy *hdptx)
 		return ret;
 	}
 
-	dev_dbg(hdptx->dev, "PHY lane locked\n");
+	dev_info(hdptx->dev, "PHY lane locked\n");
 
 	return 0;
 }
@@ -610,6 +634,8 @@ static int rk_hdptx_post_enable_pll(struct rk_hdptx_phy *hdptx)
 {
 	u32 val;
 	int ret;
+  
+	dev_info(hdptx->dev, "rk_hdptx_post_enable_pll...\n");
 
 	val = (HDPTX_I_BIAS_EN | HDPTX_I_BGR_EN) << 16 |
 	       HDPTX_I_BIAS_EN | HDPTX_I_BGR_EN;
@@ -632,7 +658,7 @@ static int rk_hdptx_post_enable_pll(struct rk_hdptx_phy *hdptx)
 		return ret;
 	}
 
-	dev_dbg(hdptx->dev, "PHY clk ready\n");
+	dev_info(hdptx->dev, "PHY clk ready\n");
 
 	return 0;
 }
@@ -743,24 +769,24 @@ static int rk_hdptx_ropll_tmds_cmn_config(struct rk_hdptx_phy *hdptx,
 {
 	const struct ropll_config *cfg = NULL;
 	struct ropll_config rc = {0};
-	int i;
+	int ret, i;
 
 	for (i = 0; i < ARRAY_SIZE(ropll_tmds_cfg); i++)
 		if (rate == ropll_tmds_cfg[i].bit_rate) {
 			cfg = &ropll_tmds_cfg[i];
 			break;
 		}
-printk("%s: RATE: %d\n", __func__, rate);
+  printk("%s: RATE: %d\n", __func__, rate);
 	if (!cfg) {
 		if (rk_hdptx_phy_clk_pll_calc(rate, &rc)) {
 			cfg = &rc;
 		} else {
-			dev_err(hdptx->dev, "%s cannot find pll cfg\n", __func__);
+			dev_err(hdptx->dev, "%s cannot find pll cfg for rate %u\n", __func__, rate);
 			return -EINVAL;
 		}
 	}
 
-	dev_dbg(hdptx->dev, "mdiv=%u, sdiv=%u, sdm_en=%u, k_sign=%u, k=%u, lc=%u\n",
+	dev_info(hdptx->dev, "mdiv=%u, sdiv=%u, sdm_en=%u, k_sign=%u, k=%u, lc=%u\n",
 		cfg->pms_mdiv, cfg->pms_sdiv + 1, cfg->sdm_en,
 		cfg->sdm_num_sign, cfg->sdm_num, cfg->sdm_deno);
 
@@ -802,7 +828,11 @@ printk("%s: RATE: %d\n", __func__, rate);
 	regmap_update_bits(hdptx->regmap, CMN_REG(0086), PLL_PCG_CLK_EN,
 			   PLL_PCG_CLK_EN);
 
-	return rk_hdptx_post_enable_pll(hdptx);
+	ret = rk_hdptx_post_enable_pll(hdptx);
+	if (!ret)
+		hdptx->rate = rate * 100;
+
+	return ret;
 }
 
 static int rk_hdptx_ropll_tmds_mode_config(struct rk_hdptx_phy *hdptx,
@@ -825,7 +855,7 @@ static int rk_hdptx_ropll_tmds_mode_config(struct rk_hdptx_phy *hdptx,
 
 	regmap_write(hdptx->regmap, LNTOP_REG(0200), 0x06);
 
-	if (rate >= 3400000) {
+	if (rate > HDMI14_MAX_RATE / 100) {
 		/* For 1/40 bitrate clk */
 		rk_hdptx_multi_reg_write(hdptx, rk_hdtpx_tmds_lntop_highbr_seq);
 	} else {
@@ -842,10 +872,67 @@ static int rk_hdptx_ropll_tmds_mode_config(struct rk_hdptx_phy *hdptx,
 	return rk_hdptx_post_enable_lane(hdptx);
 }
 
+static int rk_hdptx_phy_consumer_get(struct rk_hdptx_phy *hdptx,
+				     unsigned int rate)
+{
+	u32 status;
+	int ret;
+
+	if (atomic_inc_return(&hdptx->usage_count) > 1)
+		return 0;
+
+	ret = regmap_read(hdptx->grf, GRF_HDPTX_STATUS, &status);
+	if (ret)
+		goto dec_usage;
+
+	if (status & HDPTX_O_PLL_LOCK_DONE)
+		dev_warn(hdptx->dev, "PLL locked by unknown consumer!\n");
+
+	if (rate) {
+		ret = rk_hdptx_ropll_tmds_cmn_config(hdptx, rate);
+		if (ret)
+			goto dec_usage;
+	}
+
+	return 0;
+
+dec_usage:
+	atomic_dec(&hdptx->usage_count);
+	return ret;
+}
+
+static int rk_hdptx_phy_consumer_put(struct rk_hdptx_phy *hdptx, bool force)
+{
+	u32 status;
+	int ret;
+
+	ret = atomic_dec_return(&hdptx->usage_count);
+	if (ret > 0)
+		return 0;
+
+	if (ret < 0) {
+		dev_warn(hdptx->dev, "Usage count underflow!\n");
+		ret = -EINVAL;
+	} else {
+		ret = regmap_read(hdptx->grf, GRF_HDPTX_STATUS, &status);
+		if (!ret) {
+			if (status & HDPTX_O_PLL_LOCK_DONE)
+				rk_hdptx_phy_disable(hdptx);
+			return 0;
+		} else if (force) {
+			return 0;
+		}
+	}
+
+	atomic_inc(&hdptx->usage_count);
+	return ret;
+}
+
 static int rk_hdptx_phy_power_on(struct phy *phy)
 {
 	struct rk_hdptx_phy *hdptx = phy_get_drvdata(phy);
-	int ret, bus_width = phy_get_bus_width(hdptx->phy);
+	int ret;
+	int bus_width = phy_get_bus_width(hdptx->phy);
 	/*
 	 * FIXME: Temporary workaround to pass pixel_clk_rate
 	 * from the HDMI bridge driver until phy_configure_opts_hdmi
@@ -853,25 +940,27 @@ static int rk_hdptx_phy_power_on(struct phy *phy)
 	 */
 	unsigned int rate = bus_width & 0xfffffff;
 
-	dev_dbg(hdptx->dev, "%s bus_width=%x rate=%u\n",
+//   // FIXME fallback
+//   if (rate == 0) rate = 1485000;
+
+	dev_err(hdptx->dev, "%s bus_width=%x rate=%u\n",
 		__func__, bus_width, rate);
 
-	ret = rk_hdptx_ropll_tmds_mode_config(hdptx, rate);
+	ret = rk_hdptx_phy_consumer_get(hdptx, rate);
+	if (ret)
+		return ret;
 
-	return ret;
+	ret = rk_hdptx_ropll_tmds_mode_config(hdptx, rate);
+	if (ret)
+		rk_hdptx_phy_consumer_put(hdptx, true);
+ 
+ 	return ret;
 }
 
 static int rk_hdptx_phy_power_off(struct phy *phy)
 {
 	struct rk_hdptx_phy *hdptx = phy_get_drvdata(phy);
-	u32 val;
-	int ret;
-
-	ret = regmap_read(hdptx->grf, GRF_HDPTX_STATUS, &val);
-	if (ret == 0 && (val & HDPTX_O_PLL_LOCK_DONE))
-		rk_hdptx_phy_disable(hdptx);
-
-	return ret;
+	return rk_hdptx_phy_consumer_put(hdptx, false);
 }
 
 static const struct phy_ops rk_hdptx_phy_ops = {
@@ -879,13 +968,118 @@ static const struct phy_ops rk_hdptx_phy_ops = {
 	.power_off = rk_hdptx_phy_power_off,
 };
 
+static struct rk_hdptx_phy *to_rk_hdptx_phy(struct clk_hw *hw)
+{
+	return container_of(hw, struct rk_hdptx_phy, hw);
+}
+
+static int rk_hdptx_phy_clk_prepare(struct clk_hw *hw)
+{
+	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+
+	dev_dbg(hdptx->dev, "clk_prepare\n");
+
+	return rk_hdptx_phy_consumer_get(hdptx, hdptx->rate / 100);
+}
+
+static void rk_hdptx_phy_clk_unprepare(struct clk_hw *hw)
+{
+	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+
+	dev_dbg(hdptx->dev, "clk_unprepare\n");
+
+	rk_hdptx_phy_consumer_put(hdptx, true);
+}
+
+static unsigned long rk_hdptx_phy_clk_recalc_rate(struct clk_hw *hw,
+						  unsigned long parent_rate)
+{
+	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+
+	return hdptx->rate;
+}
+
+static long rk_hdptx_phy_clk_round_rate(struct clk_hw *hw, unsigned long rate,
+					unsigned long *parent_rate)
+{
+	pr_err("%s called with rate %lu\n", __func__, rate);
+	u32 bit_rate = rate / 100;
+	int i;
+
+	if (rate > HDMI20_MAX_RATE)
+		return rate;
+
+	for (i = 0; i < ARRAY_SIZE(ropll_tmds_cfg); i++)
+		if (bit_rate == ropll_tmds_cfg[i].bit_rate)
+			break;
+
+	if (i == ARRAY_SIZE(ropll_tmds_cfg) &&
+	    !rk_hdptx_phy_clk_pll_calc(bit_rate, NULL))
+		return -EINVAL;
+
+	return rate;
+}
+
+static int rk_hdptx_phy_clk_set_rate(struct clk_hw *hw, unsigned long rate,
+				     unsigned long parent_rate)
+{
+	pr_err("%s called with rate %lu\n", __func__, rate);
+	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+
+	dev_err(hdptx->dev, "clk_set_rate rate=%lu\n", rate);
+
+	return rk_hdptx_ropll_tmds_cmn_config(hdptx, rate / 100);
+}
+
+static const struct clk_ops hdptx_phy_clk_ops = {
+	.enable = rk_hdptx_phy_clk_prepare,
+	.disable = rk_hdptx_phy_clk_unprepare,
+	.recalc_rate = rk_hdptx_phy_clk_recalc_rate,
+	.round_rate = rk_hdptx_phy_clk_round_rate,
+	.set_rate = rk_hdptx_phy_clk_set_rate,
+};
+
+static int rk_hdptx_phy_clk_register(struct rk_hdptx_phy *hdptx)
+{
+	struct device *dev = hdptx->dev;
+	const char *name, *pname;
+	struct clk *refclk;
+	int ret;
+
+	refclk = clk_get(dev, "ref");
+	if (IS_ERR(refclk))
+		return dev_err_probe(dev, PTR_ERR(refclk),
+				     "Failed to get ref clock\n");
+
+	name = hdptx->phy_id > 0 ? "clk_hdmiphy_pixel1" : "clk_hdmiphy_pixel0";
+
+	pname = __clk_get_name(refclk);
+
+	hdptx->hw.init = CLK_HW_INIT(name, pname, &hdptx_phy_clk_ops,
+				     CLK_GET_RATE_NOCACHE);
+
+	ret = clk_hw_register(dev, &hdptx->hw);
+	if (ret)
+		return dev_err_probe(dev, ret, "Failed to register clock\n");
+
+	ret = of_clk_add_hw_provider(dev->of_node, of_clk_hw_simple_get, &hdptx->hw);
+	if (ret)
+		return dev_err_probe(dev, ret,
+				     "Failed to register clk provider\n");
+
+	return 0;
+}
+
 static int rk_hdptx_phy_probe(struct device *dev)
 {
 	struct phy_provider *phy_provider;
 	struct rk_hdptx_phy *hdptx;
 	struct resource *iores;
+	struct resource *res;
+
+
 	void __iomem *regs;
-	int ret;
+	int ret, id;
 
 	hdptx = xzalloc(sizeof(*hdptx));
 
@@ -896,6 +1090,23 @@ static int rk_hdptx_phy_probe(struct device *dev)
 		return dev_err_probe(dev, PTR_ERR(iores), "Failed to get resource\n");
 
 	regs = IOMEM(iores->start);
+
+	hdptx->cfgs = device_get_match_data(dev);
+	if (!hdptx->cfgs)
+		return dev_err_probe(dev, -EINVAL, "missing match data\n");
+
+	/* find the phy-id from the io address */
+	hdptx->phy_id = -ENODEV;
+	for (id = 0; id < hdptx->cfgs->num_phys; id++) {
+		if (iores->start == hdptx->cfgs->phy_ids[id]) {
+			hdptx->phy_id = id;
+			break;
+		}
+	}
+
+	if (hdptx->phy_id < 0)
+		return dev_err_probe(dev, -ENODEV, "no matching device found\n");
+
 
 	ret = clk_bulk_get_all(dev, &hdptx->clks);
 	if (ret < 0)
@@ -939,6 +1150,8 @@ static int rk_hdptx_phy_probe(struct device *dev)
 	phy_set_drvdata(hdptx->phy, hdptx);
 	phy_set_bus_width(hdptx->phy, 8);
 
+	rk_hdptx_phy_clk_register(hdptx);
+
 	phy_provider = of_phy_provider_register(dev, of_phy_simple_xlate);
 	if (IS_ERR(phy_provider))
 		return dev_err_probe(dev, PTR_ERR(phy_provider),
@@ -951,8 +1164,21 @@ static int rk_hdptx_phy_probe(struct device *dev)
 	return 0;
 }
 
+static const struct rk_hdptx_phy_cfg rk3588_hdptx_phy_cfgs = {
+	.num_phys = 2,
+	.phy_ids = {
+		0xfed60000,
+		0xfed70000,
+	},
+};
+
+
+
 static const struct of_device_id rk_hdptx_phy_of_match[] = {
-	{ .compatible = "rockchip,rk3588-hdptx-phy", },
+	{
+		.compatible = "rockchip,rk3588-hdptx-phy",
+		.data = &rk3588_hdptx_phy_cfgs
+	},
 	{}
 };
 
