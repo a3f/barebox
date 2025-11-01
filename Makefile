@@ -902,6 +902,9 @@ KBUILD_CFLAGS   += $(KCFLAGS)
 
 LDFLAGS_barebox	+= -Map barebox.map
 
+# Avoid initial 64K alignment to get smaller ELF binaries
+LDFLAGS_common += --nmagic
+
 # Avoid 'Not enough room for program headers' error on binutils 2.28 onwards.
 LDFLAGS_common += $(call ld-option, --no-dynamic-linker)
 # Avoid 'missing .note.GNU-stack section implies executable stack' warnings on binutils 2.39+
@@ -911,7 +914,7 @@ LDFLAGS_common += $(call ld-option,--no-warn-rwx-segments)
 
 LDFLAGS_barebox += $(LDFLAGS_common)
 LDFLAGS_pbl += $(LDFLAGS_common)
-LDFLAGS_elf += $(LDFLAGS_common) --nmagic -s
+LDFLAGS_elf += $(LDFLAGS_common) -s
 
 # Align the bit size of userspace programs with the kernel
 USERFLAGS_FROM_KERNEL := -m32 -m64 --target=%
@@ -1167,6 +1170,15 @@ barebox.bin: barebox FORCE
 ifndef CONFIG_PBL_IMAGE
 	$(call cmd,check_file_size,$@,$(CONFIG_BAREBOX_MAX_IMAGE_SIZE))
 endif
+
+OBJCOPYFLAGS_barebox.elf = --strip-all		\
+  --strip-section-headers			\
+  -R .comment* -R .note* -R .gnu.hash -R .got*	\
+  --set-section-alignment *=1
+
+barebox.elf: barebox barebox.bin FORCE
+	$(call if_changed,objcopy)
+	@echo "ELF increased size by $$(echo $$(($$(stat -c %s barebox.elf) - $$(stat -c %s barebox.bin))))"
 
 quiet_cmd_barebox_proper__ = CC      $@
       cmd_barebox_proper__ = $(CC) -r -o $@ -Wl,--whole-archive $(BAREBOX_OBJS)
