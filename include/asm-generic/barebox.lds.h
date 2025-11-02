@@ -26,6 +26,11 @@
 	"Arbitrary sections starting with .text* deprecated. \
 	Change to a .text. prefix instead")
 
+#define ASSERT_NO_DEPRECATED_rodata		\
+       __ASSERT_NO_DEPRECATED(rodata,		\
+	"Arbitrary sections starting with .rodata* deprecated. \
+	Change to a .rodata. prefix instead")
+
 #define ASSERT_NO_DEPRECATED(sect)	ASSERT_NO_DEPRECATED_##sect
 
 #define BAREBOX_INITCALLS			\
@@ -96,7 +101,7 @@
 #define BAREBOX_DTB				\
 	STRUCT_ALIGN();				\
 	__dtb_start = .;			\
-	KEEP(*(.dtb.rodata.*));			\
+	KEEP(*(.rodata.dtb.*));			\
 	__dtb_end = .;
 
 #define BAREBOX_IMD				\
@@ -125,7 +130,7 @@
 #define BAREBOX_PUBLIC_KEYS			\
 	STRUCT_ALIGN();				\
 	__public_keys_start = .;		\
-	KEEP(*(.public_keys.rodata.*));		\
+	KEEP(*(.rodata.public_keys.*));		\
 	__public_keys_end = .;			\
 
 #define BAREBOX_DEEP_PROBE			\

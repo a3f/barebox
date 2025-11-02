@@ -44,7 +44,7 @@ if [ "$imd" = "y" ]; then
 	fi
 fi
 
-echo ".section .dtb.rodata.${name},\"a\""
+echo ".section .rodata.dtb.${name},\"a\""
 echo ".balign STRUCT_ALIGNMENT"
 echo ".global __dtb_${name}_start"
 echo "__dtb_${name}_start:"
@@ -61,7 +61,7 @@ compressed=$(${CONFIG_SHELL} "${srctree}/scripts/file-size.sh" $dtb.z)
 uncompressed=$(${CONFIG_SHELL} "${srctree}/scripts/file-size.sh" $dtb)
 
 echo "#if defined(CONFIG_USE_COMPRESSED_DTB) && defined(__PBL__)"
-echo ".section .dtbz.rodata.${name},\"a\""
+echo ".section .rodata.dtbz.${name},\"a\""
 echo ".balign STRUCT_ALIGNMENT"
 echo ".global __dtb_z_${name}_start"
 echo "__dtb_z_${name}_start:"

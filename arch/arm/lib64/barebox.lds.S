@@ -31,9 +31,12 @@ SECTIONS
 	. = ALIGN(4096);
 	__start_rodata = .;
 	.rodata : {
-		*(.rodata*)
+		*(.rodata)
+		*(.rodata.*)
 		RO_DATA_SECTION
 	}
+
+	ASSERT_NO_DEPRECATED(rodata)
 
 	. = ALIGN(4096);
 

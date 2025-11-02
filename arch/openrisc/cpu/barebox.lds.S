@@ -50,7 +50,7 @@ SECTIONS
 	.rodata : {
 		*(.rodata);
 		*(.rodata.*)
-		*(.bbenv.rodata.*)
+		*(.rodata.bbenv.*)
 		RO_DATA_SECTION
 	} > ram
 

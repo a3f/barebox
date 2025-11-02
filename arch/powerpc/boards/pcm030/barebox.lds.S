@@ -34,7 +34,8 @@ SECTIONS
     *(.got1*)
     . = ALIGN(16);
     __start_rodata = .;
-    *(.rodata*)
+    *(.rodata)
+    *(.rodata.*)
     *(.rodata1*)
     *(.rodata.str1.4)
     RO_DATA_SECTION

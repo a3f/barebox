@@ -40,7 +40,8 @@ SECTIONS
 
 	.data : {
 		__start_rodata = .;
-		*(.rodata*)
+		*(.rodata)
+		*(.rodata.*)
 		RO_DATA_SECTION
 		__end_rodata = .;
 		*(.got.plt)
@@ -59,6 +60,8 @@ SECTIONS
 		__bss_stop = .;
 	}
 	_edata = .;
+
+	ASSERT_NO_DEPRECATED(rodata)
 
 	.barebox_imd : { BAREBOX_IMD }
 

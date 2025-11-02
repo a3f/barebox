@@ -37,7 +37,8 @@ SECTIONS
 
 	.data : {
 		__start_rodata = .;
-		*(.rodata*)
+		*(.rodata)
+		*(.rodata.*)
 		RO_DATA_SECTION
 		__end_rodata = .;
 		*(.data)
@@ -54,6 +55,8 @@ SECTIONS
 		*(.bss)
 		*(COMMON)
 	}
+
+	ASSERT_NO_DEPRECATED(rodata)
 
 	. = ALIGN(4096);
 	.dynamic : { *(.dynamic) }

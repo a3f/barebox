@@ -569,7 +569,7 @@ static int gen_key_ecdsa(EVP_PKEY *key, struct keyinfo *info)
 			fprintf(outfilep, "\t.ecdsa = &%s,\n", info->name_c);
 			fprintf(outfilep, "};\n");
 			fprintf(outfilep, "\n");
-			fprintf(outfilep, "const struct public_key *__%s_public_key __ll_elem(.public_keys.rodata.%s) = &%s_public_key;\n", info->name_c, info->name_c, info->name_c);
+			fprintf(outfilep, "const struct public_key *__%s_public_key __ll_elem(.rodata.public_keys.%s) = &%s_public_key;\n", info->name_c, info->name_c, info->name_c);
 		}
 	}
 
@@ -676,7 +676,7 @@ static int gen_key_rsa(EVP_PKEY *key, struct keyinfo *info)
 			fprintf(outfilep, "\t.rsa = &%s,\n", info->name_c);
 			fprintf(outfilep, "};\n");
 			fprintf(outfilep, "\n");
-			fprintf(outfilep, "const struct public_key *__%s_public_key __ll_elem(.public_keys.rodata.%s) = &%s_public_key;\n", info->name_c, info->name_c, info->name_c);
+			fprintf(outfilep, "const struct public_key *__%s_public_key __ll_elem(.rodata.public_keys.%s) = &%s_public_key;\n", info->name_c, info->name_c, info->name_c);
 		}
 	}
 

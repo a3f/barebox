@@ -36,7 +36,12 @@ SECTIONS
 
 	. = ALIGN(4);
 	__start_rodata = .;
-	.rodata : { *(.rodata*) }
+	.rodata : {
+		*(.rodata)
+		*(.rodata.*)
+	}
+
+	ASSERT_NO_DEPRECATED(rodata)
 
 	.barebox_imd : { BAREBOX_IMD }
 

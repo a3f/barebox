@@ -6,7 +6,7 @@ dtbo=$2
 echo "#include <asm/barebox.lds.h>"
 echo ".section .note.GNU-stack,\"\",%progbits"
 
-echo ".section .dtb.rodata.${name}_dtbo,\"a\""
+echo ".section .rodata.dtb.${name}_dtbo,\"a\""
 echo ".balign STRUCT_ALIGNMENT"
 echo ".global __dtbo_${name}_start"
 echo "__dtbo_${name}_start:"

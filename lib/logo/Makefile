@@ -27,7 +27,7 @@ cmd_logo_S =							\
 (								\
 	echo '\#include <asm/barebox.lds.h>';			\
 	echo '.section .note.GNU-stack,"",%progbits';		\
-	echo '.section .bblogo.rodata.$(subst -,_,$(*F)),"a"';	\
+	echo '.section .rodata.bblogo.$(subst -,_,$(*F)),"a"';	\
 	echo '.balign STRUCT_ALIGNMENT';			\
 	echo '.global __bblogo_$(subst -,_,$(*F))_start';	\
 	echo '__bblogo_$(subst -,_,$(*F))_start:';		\

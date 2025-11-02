@@ -221,7 +221,7 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 	void __section(.text.head_entry_##name)	name			\
 				(ulong r0, ulong r1, ulong r2)		\
 		{							\
-			static __section(.pbl_board_stack_top_##name)	\
+			static __section(.rodata.pbl_board_stack_top_##name)	\
 				const ulong __stack_top = (stack_top);	\
 			__keep_symbolref(head);				\
 			__keep_symbolref(__stack_top);			\

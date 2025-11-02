@@ -72,14 +72,19 @@ SECTIONS
 	__start_rodata = .;
 	__pbl_board_stack_top = .;
 	.rodata.pbl_board_stack_top : {
-		*(.pbl_board_stack_top_*)
+		*(.rodata.pbl_board_stack_top_*)
 		/* Dummy for when BootROM sets up usable stack */
 		ASM_LD_PTR(0x00000000)
 	}
 	ASSERT(. - __pbl_board_stack_top <= 2 * ASM_SZPTR, "Only One PBL per Image allowed")
 
 	. = ALIGN(4);
-	.rodata : { *(.rodata*) }
+	.rodata : {
+		*(.rodata)
+		*(.rodata.*)
+	}
+
+	ASSERT_NO_DEPRECATED(rodata)
 
 	.barebox_imd : { BAREBOX_IMD }
 
