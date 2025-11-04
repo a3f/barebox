@@ -54,6 +54,7 @@ struct action_data {
 #define TMPDIR "/.defaultenv"
 
 static int global_env_autoprobe = IS_ENABLED(CONFIG_INSECURE);
+static int global_env_noload = false;
 static char *default_environment_path;
 
 void default_environment_path_set(const char *path)
@@ -455,7 +456,7 @@ int envfs_load(const char *filename, const char *dir, unsigned flags)
 	size_t size, rsize;
 
 #ifdef __BAREBOX__
-	if (!IS_ALLOWED(SCONFIG_ENVIRONMENT_LOAD))
+	if (!IS_ALLOWED(SCONFIG_ENVIRONMENT_LOAD) || global_env_noload)
 		return -EPERM;
 #endif
 
@@ -539,12 +540,17 @@ out:
 }
 
 #ifdef __BAREBOX__
+
 static int register_env_vars(void)
 {
 	globalvar_add_simple_bool("env.autoprobe", &global_env_autoprobe);
+	globalvar_add_simple_bool("env.noload", &global_env_noload);
+
 	return 0;
 }
 postcore_initcall(register_env_vars);
 BAREBOX_MAGICVAR(global.env.autoprobe,
                  "Automatically probe known block devices for environment");
+BAREBOX_MAGICVAR(global.env.noload,
+                 "Suppress loading of externally persisted environment");
 #endif
