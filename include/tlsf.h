@@ -70,13 +70,13 @@ pool_t tlsf_add_pool(tlsf_t tlsf, void* mem, size_t bytes);
 void tlsf_remove_pool(tlsf_t tlsf, pool_t pool);
 
 /* malloc/memalign/realloc/free replacements. */
-void* tlsf_malloc(tlsf_t tlsf, size_t bytes);
-void* tlsf_memalign(tlsf_t tlsf, size_t align, size_t bytes);
-void* tlsf_realloc(tlsf_t tlsf, void* ptr, size_t size);
-void tlsf_free(tlsf_t tlsf, void* ptr);
+void* tlsf_malloc(size_t bytes, tlsf_t tlsf);
+void* tlsf_memalign(size_t align, size_t bytes, tlsf_t tlsf);
+void* tlsf_realloc(void* ptr, size_t size, tlsf_t tlsf);
+void tlsf_free_mem(void* ptr, tlsf_t tlsf);
 
 /* Returns internal block size, not original request size */
-size_t tlsf_block_size(const void* ptr);
+size_t tlsf_block_size(const void *ptr, tlsf_t tlsf);
 
 /* Overheads/limits of internal structures. */
 size_t tlsf_size(void);

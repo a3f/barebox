@@ -215,7 +215,7 @@ postmem_initcall(armv7r_request_pool);
 
 void *dma_alloc_coherent(struct device *dev, size_t size, dma_addr_t *dma_handle)
 {
-	void *ret = tlsf_memalign(dma_coherent_pool, DMA_ALIGNMENT, size);
+	void *ret = tlsf_memalign(DMA_ALIGNMENT, size, dma_coherent_pool);
 
 	if (!ret)
 		return NULL;
@@ -231,7 +231,7 @@ void *dma_alloc_coherent(struct device *dev, size_t size, dma_addr_t *dma_handle
 void dma_free_coherent(struct device *dev,
 		       void *mem, dma_addr_t dma_handle, size_t size)
 {
-	tlsf_free(dma_coherent_pool, mem);
+	tlsf_free_mem(mem, dma_coherent_pool);
 }
 
 void arch_sync_dma_for_cpu(void *vaddr, size_t size, enum dma_data_direction dir)
