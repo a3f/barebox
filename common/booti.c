@@ -64,14 +64,23 @@ void *booti_load_image(struct image_data *data, phys_addr_t *oftree)
 
 	if (oftree) {
 		unsigned long devicetree;
-		const struct resource *initrd_res;
+		const struct resource *initrd_res = NULL;
 
-		initrd_res = bootm_load_initrd(data, image_end);
-		if (IS_ERR(initrd_res)) {
-			return ERR_CAST(initrd_res);
-		} else if (initrd_res) {
-			image_end += resource_size(data->initrd_res);
-			image_end = PAGE_ALIGN(image_end);
+		if (IS_ENABLED(CONFIG_BOOTM_INITRD)) {
+			unsigned long initrd_start;
+
+			if (UIMAGE_IS_ADDRESS_VALID(data->initrd_address))
+				initrd_start = data->initrd_address;
+			else
+				initrd_start = image_end;
+
+			initrd_res = bootm_load_initrd(data, initrd_start);
+			if (IS_ERR(initrd_res)) {
+				return ERR_CAST(initrd_res);
+			} else if (initrd_res) {
+				image_end += resource_size(data->initrd_res);
+				image_end = PAGE_ALIGN(image_end);
+			}
 		}
 
 		devicetree = image_end;
