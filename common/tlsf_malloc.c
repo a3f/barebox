@@ -36,7 +36,7 @@ void *malloc(size_t bytes)
 {
 	void *mem;
 
-	mem = tlsf_malloc(tlsf_mem_pool, bytes);
+	mem = tlsf_malloc(bytes, tlsf_mem_pool);
 	if (!mem)
 		errno = ENOMEM;
 
@@ -46,19 +46,19 @@ EXPORT_SYMBOL(malloc);
 
 void free(void *mem)
 {
-	tlsf_free(tlsf_mem_pool, mem);
+	tlsf_free_mem(mem, tlsf_mem_pool);
 }
 EXPORT_SYMBOL(free);
 
 size_t malloc_usable_size(const void *mem)
 {
-	return tlsf_block_size(mem);
+	return tlsf_block_size(mem, tlsf_mem_pool);
 }
 EXPORT_SYMBOL(malloc_usable_size);
 
 void *realloc(void *oldmem, size_t bytes)
 {
-	void *mem = tlsf_realloc(tlsf_mem_pool, oldmem, bytes);
+	void *mem = tlsf_realloc(oldmem, bytes, tlsf_mem_pool);
 	if (!mem)
 		errno = ENOMEM;
 
@@ -68,7 +68,7 @@ EXPORT_SYMBOL(realloc);
 
 void *memalign(size_t alignment, size_t bytes)
 {
-	void *mem = tlsf_memalign(tlsf_mem_pool, alignment, bytes);
+	void *mem = tlsf_memalign(alignment, bytes, tlsf_mem_pool);
 	if (!mem)
 		errno = ENOMEM;
 

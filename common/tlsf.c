@@ -769,7 +769,7 @@ void tlsf_walk_pool(pool_t pool, tlsf_walker walker, void* user)
 	}
 }
 
-size_t tlsf_block_size(const void* ptr)
+size_t tlsf_block_size(const void *ptr, tlsf_t tlsf)
 {
 	size_t size = 0;
 	if (likely(!ZERO_OR_NULL_PTR(ptr)))
@@ -968,7 +968,7 @@ pool_t tlsf_get_pool(tlsf_t tlsf)
 	return tlsf_cast(pool_t, (char*)tlsf + tlsf_size());
 }
 
-void* tlsf_malloc(tlsf_t tlsf, size_t size)
+void* tlsf_malloc(size_t size, tlsf_t tlsf)
 {
 	control_t* control = tlsf_cast(control_t*, tlsf);
 	const size_t adjust = adjust_request_size(size, ALIGN_SIZE);
@@ -984,7 +984,7 @@ void* tlsf_malloc(tlsf_t tlsf, size_t size)
 	return block_prepare_used(control, block, adjust, size);
 }
 
-void* tlsf_memalign(tlsf_t tlsf, size_t align, size_t size)
+void* tlsf_memalign(size_t align, size_t size, tlsf_t tlsf)
 {
 	control_t* control = tlsf_cast(control_t*, tlsf);
 	const size_t adjust = adjust_request_size(size, ALIGN_SIZE);
@@ -1048,7 +1048,7 @@ void* tlsf_memalign(tlsf_t tlsf, size_t align, size_t size)
 	return block_prepare_used(control, block, adjust, size);
 }
 
-void tlsf_free(tlsf_t tlsf, void* ptr)
+void tlsf_free_mem(void* ptr, tlsf_t tlsf)
 {
 	/* Don't attempt to free a NULL pointer. */
 	if (!ZERO_OR_NULL_PTR(ptr))
@@ -1081,7 +1081,7 @@ void tlsf_free(tlsf_t tlsf, void* ptr)
 ** - an extended buffer size will leave the newly-allocated area with
 **   contents undefined
 */
-void* tlsf_realloc(tlsf_t tlsf, void* ptr, size_t size)
+void* tlsf_realloc(void* ptr, size_t size, tlsf_t tlsf)
 {
 	control_t* control = tlsf_cast(control_t*, tlsf);
 	void* p = 0;
@@ -1089,13 +1089,13 @@ void* tlsf_realloc(tlsf_t tlsf, void* ptr, size_t size)
 	/* Zero-size requests are treated as free. */
 	if (size == 0)
 	{
-		tlsf_free(tlsf, ptr);
+		tlsf_free_mem(ptr, tlsf);
 		return ZERO_SIZE_PTR;
 	}
 	/* Requests with NULL pointers are treated as malloc. */
 	else if (ZERO_OR_NULL_PTR(ptr))
 	{
-		p = tlsf_malloc(tlsf, size);
+		p = tlsf_malloc(size, tlsf);
 	}
 	else
 	{
@@ -1117,12 +1117,12 @@ void* tlsf_realloc(tlsf_t tlsf, void* ptr, size_t size)
 		*/
 		if (adjust > cursize && (!block_is_free(next) || adjust > combined))
 		{
-			p = tlsf_malloc(tlsf, size);
+			p = tlsf_malloc(size, tlsf);
 			if (p)
 			{
 				const size_t minsize = tlsf_min(cursize, size);
 				__memcpy(p, ptr, minsize);
-				tlsf_free(tlsf, ptr);
+				tlsf_free_mem(ptr, tlsf);
 			}
 		}
 		else
