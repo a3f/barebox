@@ -2,3 +2,6 @@ obj-$(CONFIG_DRIVER_VIDEO_ROCKCHIP_VOP2) += rockchip_drm_vop2.o rockchip_vop2_re
 obj-$(CONFIG_DRIVER_VIDEO_ROCKCHIP_HDMI) += dw_hdmi-rockchip.o
 obj-$(CONFIG_DRIVER_VIDEO_ROCKCHIP_MIPI_DSI) += dw-mipi-dsi-rockchip.o
 obj-$(CONFIG_DRIVER_VIDEO_ROCKCHIP_HDMI_QP) += dw_hdmi_qp-rockchip.o
+# TODO:
+obj-y += dw-mipi-dsi2-rockchip.o
+

@@ -771,8 +771,11 @@ static unsigned long rk3588_calc_cru_cfg(struct vop2_video_port *vp, int id,
 					 u32 crtc_clock)
 {
 	struct vop2 *vop2 = vp->vop2;
+	pr_err("%s crtc_clock: %u\n", __func__, crtc_clock);
 	unsigned long v_pixclk = crtc_clock*1000LL; /* video timing pixclk */
+	pr_err("%s v_pixclk: %lu\n", __func__, v_pixclk);
 	unsigned long dclk_core_rate = v_pixclk >> 2;
+	pr_err("%s dclk_core_rate: %lu\n", __func__, dclk_core_rate);
 	unsigned long dclk_rate = v_pixclk;
 	unsigned long dclk_out_rate;
 	unsigned long if_pixclk_rate;
@@ -801,6 +804,7 @@ static unsigned long rk3588_calc_cru_cfg(struct vop2_video_port *vp, int id,
 		*if_dclk_div = K;
 	} else if (vop2_output_if_is_dp(id)) {
 		dclk_out_rate = v_pixclk >> 2;
+		pr_err("%s dclk_out_rate: %lu\n", __func__, dclk_out_rate);
 
 		dclk_rate = rk3588_calc_dclk(dclk_out_rate, 600000);
 		if (!dclk_rate) {
@@ -819,9 +823,11 @@ static unsigned long rk3588_calc_cru_cfg(struct vop2_video_port *vp, int id,
 		 * dclk_rate = N * dclk_core_rate N = (1,2,4 ),
 		 * we get a little factor here
 		 */
-		dclk_rate = rk3588_calc_dclk(dclk_out_rate, 600000);
+		
+		 // TODO: Changed the order of magnitude of this max_dclk to match linux...
+		dclk_rate = rk3588_calc_dclk(dclk_out_rate, 600000000);
 		if (!dclk_rate) {
-			dev_err(vop2->dev, "MIPI dclk out of range, dclk_out_rate: %ld KHZ\n",
+			dev_err(vop2->dev, "MIPI dclk out of range, dclk_out_rate: %ld Hz\n",
 				dclk_out_rate);
 			return 0;
 		}
