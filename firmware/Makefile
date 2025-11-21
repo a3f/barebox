@@ -134,7 +134,3 @@ targets := $(patsubst $(obj)/%,%, \
 	                        $(shell find $(obj) -name \*.gen.S 2>/dev/null))
 targets += $(patsubst $(obj)/%,%, \
 	                        $(shell find $(obj) -name \*.extgen.S 2>/dev/null))
-
-# just to build a built-in.o. Otherwise compilation fails when no
-# firmware is built.
-obj- += dummy.o
