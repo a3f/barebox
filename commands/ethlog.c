@@ -14,7 +14,7 @@ static void ethlog_rx_monitor(struct eth_device *edev, void *packet,
 {
 	dev_print_hex_dump(&edev->dev, KERN_DEBUG, "rx data <: ",
 			   DUMP_PREFIX_OFFSET, 16, 1, packet, length, true);
-	printk("\n");
+	printk("\n"); // FIXME
 }
 
 static void ethlog_tx_monitor(struct eth_device *edev, void *packet,
