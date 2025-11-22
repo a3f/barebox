@@ -1,0 +1,11 @@
+intermediate targets need to do something?
+CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+CONFIG_CPU_BIG_ENDIAN should be used for -mbig-endian
+test config_modules
+CONFIG_ARCH_WANT_FLAT_DTB_INSTALL
+compiler in bfetch output
+
+CONFIG_ARCH_WANT_FLAT_DTB_INSTALL
+CONFIG_GCOV_KERNEL
+CONFIG_UBSAN_SANITIZE_ALL
+CONFIG_DEBUG_INFO_BTF_MODULES
