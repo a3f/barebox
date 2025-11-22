@@ -91,17 +91,3 @@ obj-$(CONFIG_K3_KEYWRITER_LITE)	+= k3-keywriter-lite.o
 $(obj)/version.o: include/generated/compile.h
 $(obj)/imd-barebox.o: include/generated/compile.h
 $(obj)/imd-barebox.pbl.o: include/generated/compile.h
-
-# compile.h changes depending on hostname, generation number, etc,
-# so we regenerate it always.
-# mkcompile_h will make sure to only update the
-# actual file if its content has changed.
-
-       chk_compile.h = :
- quiet_chk_compile.h = echo '  CHK     $@'
-silent_chk_compile.h = :
-include/generated/compile.h: FORCE
-	@$($(quiet)chk_compile.h)
-	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/mkcompile_h $@ \
-	"$(UTS_MACHINE)" "$(CC) $(KBUILD_CFLAGS)"
-

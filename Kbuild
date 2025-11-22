@@ -37,6 +37,7 @@ obj-y					+= firmware/
 
 obj-y					+= arch/$(SRCARCH)/
 obj-y					+= $(ARCH_CORE)
+obj-$(CONFIG_RUST)			+= rust/
 obj-$(CONFIG_EFI)			+= efi/
 obj-y					+= test/
 

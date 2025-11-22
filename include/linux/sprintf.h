@@ -43,4 +43,7 @@ static inline __printf(2, 3) int rasprintf(char **strp, const char *fmt, ...)
 
 #define basprintf xasprintf
 
+/* Used for Rust formatting ('%pA') */
+char *rust_fmt_argument(char *buf, char *end, const void *ptr);
+
 #endif	/* _LINUX_KERNEL_SPRINTF_H */

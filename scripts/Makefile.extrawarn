@@ -42,3 +42,17 @@ endif
 
 # disable pointer signed / unsigned warnings in gcc 4.0
 KBUILD_CFLAGS += -Wno-pointer-sign
+
+#
+# W=e and CONFIG_WERROR - error out on warnings
+#
+ifneq ($(findstring e, $(KBUILD_EXTRA_WARN))$(CONFIG_WERROR),)
+
+KBUILD_RUSTFLAGS	+= -Dwarnings
+
+# While hostprog flags are used during build bootstrapping (thus should not
+# depend on CONFIG_ symbols), -Werror is disruptive and should be opted into.
+# Only apply -Werror to hostprogs built after the initial Kconfig stage.
+KBUILD_HOSTRUSTFLAGS	+= -Dwarnings
+
+endif

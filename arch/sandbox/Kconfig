@@ -26,6 +26,7 @@ config SANDBOX
 	select HAVE_PBL_MULTI_IMAGES
 	select PBL_IMAGE_NO_PIGGY
 	select PBL_CLOCKSOURCE if COMPILE_TEST
+	select HAVE_RUST
 	default y
 
 config ARCH_LINUX_NAME

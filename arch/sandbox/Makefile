@@ -17,6 +17,7 @@ libfuzzer_defconfig:
 
 KBUILD_CPPFLAGS += -D__SANDBOX__ -fno-strict-aliasing -fvisibility=hidden
 
+KBUILD_RUSTFLAGS += -C relocation-model=pic
 
 machine-y := sandbox
 
