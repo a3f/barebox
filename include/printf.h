@@ -7,16 +7,6 @@
 
 struct device;
 
-#define KERN_EMERG      ""   /* system is unusable                   */
-#define KERN_ALERT      ""   /* action must be taken immediately     */
-#define KERN_CRIT       ""   /* critical conditions                  */
-#define KERN_ERR        ""   /* error conditions                     */
-#define KERN_WARNING    ""   /* warning conditions                   */
-#define KERN_NOTICE     ""   /* normal but significant condition     */
-#define KERN_INFO       ""   /* informational                        */
-#define KERN_DEBUG      ""   /* debug-level messages                 */
-#define KERN_CONT       ""
-
 #if (IN_PROPER && !defined(CONFIG_CONSOLE_NONE)) || \
 	(IN_PBL && defined(CONFIG_PBL_CONSOLE))
 int printf(const char *fmt, ...) __printf(1, 2);
@@ -29,19 +19,6 @@ static inline __printf(1, 2) int printf(const char *fmt, ...)
 
 void __noreturn panic(const char *fmt, ...) __printf(1, 2);
 void __noreturn panic_no_stacktrace(const char *fmt, ...) __printf(1, 2);
-
-#define printk			printf
-
-/*
- * Dummy printk for disabled debugging statements to use whilst maintaining
- * gcc's format checking.
- */
-#define no_printk(fmt, ...)				\
-({							\
-	if (0)						\
-		printk(fmt, ##__VA_ARGS__);		\
-	0;						\
-})
 
 enum {
 	DUMP_PREFIX_NONE,
@@ -70,5 +47,15 @@ static inline void dump_stack(void)
 }
 #endif
 
+/*
+ * Dummy printf for disabled debugging statements to use whilst maintaining
+ * gcc's format checking.
+ */
+#define no_printf(fmt, ...)				\
+({							\
+	if (0)						\
+		printf(fmt, ##__VA_ARGS__);		\
+	0;						\
+})
 
 #endif
