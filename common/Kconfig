@@ -902,6 +902,18 @@ config PBL_CONSOLE
 	  must be running at the address it's linked at and bss must
 	  be cleared. On ARM that would be after setup_c().
 
+config BUG
+	def_bool y
+
+config DEBUG_BUGVERBOSE
+	bool "Verbose BUG() reporting"
+	depends on BUG
+	default y
+	help
+	  Say Y here to make BUG() panics output the file name and line number
+	  of the BUG call as well as the EIP and oops trace.  This aids
+	  debugging but costs about 70-100K of memory.
+
 source "common/ratp/Kconfig"
 
 config PARTITION

@@ -6,15 +6,23 @@
 #include <linux/compiler.h>
 #include <printf.h>
 
-#define BUG() do { \
-	printf("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __FUNCTION__); \
+#ifdef CONFIG_DEBUG_BUGVERBOSE
+#define __debug_bugverbose printf
+#else
+#define __debug_bugverbose no_printf
+#endif
+
+#define BUG() do {							\
+	__debug_bugverbose("BUG: failure at %s:%d/%s()!\n",		\
+			   __FILE__, __LINE__, __FUNCTION__);		\
 	panic("BUG!"); \
 } while (0)
 #define BUG_ON(condition) do { if (unlikely((condition)!=0)) BUG(); } while(0)
 
 
-#define __WARN() do { 								\
-	printf("WARNING: at %s:%d/%s()!\n", __FILE__, __LINE__, __FUNCTION__);	\
+#define __WARN() do { 							\
+	__debug_bugverbose("WARNING: at %s:%d/%s()!\n",			\
+			   __FILE__, __LINE__, __FUNCTION__);		\
 } while (0)
 
 #ifndef WARN_ON
@@ -31,7 +39,7 @@
 	int __ret_warn_on = !!(condition);				\
 	if (unlikely(__ret_warn_on)) {					\
 		__WARN();						\
-		printf("WARNING: " format);				\
+		__debug_bugverbose("WARNING: " format);			\
 	}								\
 	unlikely(__ret_warn_on);					\
 })
