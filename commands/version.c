@@ -6,12 +6,24 @@
 #include <complete.h>
 #include <generated/compile.h>
 
+void rust_print_hellow(void);
+
 static int do_version(int argc, char *argv[])
 {
 	printf ("\n%s", version_string);
 	if (*CONFIG_NAME)
 		printf (" (%s)", CONFIG_NAME);
-	printf ("\nCompiled by: %s\n\n", BAREBOX_COMPILER);
+	printf ("\nCompiled by: %s", BAREBOX_COMPILER);
+#ifdef CONFIG_RUST
+	printf (",\n%*s%s", (int)sizeof("Compiled by:"), "",
+		CONFIG_RUSTC_VERSION_TEXT);
+#endif
+
+	printf ("\n\n");
+
+#ifdef CONFIG_RUST
+	rust_print_hellow();
+#endif
 	return 0;
 }
 
