@@ -42,3 +42,5 @@
 #include <linux/string.h>
 #include <malloc.h>
 #include <stdlib.h>
+
+void rust_print_hellow(void);

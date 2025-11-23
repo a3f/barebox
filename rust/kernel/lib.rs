@@ -226,8 +226,3 @@ pub fn file_from_location<'a>(loc: &'a core::panic::Location<'a>) -> &'a core::f
         c"<Location::file_as_c_str() not supported>"
     }
 }
-
-#[export]
-unsafe extern "C" fn rust_print_hellow() -> () {
-    pr_info!("Hello, {}!\n", "world")
-}
