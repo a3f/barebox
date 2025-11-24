@@ -910,9 +910,8 @@ config DEBUG_BUGVERBOSE
 	depends on BUG
 	default y
 	help
-	  Say Y here to make BUG() panics output the file name and line number
-	  of the BUG call as well as the EIP and oops trace.  This aids
-	  debugging but costs about 70-100K of memory.
+	  Say Y here to make WARN_ONCE() and BUG() panics output the file name
+	  and line number of the BUG/WARN call as well as the EIP and oops trace.
 
 source "common/ratp/Kconfig"
 
