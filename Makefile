@@ -618,6 +618,13 @@ include $(srctree)/arch/$(SRCARCH)/Makefile
 export KBUILD_DEFCONFIG CC_VERSION_TEXT
 endif
 
+# barebox-specific: %config targets implemented in the top-level Makefile
+mergecheckconfig: FORCE
+ifdef CONFIG_SANDBOX
+	$(call merge_into_config,asan)
+endif
+	$(call merge_into_config,enable_self_test)
+
 config: outputmakefile scripts_basic FORCE
 	$(Q)$(MAKE) $(build)=scripts/kconfig KCONFIG_DEFCONFIG_LIST= $@
 
@@ -1077,7 +1084,7 @@ endif
 	@# This is intentionally not @suppressed, to make it easier to reproduce
 	(cd $(srctree); $(PYTEST))
 
-PHONY += check
+PHONY += check mergecheckconfig
 
 # barebox image
 # ---------------------------------------------------------------------------
@@ -1474,6 +1481,8 @@ ifdef CONFIG_PBL_IMAGE
 	@echo  '* images          - Build final prebootloader-prefixed images'
 	@echo  '* barebox.fit     - Build 2nd stage barebox with device trees FIT image'
 endif
+	@echo  '  check           - Run pytest test suite if supported for config'
+	@echo  '  mergecheckconfig- Merge fragments useful for testing'
 	@echo  '  dir/            - Build all files in dir and below'
 	@echo  '  dir/file.[ois]  - Build specified target only'
 	@echo  '  dir/file.ko     - Build module including final link'
