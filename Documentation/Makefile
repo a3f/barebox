@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: GPL-2.0
+
+SPHINXBUILD   = sphinx-build
+SPHINXOPTS    =
+
+# Internal variables.
+ALLSPHINXOPTS   =  $(SPHINXOPTS)
+
+srctree ?= $(realpath $(dir $(lastword $(MAKEFILE_LIST)))/..)
+objtree ?= $(srctree)
+
+docs: htmldocs FORCE
+
+htmldocs: FORCE
+	@mkdir -p $(srctree)/Documentation/commands
+	@$(srctree)/Documentation/gen_commands.py $(srctree) $(srctree)/Documentation/commands
+	@$(SPHINXBUILD) -b html -d $(objtree)/doctrees $(srctree)/Documentation \
+		$(objtree)/Documentation/html $(ALLSPHINXOPTS)
+
+dochelp: FORCE
+	@echo  ' barebox internal documentation from ReST:'
+	@echo  '  htmldocs        - HTML'
+	@echo  '  docs            - alias for htmldocs'
+	@echo
+	@echo  '  Default location for the generated documents is Documentation/html'
+
+
+PHONY += FORCE
+FORCE:
+
+.PHONY: $(PHONY)
