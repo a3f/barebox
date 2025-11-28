@@ -61,15 +61,15 @@ into USB boot mode, the eMMC may be disabled temporarily.
 
 1. Connect the Kindle to your host computer with a USB cable.
 2. Disable the eMMC
-   (for the DP75SDI pull the left resistor left of TP806/TP807 (below
-   TP914) facing the eMMC to zero).
-3. Power down the device by holding the power button until the power LED goes
+   * for the DP75SDI pull the left resistor left of TP806/TP807 (below
+     TP914) facing the eMMC to zero.
+2. Power down the device by holding the power button until the power LED goes
    dark (about 12-15 seconds).
-4. Release the power button.
-5. Free the eMMC pin.
-6. After 10-20 seconds, a new USB device named ``SE Blank MEGREZ`` should
+3. Release the power button.
+4. Free the eMMC pin.
+5. After 10-20 seconds, a new USB device named ``SE Blank MEGREZ`` should
    appear on your host computer.
-7. Use imx-usb-loader to boot from USB.
+6. Use imx-usb-loader to boot from USB.
 
    .. code-block:: console
 
