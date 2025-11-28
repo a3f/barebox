@@ -1,3 +1,5 @@
+:orphan:
+
 <config.h> removal for PowerPC
 ------------------------------
 
