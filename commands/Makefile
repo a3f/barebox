@@ -17,6 +17,7 @@ obj-$(CONFIG_CMD_MW)		+= mw.o
 obj-$(CONFIG_CMD_MEMCMP)	+= memcmp.o
 obj-$(CONFIG_CMD_MEMCPY)	+= memcpy.o
 obj-$(CONFIG_CMD_MEMSET)	+= memset.o
+obj-$(CONFIG_CMD_SAFEMODE)	+= safemode.o
 obj-$(CONFIG_CMD_EDIT)		+= edit.o
 obj-$(CONFIG_CMD_ETHLOG)	+= ethlog.o
 obj-$(CONFIG_CMD_EXEC)		+= exec.o

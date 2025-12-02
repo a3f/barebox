@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <device.h>
 #include <driver.h>
+#include <linux/string.h>
 #include <linux/list.h>
 
 LIST_HEAD(class_list);
@@ -47,4 +48,16 @@ int class_register_device(struct class *class,
 
 	class_add_device(class, class_dev);
 	return 0;
+}
+
+struct class *get_class_by_name(const char *name)
+{
+	struct class *class;
+
+	class_for_each(class) {
+		if (!strcmp(name, class->name))
+			return class;
+	}
+
+	return NULL;
 }

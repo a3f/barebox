@@ -210,6 +210,13 @@ config CMD_MEMINFO
 	  system bytes     =     282616
 	  in use bytes     =     274752
 
+config CMD_SAFEMODE
+	tristate
+	prompt "safemode"
+	select CMD_OF_PROPERTY
+	help
+	  Apply safe-mode defaults for next kernel boot.
+
 config CMD_CHECKLEAK
 	tristate
 	prompt "checkleak"

@@ -160,6 +160,8 @@ extern struct list_head class_list;
 
 #define class_for_each(class) list_for_each_entry((class), &class_list, list)
 
+struct class *get_class_by_name(const char *name);
+
 #define dev_for_each_param(dev, param) \
 	list_for_each_entry((param), &(dev)->bobject.parameters, list)
 #define dev_for_each_param_safe(dev, param, tmp) \
