@@ -4,6 +4,7 @@
 
 #include <linux/list.h>
 #include <linux/compiler.h>
+#include <linux/kern_levels.h>
 #include <linux/err.h>
 #include <printf.h>
 #include <stdarg.h>
@@ -163,6 +164,14 @@ static inline __printf(3, 4) int dev_err_probe(struct device *dev,
 
 #define pr_warn			pr_warning
 #define pr_warn_once		pr_warning_once
+
+int _printk(const char *fmt, ...) __printf(1, 2);
+
+#define printk(fmt, ...) \
+	(fmt[0] == KERN_SOH_ASCII ?  _printk(fmt, ##__VA_ARGS__) : \
+		pr_print(CONFIG_DEFAULT_LOGLEVEL, fmt, ##__VA_ARGS__))
+
+#define no_printk no_printf
 
 int memory_display(const void *addr, loff_t offs, unsigned nbytes, int size,
 		   int swab);

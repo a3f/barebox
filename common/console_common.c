@@ -20,6 +20,7 @@
 #include <password.h>
 #include <clock.h>
 #include <malloc.h>
+#include <linux/ctype.h>
 #include <linux/pstore.h>
 #include <linux/math64.h>
 #include <linux/sizes.h>
@@ -138,6 +139,56 @@ int pr_print(int level, const char *fmt, ...)
 	return i;
 }
 EXPORT_SYMBOL(pr_print);
+
+static int printk_level(const char **fmt)
+{
+	char level_ascii;
+	int level;
+
+	if ((*fmt)[0] != KERN_SOH_ASCII)
+		return LOGLEVEL_DEFAULT;
+	if (!(*fmt)[1])
+		return -1;
+
+	level_ascii = (*fmt)[1];
+	(*fmt) += 2;
+
+	if (!isdigit(level_ascii))
+		return -1;
+
+	level = level_ascii - '0';
+	if (level < LOGLEVEL_DEFAULT || level > LOGLEVEL_DEBUG)
+		level = LOGLEVEL_DEFAULT;
+
+	if (level == LOGLEVEL_DEFAULT)
+		level = barebox_loglevel;
+
+	if (!IS_ENABLED(CONFIG_LOGBUF) && level > barebox_loglevel)
+		return 0;
+
+	return level;
+}
+
+int _printk(const char *fmt, ...)
+{
+	va_list args;
+	int i;
+	char printbuffer[CFG_PBSIZE];
+	int level = LOGLEVEL_DEFAULT;
+
+	level = printk_level(&fmt);
+	if (level < 0)
+		return level;
+
+	va_start(args, fmt);
+	i = vsnprintf(printbuffer, sizeof(printbuffer), fmt, args);
+	va_end(args);
+
+	pr_puts(level, printbuffer);
+
+	return i;
+}
+EXPORT_SYMBOL(_printk);
 
 int dev_printf(int level, const struct device *dev, const char *format, ...)
 {
