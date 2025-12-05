@@ -1,5 +1,16 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
+config EFI_LOADER_BOOTMGR
+	bool "Rudimentary UEFI Boot Manager support"
+	select BOOT
+	select BOOT_DEFAULTS
+	default y
+	help
+	  This boot manager doesn't yet make use of Boot# variables, but instead
+	  hardcodes order to lookup removable and then builtin storage devices
+	  for EFI payloads located at the removable media path indicated by
+	  CONFIG_EFI_PAYLOAD_DEFAULT_PATH within their respective devices.
+
 config EFI_LOADER_DEBUG_SUPPORT
 	bool "EFI Debug Support"
 	default y
