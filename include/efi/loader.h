@@ -12,6 +12,10 @@ struct efi_table_hdr;
 
 #define EFI_SPECIFICATION_VERSION (2 << 16 | 80)
 
+/* GUID used by the root node FIXME: is unique? */
+#define BAREBOX_GUID \
+	EFI_GUID(0xe61d73b9, 0xa384, 0x4acc, 0xae, 0xab, 0x82, 0xe8, 0x28, 0xf3, 0x62, 0xbb)
+
 /* Key identifying current memory map */
 extern efi_uintn_t efi_memory_map_key;
 
