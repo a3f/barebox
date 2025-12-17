@@ -18,4 +18,5 @@ obj-$(CONFIG_BOOTM) += bootm.o
 obj-y += efi_var_common.o
 obj-y += efi_variable.o
 obj-y += efi_var_mem.o
-obj-$(CONFIG_EFI_VARIABLE_FILE_STORE) += efi_var_file.o
+obj-y += efi_var_file.o
+obj-y += defaultvars.o
