@@ -23,9 +23,9 @@ SECTIONS
 		__bare_init_end = .;
 		*(.text)
 		*(.text.*)
-	}
-	BAREBOX_BARE_INIT_SIZE
+	} : text
 
+	BAREBOX_BARE_INIT_SIZE
 	ASSERT_NO_DEPRECATED(text)
 
 	. = ALIGN(4096);
@@ -34,7 +34,7 @@ SECTIONS
 		*(.rodata)
 		*(.rodata.*)
 		RO_DATA_SECTION
-	}
+	} : rodata
 
 	ASSERT_NO_DEPRECATED(rodata)
 
@@ -46,7 +46,7 @@ SECTIONS
 	_etext = .;
 	_sdata = .;
 
-	.data : { *(.data*) }
+	.data : { *(.data*) } : data
 
 	BAREBOX_RELOCATION_TABLE
 
@@ -58,10 +58,18 @@ SECTIONS
 
 	. = ALIGN(4);
 	.__bss_start :  { *(.__bss_start) }
-	.bss : { *(.bss*) }
+	.bss : { *(.bss*) } : data
 	.__bss_stop :  { *(.__bss_stop) }
 	_end = .;
 	_barebox_image_size = __bss_start;
+}
+
+PHDRS
+{
+	text	PT_LOAD		FLAGS(5); /* PF_R | PF_X */
+	rodata	PT_LOAD		FLAGS(4); /* PF_R */
+	dynamic	PT_DYNAMIC	FLAGS(4); /* PF_R */
+	data	PT_LOAD		FLAGS(6); /* PF_R | PF_W */
 }
 
 NOCROSSREFS_FROM(.efi_runtime)

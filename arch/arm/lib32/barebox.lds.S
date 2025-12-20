@@ -28,7 +28,7 @@ SECTIONS
 		__exceptions_stop = .;
 		*(.text)
 		*(.text.*)
-	}
+	} : text
 	BAREBOX_BARE_INIT_SIZE
 
 	ASSERT_NO_DEPRECATED(text)
@@ -39,7 +39,7 @@ SECTIONS
 		*(.rodata)
 		*(.rodata.*)
 		RO_DATA_SECTION
-	}
+	} : rodata
 
 	ASSERT_NO_DEPRECATED(rodata)
 
@@ -67,7 +67,7 @@ SECTIONS
 	_sdata = .;
 
 	. = ALIGN(4);
-	.data : { *(.data*) }
+	.data : { *(.data*) } : data
 
 	. = .;
 
@@ -81,7 +81,7 @@ SECTIONS
 
 	. = ALIGN(4);
 	.__bss_start :  { *(.__bss_start) }
-	.bss : { *(.bss*) }
+	.bss (NOLOAD) : { *(.bss*) } : bss
 	.__bss_stop :  { *(.__bss_stop) }
 
 #ifdef CONFIG_ARM_SECURE_MONITOR
@@ -94,6 +94,15 @@ SECTIONS
 
 	_end = .;
 	_barebox_image_size = __bss_start;
+}
+
+PHDRS
+{
+	text	PT_LOAD		FLAGS(5); /* PF_R | PF_X */
+	rodata	PT_LOAD		FLAGS(4); /* PF_R */
+	dynamic	PT_DYNAMIC	FLAGS(4); /* PF_R */
+	data	PT_LOAD		FLAGS(6); /* PF_R | PF_W */
+	bss	PT_LOAD		FLAGS(6); /* PF_R | PF_W */
 }
 
 NOCROSSREFS_FROM(.efi_runtime)
