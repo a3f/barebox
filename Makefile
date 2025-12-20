@@ -1187,10 +1187,22 @@ quiet_cmd_barebox_proper__ = CC      $@
 	$(if $(CONFIG_KALLSYMS),,+$(call cmd,barebox_version))
 	$(call cmd,barebox_proper__)
 	$(Q)echo 'savedcmd_$@ := $(cmd_barebox_proper__)' > $(@D)/.$(@F).cmd
-	$(Q)rm -f .old_version
+OBJCOPYFLAGS_barebox.elf = --strip-all	\
+  -R .comment* -R .note* -R .gnu.hash \
+LDFLAGS_barebox.piggy += -pie --nmagic
 
-barebox.o: .tmp_barebox.o FORCE
-	$(call if_changed,objcopy)
+barebox.z: barebox FORCE
+	$(call if_changed_rule,barebox__)
+
+all: barebox.elf
+barebox.piggy.stripped: barebox.piggy FORCE
+	$(call cmd,objcopy)
+
+# TODO need -Bsymbolic?
+barebox.z: barebox.piggy.stripped FORCE
+	$(call if_changed,$(suffix_y))
+
+all: barebox.z
 
 # The actual objects are generated when descending,
 # make sure no implicit rule kicks in
