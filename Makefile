@@ -900,17 +900,17 @@ KBUILD_CPPFLAGS += $(KCPPFLAGS)
 KBUILD_AFLAGS   += $(KAFLAGS)
 KBUILD_CFLAGS   += $(KCFLAGS)
 
-LDFLAGS_barebox	+= -Map barebox.map
+LDFLAGS_barebox	+= -Map barebox.map --nmagic
 
 # Avoid initial 64K alignment to get smaller ELF binaries
-LDFLAGS_common += --nmagic
+LDFLAGS_common += --nmagic --error-rwx-segments
 
 # Avoid 'Not enough room for program headers' error on binutils 2.28 onwards.
 LDFLAGS_common += $(call ld-option, --no-dynamic-linker)
 # Avoid 'missing .note.GNU-stack section implies executable stack' warnings on binutils 2.39+
-LDFLAGS_common += -z noexecstack
+LDFLAGS_pbl += -z noexecstack
 # Avoid '... has a LOAD segment with RWX permissions' warnings on binutils 2.39+
-LDFLAGS_common += $(call ld-option,--no-warn-rwx-segments)
+LDFLAGS_pbl += $(call ld-option,--no-warn-rwx-segments)
 
 LDFLAGS_barebox += $(LDFLAGS_common)
 LDFLAGS_pbl += $(LDFLAGS_common)
@@ -981,7 +981,7 @@ export BAREBOX_LDS          := $(lds-y)
 # May be overridden by arch/$(SRCARCH)/Makefile
 quiet_cmd_barebox__ ?= LD      $@
       cmd_barebox__ ?= $(LD) $(KBUILD_LDFLAGS) $(LDFLAGS_barebox) -o $@ \
-      -T $(BAREBOX_LDS)                         \
+      -T $(BAREBOX_LDS)							\
       --whole-archive $(BAREBOX_OBJS) --no-whole-archive                  \
       $(filter-out $(BAREBOX_LDS) $(BAREBOX_OBJS) FORCE ,$^)
 
@@ -1170,15 +1170,6 @@ barebox.bin: barebox FORCE
 ifndef CONFIG_PBL_IMAGE
 	$(call cmd,check_file_size,$@,$(CONFIG_BAREBOX_MAX_IMAGE_SIZE))
 endif
-
-OBJCOPYFLAGS_barebox.elf = --strip-all		\
-  --strip-section-headers			\
-  -R .comment* -R .note* -R .gnu.hash -R .got*	\
-  --set-section-alignment *=1
-
-barebox.elf: barebox barebox.bin FORCE
-	$(call if_changed,objcopy)
-	@echo "ELF increased size by $$(echo $$(($$(stat -c %s barebox.elf) - $$(stat -c %s barebox.bin))))"
 
 quiet_cmd_barebox_proper__ = CC      $@
       cmd_barebox_proper__ = $(CC) -r -o $@ -Wl,--whole-archive $(BAREBOX_OBJS)
