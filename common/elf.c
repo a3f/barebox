@@ -35,7 +35,7 @@ static int elf_request_region(struct elf_image *elf, resource_size_t start,
 	r_new = request_sdram_region("elf_segment", start, size,
 				     MEMTYPE_LOADER_CODE, MEMATTRS_RWX);
 	if (!r_new) {
-		r_new = request_iomem_region("elf_segment", start, size);
+		r_new = request_iomem_region("elf_segment", start, start + size - 1);
 		if (!r_new) {
 			pr_err("Failed to request region: %pa %pa\n", &start, &size);
 			return -EINVAL;
