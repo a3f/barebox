@@ -35,7 +35,7 @@ void free(void *ptr)
 {
 }
 
-size_t malloc_usable_size(void *mem)
+size_t malloc_usable_size(const void *mem)
 {
 	BUG();
 }

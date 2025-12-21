@@ -50,7 +50,7 @@ void free(void *mem)
 }
 EXPORT_SYMBOL(free);
 
-size_t malloc_usable_size(void *mem)
+size_t malloc_usable_size(const void *mem)
 {
 	return tlsf_block_size(mem);
 }

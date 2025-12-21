@@ -24,7 +24,7 @@ struct talloc {
 void mem_set_parent(struct talloc *child, struct talloc *parent);
 
 void *talloc_new(const void *parent);
-size_t talloc_usable_size(void *mem);
+size_t talloc_usable_size(const void *mem);
 void *talloc_size(const void *parent, size_t size);
 void *talloc_zero_size(const void *parent, size_t size);
 void *talloc_realloc_size(const void *parent, void *mem, size_t size);

@@ -34,7 +34,7 @@ static inline bool malloc_store_is_registered(void) { return false; }
 
 #if IN_PROPER
 void *malloc(size_t) __alloc_size(1);
-size_t malloc_usable_size(void *);
+size_t malloc_usable_size(const void *);
 void free(void *);
 void free_sensitive(void *);
 void *realloc(void *, size_t) __realloc_size(2);

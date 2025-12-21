@@ -769,7 +769,7 @@ void tlsf_walk_pool(pool_t pool, tlsf_walker walker, void* user)
 	}
 }
 
-size_t tlsf_block_size(void* ptr)
+size_t tlsf_block_size(const void* ptr)
 {
 	size_t size = 0;
 	if (likely(!ZERO_OR_NULL_PTR(ptr)))

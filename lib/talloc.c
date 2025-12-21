@@ -80,9 +80,9 @@ static void *talloc_ctx_init(struct talloc *hdr, const void *parent)
  *
  * Return: size of tallocation
  */
-size_t talloc_usable_size(void *mem)
+size_t talloc_usable_size(const void *mem)
 {
-	struct talloc *hdr = mem2hdr(mem);
+	const struct talloc *hdr = mem2hdr(mem);
 
 	return malloc_usable_size(hdr) - sizeof(struct talloc);
 }
