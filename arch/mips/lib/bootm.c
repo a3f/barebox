@@ -76,7 +76,7 @@ static int do_bootm_elf(struct image_data *data)
 		goto bootm_free_fdt;
 	}
 
-	pr_info("Starting application at 0x%08lx, dts 0x%p...\n",
+	pr_info("Starting application at 0x%p, dts 0x%p...\n",
 		elf->entry, data->of_root_node);
 
 	if (data->dryrun)
@@ -88,7 +88,7 @@ static int do_bootm_elf(struct image_data *data)
 
 	shutdown_barebox();
 
-	entry = (void *) (unsigned long) elf->entry;
+	entry = elf->entry;
 
 	entry(-2, fdt);
 

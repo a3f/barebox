@@ -99,7 +99,7 @@ static int do_boot_elf(struct image_data *data, struct elf_image *elf)
 		goto err_free_fdt;
 	}
 
-	entry = (boot_func_entry) elf->entry;
+	entry = elf->entry;
 
 	ret = do_boot_entry(data, entry, fdt);
 
