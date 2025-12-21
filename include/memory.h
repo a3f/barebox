@@ -60,6 +60,10 @@ static inline struct resource *request_sdram_region(const char *name,
 	return res;
 }
 
+struct resource *__request_iomem_or_sdram_region(const char *name,
+						 resource_size_t start,
+						 resource_size_t size);
+
 struct resource *reserve_sdram_region(const char *name, resource_size_t start,
 				      resource_size_t size);
 

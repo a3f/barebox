@@ -41,15 +41,13 @@ static int elf_request_region(struct elf_image *elf, resource_size_t start,
 	if (!r)
 		return -ENOMEM;
 
-	r_new = request_sdram_region("elf_segment", start, size,
-				     MEMTYPE_LOADER_CODE, MEMATTRS_RWX);
-	if (!r_new) {
-		r_new = request_iomem_region("elf_segment", start, start + size - 1);
-		if (!r_new) {
-			pr_err("Failed to request region: %pa %pa\n", &start, &size);
-			return -EINVAL;
-		}
-	}
+	/*
+	 * MMU will have been disabled by barebox_shutdown() is called before this
+	 * will be executed, so no need to set any special memory attributes
+	 */
+	r_new = __request_iomem_or_sdram_region("elf_segment", start, size);
+	if (!r_new)
+		return -EINVAL;
 
 	r->r = r_new;
 	r->phdr = phdr;

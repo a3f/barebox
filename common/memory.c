@@ -292,6 +292,24 @@ struct resource *__request_sdram_region(const char *name,
 	return NULL;
 }
 
+struct resource *__request_iomem_or_sdram_region(const char *name,
+						 resource_size_t start,
+						 resource_size_t size)
+{
+	struct resource *r_new;
+
+	r_new = __request_sdram_region(name, start, size);
+	if (!r_new) {
+		r_new = request_iomem_region(name, start, start + size - 1);
+		if (!r_new) {
+			pr_err("Failed to request region: %pa %pa\n", &start, &size);
+			return NULL;
+		}
+	}
+
+	return r_new;
+}
+
 /* use for secure firmware to inhibit speculation */
 struct resource *reserve_sdram_region(const char *name, resource_size_t start,
 				      resource_size_t size)
