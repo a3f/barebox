@@ -399,6 +399,7 @@ struct elf_image {
 	void *low_addr;
 	void *high_addr;
 	void *hdr_buf;
+	void *reloc_base;
 	const char *filename;
 };
 

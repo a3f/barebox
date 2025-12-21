@@ -20,6 +20,16 @@ struct elf_segment {
 	void *phdr;
 };
 
+static void *elf_phdr_relocated_paddr(struct elf_image *elf, void *phdr)
+{
+	return elf->reloc_base + elf_phdr_p_paddr(elf, phdr);
+}
+
+static void *elf_hdr_relocated_entry(struct elf_image *elf)
+{
+	return elf->reloc_base + elf_hdr_e_entry(elf, elf->hdr_buf);
+}
+
 static int elf_request_region(struct elf_image *elf, resource_size_t start,
 			      resource_size_t size, void *phdr)
 {
@@ -62,7 +72,7 @@ static void elf_release_regions(struct elf_image *elf)
 
 static int request_elf_segment(struct elf_image *elf, void *phdr)
 {
-	void *dst = (void *) (phys_addr_t) elf_phdr_p_paddr(elf, phdr);
+	void *dst = elf_phdr_relocated_paddr(elf, phdr);
 	int ret;
 	u64 p_memsz = elf_phdr_p_memsz(elf, phdr);
 
@@ -124,7 +134,7 @@ static int load_elf_to_memory(struct elf_image *elf)
 		p_offset = elf_phdr_p_offset(elf, r->phdr);
 		p_filesz = elf_phdr_p_filesz(elf, r->phdr);
 		p_memsz = elf_phdr_p_memsz(elf, r->phdr);
-		dst = (void *) (phys_addr_t) elf_phdr_p_paddr(elf, r->phdr);
+		dst = elf_phdr_relocated_paddr(elf, r->phdr);
 
 		pr_debug("Loading phdr offset 0x%llx to 0x%p (%llu bytes)\n",
 			 p_offset, dst, p_filesz);
@@ -204,7 +214,7 @@ static int elf_check_image(struct elf_image *elf, void *buf)
 	elf->class = ((char *) buf)[EI_CLASS];
 	elf->type = elf_hdr_e_type(elf, buf);
 
-	if (elf->type != ET_EXEC) {
+	if (elf->type != ET_EXEC && elf->type != ET_DYN) {
 		pr_err("Non EXEC ELF image.\n");
 		return -ENOEXEC;
 	}
@@ -223,6 +233,7 @@ static void elf_init_struct(struct elf_image *elf)
 	elf->low_addr = (void *) (unsigned long) -1;
 	elf->high_addr = 0;
 	elf->filename = NULL;
+	elf->reloc_base = 0;
 }
 
 struct elf_image *elf_open_binary(void *buf)
@@ -243,7 +254,7 @@ struct elf_image *elf_open_binary(void *buf)
 		return ERR_PTR(-EINVAL);
 	}
 
-	elf->entry = (void *)elf_hdr_e_entry(elf, elf->hdr_buf);
+	elf->entry = elf_hdr_relocated_entry(elf);
 
 	return elf;
 }
@@ -317,7 +328,7 @@ static struct elf_image *elf_check_init(const char *filename)
 		goto err_free_hdr_buf;
 	}
 
-	elf->entry = (void *)elf_hdr_e_entry(elf, elf->hdr_buf);
+	elf->entry = elf_hdr_relocated_entry(elf);
 
 	return elf;
 
