@@ -488,9 +488,9 @@ static int k3_r5_start_image(void)
 	arm64_rproc->ops->load(arm64_rproc, &fw);
 	arm64_rproc->ops->start(arm64_rproc);
 
-	pr_debug("Starting ti-dm at 0x%08llx\n", elf->entry);
+	pr_debug("Starting ti-dm at 0x%p\n", elf->entry);
 
-	ti_dm = (void *)(unsigned long)elf->entry;
+	ti_dm = elf->entry;
 
 	ti_dm();
 }

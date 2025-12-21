@@ -242,7 +242,7 @@ struct elf_image *elf_open_binary(void *buf)
 		return ERR_PTR(-EINVAL);
 	}
 
-	elf->entry = elf_hdr_e_entry(elf, elf->hdr_buf);
+	elf->entry = (void *)elf_hdr_e_entry(elf, elf->hdr_buf);
 
 	return elf;
 }
@@ -316,7 +316,7 @@ static struct elf_image *elf_check_init(const char *filename)
 		goto err_free_hdr_buf;
 	}
 
-	elf->entry = elf_hdr_e_entry(elf, elf->hdr_buf);
+	elf->entry = (void *)elf_hdr_e_entry(elf, elf->hdr_buf);
 
 	return elf;
 
