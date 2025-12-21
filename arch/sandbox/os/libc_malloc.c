@@ -49,11 +49,11 @@ void *barebox_malloc(size_t size)
 	return mem;
 }
 
-size_t barebox_malloc_usable_size(void *mem)
+size_t barebox_malloc_usable_size(const void *mem)
 {
 	if (ZERO_OR_NULL_PTR(mem))
 		return 0;
-	return malloc_usable_size(mem);
+	return malloc_usable_size((void *)mem);
 }
 
 void barebox_free(void *ptr)
