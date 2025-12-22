@@ -17,7 +17,6 @@
 #include <linux/kasan.h>
 #include <linux/list.h>
 
-tlsf_t tlsf_mem_pool;
 static void (*malloc_request_store)(size_t bytes);
 
 struct pool_entry {
@@ -31,50 +30,6 @@ static inline size_t mem_pool_overhead(void)
 {
 	return sizeof(struct pool_entry) + tlsf_pool_overhead();
 }
-
-void *malloc(size_t bytes)
-{
-	void *mem;
-
-	mem = tlsf_malloc(bytes, tlsf_mem_pool);
-	if (!mem)
-		errno = ENOMEM;
-
-	return mem;
-}
-EXPORT_SYMBOL(malloc);
-
-void free(void *mem)
-{
-	tlsf_free_mem(mem, tlsf_mem_pool);
-}
-EXPORT_SYMBOL(free);
-
-size_t malloc_usable_size(const void *mem)
-{
-	return tlsf_block_size(mem, tlsf_mem_pool);
-}
-EXPORT_SYMBOL(malloc_usable_size);
-
-void *realloc(void *oldmem, size_t bytes)
-{
-	void *mem = tlsf_realloc(oldmem, bytes, tlsf_mem_pool);
-	if (!mem)
-		errno = ENOMEM;
-
-	return mem;
-}
-EXPORT_SYMBOL(realloc);
-
-void *memalign(size_t alignment, size_t bytes)
-{
-	void *mem = tlsf_memalign(alignment, bytes, tlsf_mem_pool);
-	if (!mem)
-		errno = ENOMEM;
-
-	return mem;
-}
-EXPORT_SYMBOL(memalign);
 
 struct malloc_stats {
 	size_t free;
@@ -91,7 +46,7 @@ static void malloc_walker(void* ptr, size_t size, int used, void *user)
 		s->free += size;
 }
 
-void malloc_stats(void)
+static void tlsf_stats(void *ctx)
 {
 	struct pool_entry *cur_pool;
 	struct malloc_stats s;
@@ -105,6 +60,20 @@ void malloc_stats(void)
 	printf("used: %zu\nfree: %zu\n", s.used, s.free);
 }
 
+struct allocator_ops tlsf_ops = {
+	.malloc = tlsf_malloc,
+	.memalign = tlsf_memalign,
+	.stats = tlsf_stats,
+
+	.internally_sized.free = tlsf_free_mem,
+	.internally_sized.realloc = tlsf_realloc,
+	.internally_sized.malloc_usable_size = tlsf_block_size
+};
+
+struct allocator default_alloc = {
+	.ops = &tlsf_ops,
+};
+
 void malloc_add_pool(void *mem, size_t bytes)
 {
 	pool_t new_pool;
@@ -113,13 +82,13 @@ void malloc_add_pool(void *mem, size_t bytes)
 	if (!mem)
 		return;
 
-	if (!tlsf_mem_pool) {
-		tlsf_mem_pool = tlsf_create(mem);
+	if (!default_alloc.ctx) {
+		default_alloc.ctx = tlsf_create(mem);
 		mem = (char *)mem + tlsf_size();
 		bytes = bytes - tlsf_size();
 	}
 
-	new_pool = tlsf_add_pool(tlsf_mem_pool, mem, bytes);
+	new_pool = tlsf_add_pool(default_alloc.ctx, mem, bytes);
 	if (!new_pool)
 		return;
 
@@ -143,7 +112,7 @@ static void tlsf_request_store(tlsf_t tlsf, size_t bytes)
 void malloc_register_store(void (*cb)(size_t bytes))
 {
 	malloc_request_store = cb;
-	tlsf_register_store(tlsf_mem_pool, tlsf_request_store);
+	tlsf_register_store(default_alloc.ctx, tlsf_request_store);
 }
 
 bool malloc_store_is_registered(void)

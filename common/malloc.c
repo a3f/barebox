@@ -9,7 +9,7 @@
 /* This #if clause will be dropped, once we migrated everything to the
  * new allocator API
  */
-#if defined(CONFIG_MALLOC_LIBC)
+#if defined(CONFIG_MALLOC_LIBC) || defined(CONFIG_MALLOC_TLSF)
 
 void *malloc(size_t size)
 {
