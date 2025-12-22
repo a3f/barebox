@@ -46,6 +46,8 @@ typedef const struct allocator {
 
 extern struct allocator default_alloc;
 
+alloc_t new_arena(void *buf, size_t size);
+
 void *malloc_a(size_t size, alloc_t alloc) __alloc_size(1);
 void *calloc_a(size_t n, size_t elem_size, alloc_t alloc) __alloc_size(1, 2);
 void *realloc_a(void *mem, size_t oldsize, size_t newsize,
