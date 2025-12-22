@@ -19,11 +19,10 @@
 #include <mmu.h>
 
 /*
- * Begin and End of memory area for malloc(), and current "brk"
+ * Begin and End of memory area for malloc()
  */
 static unsigned long malloc_start;
 static unsigned long malloc_end;
-static unsigned long malloc_brk;
 
 unsigned long mem_malloc_start(void)
 {
@@ -46,8 +45,7 @@ void mem_malloc_init(void *start, void *end)
 {
 	malloc_start = (unsigned long)start;
 	malloc_end = (unsigned long)end;
-	malloc_brk = malloc_start;
-#ifdef CONFIG_MALLOC_TLSF
+#ifndef CONFIG_MALLOC_LIBC
 	malloc_add_pool(start, end - start + 1);
 #endif
 	mem_malloc_initialized = 1;
@@ -186,30 +184,6 @@ static int mem_malloc_resource(void)
 	return ret;
 }
 coredevice_initcall(mem_malloc_resource);
-
-static void *sbrk_no_zero(ptrdiff_t increment)
-{
-	unsigned long old = malloc_brk;
-	unsigned long new = old + increment;
-
-	if ((new < malloc_start) || (new > malloc_end))
-		return NULL;
-
-	malloc_brk = new;
-
-	return (void *)old;
-}
-
-void *sbrk(ptrdiff_t increment)
-{
-	void *old = sbrk_no_zero(increment);
-
-	/* Only clear increment, if valid address was returned */
-	if (old != NULL)
-		memset(old, 0, increment);
-
-	return old;
-}
 
 LIST_HEAD(memory_banks);
 

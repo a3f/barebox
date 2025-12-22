@@ -328,7 +328,7 @@ config MALLOC_DUMMY
 	bool "dummy malloc"
 	depends on SHELL_NONE
 	help
-	  select this option to use a dummy malloc implementation. With this
+	  select this option to use a dummy malloc implementation. With this most
 	  memory is never freed. This is suitable for well tested noninteractive
 	  environments only.
 

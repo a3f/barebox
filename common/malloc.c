@@ -9,8 +9,6 @@
 /* This #if clause will be dropped, once we migrated everything to the
  * new allocator API
  */
-#if defined(CONFIG_MALLOC_LIBC) || defined(CONFIG_MALLOC_TLSF)
-
 void *malloc(size_t size)
 {
 	return malloc_a(size, &default_alloc);
@@ -58,17 +56,3 @@ void malloc_stats(void)
 	malloc_stats_a(&default_alloc);
 }
 EXPORT_SYMBOL(malloc_stats);
-
-#else
-
-void free_sensitive(void *mem)
-{
-	size_t size = malloc_usable_size(mem);
-
-	if (size)
-		memzero_explicit(mem, size);
-
-	free(mem);
-}
-
-#endif
