@@ -1138,15 +1138,6 @@ const char *strdup_const(const char *str)
 }
 EXPORT_SYMBOL(strdup_const);
 
-void free_const(const void *str)
-{
-	if (is_barebox_rodata((ulong)str))
-		return;
-
-	free((void *)str);
-}
-EXPORT_SYMBOL(free_const);
-
 /**
  * strreplace - Replace all occurrences of character in string.
  * @str: The string to operate on.
