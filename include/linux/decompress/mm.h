@@ -26,6 +26,11 @@
 #define STATIC_RW_DATA static
 #endif
 
+#if defined(CONFIG_ARM)
+#include <malloc.h>
+#define simple_malloc	malloc
+#define simple_free	free
+#else
 /* A trivial malloc implementation, adapted from
  *  malloc by Hannu Savolainen 1993 and Matthias Urlichs 1994
  */
@@ -59,6 +64,7 @@ static __maybe_unused void simple_free(void *where)
 	if (!malloc_count)
 		malloc_ptr = free_mem_ptr;
 }
+#endif
 
 #define large_malloc(a) simple_malloc(a)
 #define large_free(a) simple_free(a)
