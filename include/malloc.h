@@ -17,7 +17,6 @@ static inline void malloc_register_store(void (*cb)(size_t bytes)) { BUG(); }
 static inline bool malloc_store_is_registered(void) { return false; }
 #endif
 
-#if IN_PROPER
 void *malloc(size_t) __alloc_size(1);
 size_t malloc_usable_size(const void *);
 void free(void *);
@@ -28,42 +27,6 @@ void *calloc(size_t, size_t) __alloc_size(1, 2);
 void malloc_stats(void);
 
 int mem_malloc_is_initialized(void);
-#else
-static inline void *malloc(size_t nbytes)
-{
-	return NULL;
-}
-static inline void free(void *buf)
-{
-}
-static inline void free_sensitive(void *buf)
-{
-}
-static inline void *realloc(void *orig, size_t nbytes)
-{
-	return NULL;
-}
-static inline void *memalign(size_t align, size_t size)
-{
-	return NULL;
-}
-static inline void *calloc(size_t num, size_t size)
-{
-	return NULL;
-}
-static inline void malloc_stats(void)
-{
-}
-static inline void *sbrk(ptrdiff_t increment)
-{
-	return NULL;
-}
-
-static inline int mem_malloc_is_initialized(void)
-{
-	return 0;
-}
-#endif
 
 #ifdef CONFIG_DEBUG_MEMLEAK
 void memleak_check(void);

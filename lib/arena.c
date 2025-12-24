@@ -98,7 +98,7 @@ alloc_t new_arena(void *buf, size_t size)
 	return a;
 }
 
-#ifdef CONFIG_MALLOC_DUMMY
+#if defined(CONFIG_MALLOC_DUMMY) || IN_PBL
 #include <malloc.h>
 
 static void arena_leak(void *ptr, void *ctx)
