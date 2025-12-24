@@ -12,6 +12,7 @@ obj-y += dev-random.o
 obj-y += watchdog.o
 obj-$(CONFIG_CMD_SANDBOX_CPUINFO) += cpuinfo.o
 obj-$(CONFIG_LED) += led.o
+obj-$(CONFIG_MALLOC_LIBC) += libc_malloc.o
 bbenv-y += defaultenv-sandbox
 
 obj-y += stickypage.o

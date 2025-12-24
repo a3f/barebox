@@ -15,88 +15,53 @@
 
 extern int barebox_errno;
 
-void barebox_malloc_stats(void)
+void *libc_memalign(size_t alignment, size_t bytes, void *ctx)
 {
+	if (alignment > BAREBOX_MALLOC_MAX_SIZE || bytes > BAREBOX_MALLOC_MAX_SIZE)
+		return NULL;
+
+	return memalign(alignment, bytes);
 }
 
-void *barebox_memalign(size_t alignment, size_t bytes)
+void *libc_malloc(size_t size, void *ctx)
 {
-	void *mem = NULL;
+	if (size > BAREBOX_MALLOC_MAX_SIZE)
+		return NULL;
 
-	if (!bytes)
-		return ZERO_SIZE_PTR;
-
-	if (alignment <= BAREBOX_MALLOC_MAX_SIZE && bytes <= BAREBOX_MALLOC_MAX_SIZE)
-		mem = memalign(alignment, bytes);
-	if (!mem)
-		barebox_errno = BAREBOX_ENOMEM;
-
-	return mem;
+	return malloc(size);
 }
 
-void *barebox_malloc(size_t size)
+void *libc_calloc(size_t n, size_t elem_size, void *ctx)
 {
-	void *mem = NULL;
+	size_t size;
 
-	if (!size)
-		return ZERO_SIZE_PTR;
+	if (__builtin_mul_overflow(n, elem_size, &size) ||
+	    size > BAREBOX_MALLOC_MAX_SIZE)
+		return NULL;
 
-	if (size <= BAREBOX_MALLOC_MAX_SIZE)
-		mem = malloc(size);
-	if (!mem)
-		barebox_errno = BAREBOX_ENOMEM;
-
-	return mem;
+	return calloc(n, elem_size);
 }
 
-size_t barebox_malloc_usable_size(const void *mem)
+size_t libc_malloc_usable_size(const void *mem)
 {
 	if (ZERO_OR_NULL_PTR(mem))
 		return 0;
 	return malloc_usable_size((void *)mem);
 }
 
-void barebox_free(void *ptr)
+void libc_free(void *ptr)
 {
 	if (ZERO_OR_NULL_PTR(ptr))
 		return;
 	free(ptr);
 }
 
-void *barebox_realloc(void *ptr, size_t size)
+void *libc_realloc(void *ptr, size_t size, void *ctx)
 {
-	void *mem = NULL;
+	if (size > BAREBOX_MALLOC_MAX_SIZE)
+		return NULL;
 
-	if (!size) {
-		barebox_free(ptr);
-		return ZERO_SIZE_PTR;
-	}
-	if (ZERO_OR_NULL_PTR(ptr))
-		ptr = NULL;
-
-	if (size <= BAREBOX_MALLOC_MAX_SIZE)
-		mem = realloc(ptr, size);
-	if (!mem)
-		barebox_errno = BAREBOX_ENOMEM;
-
-	return mem;
-}
-
-void *barebox_calloc(size_t n, size_t elem_size)
-{
-	size_t product;
-	void *mem = NULL;
-
-	if (!n || !elem_size)
-		return ZERO_SIZE_PTR;
-
-	if (!__builtin_mul_overflow(n, elem_size, &product) &&
-	    product <= BAREBOX_MALLOC_MAX_SIZE)
-		mem = calloc(n, elem_size);
-	if (!mem)
-		barebox_errno = BAREBOX_ENOMEM;
-
-	return mem;
+	return realloc(ptr, size);
 }
 
 #ifdef CONFIG_DEBUG_MEMLEAK
