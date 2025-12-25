@@ -32,6 +32,12 @@ def barebox_config(request, strategy, target):
     return helper.get_config(command)
 
 
+def get_config():
+    config_file = helper.open_config_file(os.environ['LG_BUILDDIR'] + "/.config")
+    config = helper.parse_config(config_file)
+    return config
+
+
 def get_enabled_arch(config):
     # Get the absolute path to the directory containing this script
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -57,8 +63,7 @@ def get_enabled_arch(config):
 
 
 def guess_lg_env():
-    config_file = helper.open_config_file(os.environ['LG_BUILDDIR'] + "/.config")
-    config = helper.parse_config(config_file)
+    config = get_config()
     if not config or not config.get('CONFIG_NAME'):
         return None
     arch = get_enabled_arch(config)
@@ -97,6 +102,8 @@ def pytest_addoption(parser):
     parser.addoption('--interactive', action='store_const', const='qemu_interactive',
                      dest='lg_initial_state',
                      help=('(for debugging) skip tests and just start Qemu interactively'))
+    parser.addoption('--gdb', action='store_true',
+                     help=('(for debugging) halt QEMU waiting for gdb to attach'))
     parser.addoption('--dry-run', action='store_const', const='qemu_dry_run',
                      dest='lg_initial_state',
                      help=('(for debugging) skip tests and just print Qemu command line'))
@@ -172,6 +179,18 @@ def strategy(request, target, pytestconfig):  # noqa: max-complexity=30
             )
         else:
             pytest.exit("barebox currently supports only a single extra virtio console\n", 1)
+
+    if pytestconfig.option.gdb:
+        if qemu_bin is None:
+            pytest.exit("--gdb: unsupported for non-QEMU targets\n", 1)
+
+        config = get_config()
+        if not config:
+            pytest.exit("--gdb: couldn't find config\n", 1)
+        if config.get('CONFIG_ARM') and not config.get('CONFIG_PBL_BREAK'):
+            pytest.exit("--gdb: CONFIG_PBL_BREAK needs to be enabled\n", 1)
+
+        strategy.append_qemu_args("-s -S")
 
     if qemu_bin is not None:
         if not pytestconfig.option.qemu_graphics:
