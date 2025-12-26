@@ -394,6 +394,7 @@ extern Elf64_Dyn _DYNAMIC [];
 struct elf_image {
 	struct list_head list;
 	u8 class;
+	u16 type;
 	void *entry;
 	void *low_addr;
 	void *high_addr;
