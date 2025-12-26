@@ -202,8 +202,9 @@ static int elf_check_image(struct elf_image *elf, void *buf)
 	}
 
 	elf->class = ((char *) buf)[EI_CLASS];
+	elf->type = elf_hdr_e_type(elf, buf);
 
-	if (elf_hdr_e_type(elf, buf) != ET_EXEC) {
+	if (elf->type != ET_EXEC) {
 		pr_err("Non EXEC ELF image.\n");
 		return -ENOEXEC;
 	}
