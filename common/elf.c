@@ -176,6 +176,8 @@ static int load_elf_image_segments(struct elf_image *elf)
 	if (!list_empty(&elf->list))
 		return -EINVAL;
 
+	elf->entry = elf_hdr_relocated_entry(elf);
+
 	for (i = 0; i < elf_hdr_e_phnum(elf, buf) ; ++i) {
 		ret = request_elf_segment(elf, phdr);
 		if (ret)
@@ -252,8 +254,6 @@ struct elf_image *elf_open_binary(void *buf)
 		return ERR_PTR(-EINVAL);
 	}
 
-	elf->entry = elf_hdr_relocated_entry(elf);
-
 	return elf;
 }
 
@@ -325,8 +325,6 @@ static struct elf_image *elf_check_init(const char *filename)
 		ret = -ENOMEM;
 		goto err_free_hdr_buf;
 	}
-
-	elf->entry = elf_hdr_relocated_entry(elf);
 
 	return elf;
 
