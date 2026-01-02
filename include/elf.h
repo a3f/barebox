@@ -4,6 +4,7 @@
 
 #include <linux/types.h>
 #include <linux/list.h>
+#include <linux/stddef.h>
 //#include <linux/auxvec.h>
 //#include <linux/elf-em.h>
 #include <asm/elf.h>
@@ -392,14 +393,16 @@ extern Elf64_Dyn _DYNAMIC [];
 #endif
 
 struct elf_image {
+	struct_group_tagged(elf_image_info, info,
+		u8 class;
+		u16 type;
+		void *entry;
+		void *low_addr;
+		void *high_addr;
+		void *reloc_base;
+	);
 	struct list_head list;
-	u8 class;
-	u16 type;
-	void *entry;
-	void *low_addr;
-	void *high_addr;
 	void *hdr_buf;
-	void *reloc_base;
 	const char *filename;
 };
 

@@ -28,6 +28,8 @@
 extern unsigned char input_data[];
 extern unsigned char input_data_end[];
 
+static struct elf_image_info elfinfo;
+
 void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 				  void *boarddata)
 {
@@ -66,10 +68,18 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 	if (boarddata)
 		handoff_data_add_dt(boarddata);
 
+	handoff_data_add(HANDOFF_DATA_ELF_IMAGE_INFO, &elfinfo,
+			 sizeof(elfinfo));
+
 	barebox_base = arm_mem_barebox_image(membase, endmem,
 					     uncompressed_len, NULL);
-
 	handoff_data = (void *)barebox_base + uncompressed_len + MAX_BSS_SIZE;
+
+	elfinfo.low_addr = (void *)barebox_base;
+	elfinfo.high_addr = handoff_data;
+	elfinfo.entry = elfinfo.reloc_base = elfinfo.low_addr;
+
+	handoff_data_move(handoff_data);
 
 	malloc_add_pool((void *)barebox_base - ARM_MEM_EARLY_MALLOC_SIZE,
 			ARM_MEM_EARLY_MALLOC_SIZE);
@@ -86,8 +96,6 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 			pg_start, pg_len, barebox_base, uncompressed_len);
 
 	pbl_barebox_uncompress((void*)barebox_base, pg_start, pg_len);
-
-	handoff_data_move(handoff_data);
 
 	sync_caches_for_execution();
 
