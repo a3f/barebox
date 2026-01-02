@@ -119,6 +119,16 @@ config DEBUG_INFO_SPLIT
 	  to know about the .dwo files and include them.
 	  Incompatible with older versions of ccache.
 
+config GDB_SCRIPTS
+	bool "Embed GDB scripts into barebox for debugging"
+	help
+	  This embeds into the barebox ELF relative paths to the GDB
+	  helper scripts. If you load barebox into gdb, the helper
+	  scripts will be automatically imported by gdb as well, and
+	  additional functions are available to analyze a barebox
+	  instance. See Documentation/user/debugging.rst
+	  for further details.
+
 endif # DEBUG_INFO
 
 source "common/Kconfig.debug_ll"

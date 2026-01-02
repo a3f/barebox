@@ -87,6 +87,7 @@ obj-y			+= list_sort.o
 obj-y			+= refcount.o
 obj-y			+= parseopt.o
 obj-y			+= clz_ctz.o
+obj-y			+= gdb_scripts.o
 obj-$(CONFIG_CRC_CCITT) += crc-ccitt.o
 obj-$(CONFIG_CRC8)	+= crc8.o
 obj-$(CONFIG_CRC16)	+= crc16.o
