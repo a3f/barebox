@@ -76,6 +76,6 @@ SECTIONS
 
 	pbl_image_size =  .;
 
-	_barebox_image_size = __image_end;
+	_barebox_image_size = __image_end - __image_start;
 	_barebox_pbl_size = __bss_start;
 }
