@@ -98,6 +98,21 @@ void *barebox_arm_boot_dtb(void)
 	return boot_dtb;
 }
 
+static struct elf_image_info *barebox_elf_info(void)
+{
+	static struct elf_image_info *elf_info;
+	size_t size;
+
+	if (elf_info)
+		return elf_info;
+
+	elf_info = handoff_data_get_entry(HANDOFF_DATA_ELF_IMAGE_INFO, &size);
+
+	BUG_ON(!elf_info || size != sizeof(struct elf_image_info));
+
+	return elf_info;
+}
+
 unsigned long arm_mem_ramoops_get(void)
 {
 	return arm_mem_ramoops(arm_endmem);
@@ -139,13 +154,17 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 {
 	unsigned long endmem = membase + memsize;
 	unsigned long malloc_start, malloc_end;
-	unsigned long barebox_base = arm_mem_barebox_image(membase, endmem,
-							   barebox_image_size,
-							   hd);
+	struct elf_image_info *elfinfo;
+	unsigned long barebox_base;
 
 	pbl_barebox_break();
 
 	pr_debug("memory at 0x%08lx, size 0x%08lx\n", membase, memsize);
+
+	handoff_data_set(hd);
+
+	elfinfo = barebox_elf_info();
+	barebox_base = (uintptr_t)elfinfo->low_addr;
 
 	arm_membase = membase;
 	arm_endmem = endmem;
@@ -181,8 +200,6 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 	kasan_init(membase, memsize, malloc_start - (memsize >> KASAN_SHADOW_SCALE_SHIFT));
 
 	mem_malloc_init((void *)malloc_start, (void *)malloc_end - 1);
-
-	handoff_data_set(hd);
 
 	if (IS_ENABLED(CONFIG_BOOTM_OPTEE))
 		of_add_reserve_entry(endmem - OPTEE_SIZE, endmem - 1);
