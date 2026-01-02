@@ -5,12 +5,13 @@
 #include <linux/errno.h>
 #include <linux/err.h>
 
-extern int errno;
 
 #if IN_PROPER
+extern int errno;
 void perror(const char *s);
 const char *strerror(int errnum);
 #else
+static __maybe_unused int errno;
 static inline void perror(const char *s)
 {
 }
