@@ -9,6 +9,8 @@ hostprogs-always-y					+= fix_size
 hostprogs-always-y					+= bareboxenv
 hostprogs-always-y					+= bareboxcrc32
 hostprogs-always-y					+= kernel-install
+hostprogs-always-$(CONFIG_PBL_ELF_LOADER)		+= elfcompress
+HOSTCFLAGS_elfcompress.o = -DCONFIG_$(if $(CONFIG_64BIT),64,32)BIT=1
 hostprogs-always-$(CONFIG_QOICONV)			+= qoiconv
 hostprogs-always-$(CONFIG_TLV)				+= bareboxtlv
 hostprogs-always-$(CONFIG_KEYTOC)			+= keytoc
