@@ -433,6 +433,7 @@ ELF_GET_FIELD(hdr, e_machine, u16)
 ELF_GET_FIELD(phdr, p_paddr, u64)
 ELF_GET_FIELD(phdr, p_filesz, u64)
 ELF_GET_FIELD(phdr, p_memsz, u64)
+ELF_GET_FIELD(phdr, p_flags, u32)
 ELF_GET_FIELD(phdr, p_type, u32)
 ELF_GET_FIELD(phdr, p_offset, u64)
 

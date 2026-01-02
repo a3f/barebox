@@ -1121,7 +1121,11 @@ export KBUILD_BINARY ?= barebox.bin
 # Also any assignments in arch/$(SRCARCH)/Makefile take precedence over
 # the default value.
 
+ifdef CONFIG_PBL_ELF_LOADER
+export BAREBOX_PROPER ?= vmbarebox
+else
 export BAREBOX_PROPER ?= barebox.bin
+endif
 
 barebox-flash-images: $(KBUILD_IMAGE)
 	@echo $^ > $@
@@ -1178,22 +1182,17 @@ quiet_cmd_barebox_proper__ = CC      $@
 	$(if $(CONFIG_KALLSYMS),,+$(call cmd,barebox_version))
 	$(call cmd,barebox_proper__)
 	$(Q)echo 'savedcmd_$@ := $(cmd_barebox_proper__)' > $(@D)/.$(@F).cmd
-OBJCOPYFLAGS_barebox.elf = --strip-all	\
+	$(Q)rm -f .old_version
+
+barebox.o: .tmp_barebox.o FORCE
+	$(call if_changed,objcopy)
+
+OBJCOPYFLAGS_vmbarebox = --strip-section-headers \
   -R .comment* -R .note* -R .gnu.hash \
-LDFLAGS_barebox.piggy += -pie --nmagic
+  --set-section-alignment *=1
 
-barebox.z: barebox FORCE
-	$(call if_changed_rule,barebox__)
-
-all: barebox.elf
-barebox.piggy.stripped: barebox.piggy FORCE
-	$(call cmd,objcopy)
-
-# TODO need -Bsymbolic?
-barebox.z: barebox.piggy.stripped FORCE
-	$(call if_changed,$(suffix_y))
-
-all: barebox.z
+vmbarebox: barebox FORCE
+	$(call if_changed,objcopy)
 
 # The actual objects are generated when descending,
 # make sure no implicit rule kicks in

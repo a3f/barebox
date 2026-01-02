@@ -10,6 +10,7 @@
 #include <init.h>
 #include <linux/sizes.h>
 #include <pbl.h>
+#include <pbl/elf.h>
 #include <pbl/handoff-data.h>
 #include <asm/barebox-arm.h>
 #include <asm/barebox-arm-head.h>
@@ -28,8 +29,6 @@
 extern unsigned char input_data[];
 extern unsigned char input_data_end[];
 
-static struct elf_image_info elfinfo;
-
 void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 				  void *boarddata)
 {
@@ -37,6 +36,7 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 	void __noreturn (*barebox)(unsigned long, unsigned long, void *);
 	unsigned long endmem = membase + memsize;
 	unsigned long barebox_base;
+	struct elf_image elf;
 	void *pg_start, *pg_end;
 	unsigned long pc = get_pc();
 	void *handoff_data;
@@ -56,7 +56,6 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 		relocate_to_adr(membase);
 
 	pg_len = pg_end - pg_start;
-	uncompressed_len = get_unaligned((const u32 *)(pg_start + pg_len - 4));
 
 	setup_c();
 
@@ -64,50 +63,65 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 
 	arm_pbl_init_exceptions();
 
-	/* Add handoff data now, so arm_mem_barebox_image takes it into account */
+	/* The sequence of operations is important here: */
+
+	/* 1. We parse the ELF to determine uncompressed size */
+	pbl_elf_parse(&elf, pg_start, pg_len);
+	uncompressed_len = ALIGN(elf.high_addr - elf.low_addr, 8);
+
+	/* 2. Add handoff data, so arm_mem_barebox_image takes it into account */
 	if (boarddata)
 		handoff_data_add_dt(boarddata);
 
-	handoff_data_add(HANDOFF_DATA_ELF_IMAGE_INFO, &elfinfo,
-			 sizeof(elfinfo));
+	handoff_data_add(HANDOFF_DATA_ELF_IMAGE_INFO, &elf.info,
+			 sizeof(elf.info));
 
+	/* 3. Calculate where barebox proper should be placed */
 	barebox_base = arm_mem_barebox_image(membase, endmem,
 					     uncompressed_len, NULL);
-	handoff_data = (void *)barebox_base + uncompressed_len + MAX_BSS_SIZE;
-
-	elfinfo.low_addr = (void *)barebox_base;
-	elfinfo.high_addr = handoff_data;
-	elfinfo.entry = elfinfo.reloc_base = elfinfo.low_addr;
-
-	handoff_data_move(handoff_data);
-
-	malloc_add_pool((void *)barebox_base - ARM_MEM_EARLY_MALLOC_SIZE,
-			ARM_MEM_EARLY_MALLOC_SIZE);
 
 #ifdef DEBUG
 	print_pbl_mem_layout(membase, endmem, barebox_base);
 #endif
+
+	/* 4. Setup MMU as early as possible to speed up execution */
 	if (IS_ENABLED(CONFIG_MMU))
 		mmu_early_enable(membase, memsize, barebox_base);
 	else if (IS_ENABLED(CONFIG_ARMV7R_MPU))
 		set_cr(get_cr() | CR_C);
 
+	/* 5. Relocate barebox. This will update the handoff data! */
+	pbl_elf_relocate(&elf, (void *)barebox_base);
+
+	/* 6. Move the handoff data, including the update ELF info */
+	handoff_data = (void *)barebox_base + uncompressed_len + MAX_BSS_SIZE;
+	handoff_data_move(handoff_data);
+
+	/* 7. For later decompression, register a malloc pool */
+	malloc_add_pool((void *)barebox_base - ARM_MEM_EARLY_MALLOC_SIZE,
+			ARM_MEM_EARLY_MALLOC_SIZE);
+
 	pr_debug("uncompressing barebox binary at 0x%p (size 0x%08x) to 0x%08lx (uncompressed size: 0x%08x)\n",
 			pg_start, pg_len, barebox_base, uncompressed_len);
 
-	pbl_barebox_uncompress((void*)barebox_base, pg_start, pg_len);
+	/* 8. Actually load the ELF */
+	pbl_elf_load(&elf);
+
+	// TODO: remove
+	if ((ulong)elf.low_addr != (ulong)barebox_base)
+		panic("%lx != %lx\n", (ulong)elf.low_addr, barebox_base);
 
 	sync_caches_for_execution();
 
-	if (IS_ENABLED(CONFIG_THUMB2_BAREBOX))
-		barebox = (void *)(barebox_base + 1);
-	else
-		barebox = (void *)barebox_base;
-
+	barebox = elf.entry;
 	pr_debug("jumping to uncompressed image at 0x%p\n", barebox);
 
 	if (IS_ENABLED(CONFIG_CPU_V7) && boot_cpu_mode() == HYP_MODE)
 		armv7_switch_to_hyp();
+
+	// TODO: does the THUMB2 ELF entry have | 1 already?
+	if (IS_ENABLED(CONFIG_THUMB2_BAREBOX))
+		barebox = (void *)((uintptr_t)barebox | 1);
 
 	barebox(membase, memsize, handoff_data);
 }
