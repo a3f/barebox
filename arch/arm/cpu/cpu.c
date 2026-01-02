@@ -99,19 +99,4 @@ static void arch_shutdown(void)
 
 }
 archshutdown_exitcall(arch_shutdown);
-
-extern unsigned long arm_stack_top;
-
-static int arm_request_stack(void)
-{
-	if (efi_is_payload())
-		return 0;
-
-	if (!request_barebox_region("stack", arm_stack_top - STACK_SIZE, STACK_SIZE,
-				    MEMATTRS_RW))
-		pr_err("Error: Cannot request SDRAM region for stack\n");
-
-	return 0;
-}
-coredevice_initcall(arm_request_stack);
 #endif

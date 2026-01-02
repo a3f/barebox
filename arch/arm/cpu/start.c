@@ -26,13 +26,13 @@
 #include <compressed-dtb.h>
 #include <malloc.h>
 #include <asm/armv7r-mpu.h>
+#include <efi/mode.h>
 
 #include <debug_ll.h>
 
 #include "entry.h"
 
-unsigned long arm_stack_top;
-static unsigned long arm_barebox_size;
+static unsigned long arm_stack_top;
 static unsigned long arm_endmem;
 static unsigned long arm_membase;
 
@@ -123,9 +123,16 @@ static int barebox_memory_areas_init(void)
 				     mem_malloc_start() - kasan_shadow_base,
 				     MEMTYPE_BOOT_SERVICES_DATA, MEMATTRS_RW);
 
+	if (efi_is_payload())
+		return 0;
+
+	if (!request_barebox_region("stack", arm_stack_top - STACK_SIZE, STACK_SIZE,
+				    MEMATTRS_RW))
+		pr_err("Error: Cannot request SDRAM region for stack\n");
+
 	return 0;
 }
-device_initcall(barebox_memory_areas_init);
+coredevice_initcall(barebox_memory_areas_init);
 
 __noreturn void barebox_non_pbl_start(unsigned long membase,
 		unsigned long memsize, struct handoff_data *hd)
@@ -143,7 +150,6 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 	arm_membase = membase;
 	arm_endmem = endmem;
 	arm_stack_top = arm_mem_stack_top(endmem);
-	arm_barebox_size = barebox_image_size + MAX_BSS_SIZE;
 	malloc_end = barebox_base;
 
 	if (IS_ENABLED(CONFIG_ARMV7R_MPU)) {
