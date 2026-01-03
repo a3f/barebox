@@ -89,24 +89,38 @@ int pbl_barebox_verify(const void *compressed_start, unsigned int len,
 	return memcmp(hash, computed_hash, SHA256_DIGEST_SIZE);
 }
 
-void pbl_barebox_uncompress(void *dest, void *compressed_start, unsigned int len)
+void pbl_verify_piggy(void *compressed_start, unsigned int len)
 {
 	uint32_t pbl_hash_len;
 	void *pbl_hash_start, *pbl_hash_end;
 
-	if (IS_ENABLED(CONFIG_PBL_VERIFY_PIGGY)) {
-		pbl_hash_start = sha_sum;
-		pbl_hash_end = sha_sum_end;
-		pbl_hash_len = pbl_hash_end - pbl_hash_start;
-		if (pbl_barebox_verify(compressed_start, len, pbl_hash_start,
-				       pbl_hash_len) != 0) {
-			putc_ll('!');
-			panic("hash mismatch, refusing to decompress");
-		}
+	if (!IS_ENABLED(CONFIG_PBL_VERIFY_PIGGY)) {
+		pr_debug("Verifying piggybacked barebox proper disabled\n");
+		return;
 	}
 
-	decompress((void *)compressed_start,
-			len,
-			NULL, NULL,
-			dest, NULL, errorfn);
+	pbl_hash_start = sha_sum;
+	pbl_hash_end = sha_sum_end;
+	pbl_hash_len = pbl_hash_end - pbl_hash_start;
+	if (pbl_barebox_verify(compressed_start, len, pbl_hash_start,
+			       pbl_hash_len) != 0) {
+		putc_ll('!');
+		panic("hash mismatch, refusing to decompress");
+	}
+}
+
+
+long pbl_barebox_uncompress_noverify(void *dest, void *compressed_start,
+				     unsigned int len)
+{
+	long pos;
+	return decompress((void *)compressed_start,
+			  len, NULL, NULL,
+			  dest, &pos, errorfn) ?: pos;
+}
+
+void pbl_barebox_uncompress(void *dest, void *compressed_start, unsigned int len)
+{
+	pbl_verify_piggy(compressed_start, len);
+	pbl_barebox_uncompress_noverify(dest, compressed_start, len);
 }
