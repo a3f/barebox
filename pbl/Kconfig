@@ -54,6 +54,9 @@ config PBL_RELOCATABLE
 	  This option only influences the PBL image. See RELOCATABLE to also make
 	  the real image relocatable.
 
+config PBL_ELF_LOADER
+	bool
+
 config PBL_FULLY_PIC
 	bool "fully position-independent pbl image"
 	depends on PBL_RELOCATABLE && ARM64
