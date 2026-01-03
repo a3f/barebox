@@ -11,7 +11,7 @@ ENTRY(start)
 	stp	x2, x3, [sp, #-16]!
 
 	bl	relocate_to_current_adr
-	bl	setup_c
+	/* BSS was zeroed by PBL's ELF loader */
 
 	ldp	x2, x3, [sp], #16
 	ldp	x0, x1, [sp], #16

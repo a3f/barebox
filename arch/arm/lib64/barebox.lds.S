@@ -58,7 +58,7 @@ SECTIONS
 
 	. = ALIGN(4);
 	.__bss_start :  { *(.__bss_start) }
-	.bss : { *(.bss*) } : data
+	.bss (NOLOAD) : { *(.bss*) } : bss
 	.__bss_stop :  { *(.__bss_stop) }
 	_end = .;
 	_barebox_image_size = __bss_start;
@@ -70,6 +70,7 @@ PHDRS
 	rodata	PT_LOAD		FLAGS(4); /* PF_R */
 	dynamic	PT_DYNAMIC	FLAGS(4); /* PF_R */
 	data	PT_LOAD		FLAGS(6); /* PF_R | PF_W */
+	bss	PT_LOAD		FLAGS(6); /* PF_R | PF_W */
 }
 
 NOCROSSREFS_FROM(.efi_runtime)

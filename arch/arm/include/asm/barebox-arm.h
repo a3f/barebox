@@ -180,21 +180,12 @@ static inline bool inside_stack_guard_page(ulong addr)
 	return false;
 }
 
-/*
- * When using compressed images in conjunction with relocatable images
- * the PBL code must pick a suitable place where to uncompress the barebox
- * image. For doing this the PBL code must know the size of the final
- * image including the BSS segment. The BSS size is unknown to the PBL
- * code, so define a maximum BSS size here.
- */
-#define MAX_BSS_SIZE SZ_1M
-
 static inline unsigned long arm_mem_barebox_image(unsigned long membase,
 						  unsigned long endmem,
 						  unsigned long uncompressed_len,
 						  const struct handoff_data *handoff_data)
 {
-	unsigned long size = uncompressed_len + MAX_BSS_SIZE + __handoff_data_size(handoff_data);
+	unsigned long size = uncompressed_len + __handoff_data_size(handoff_data);
 
 	endmem = arm_mem_ramoops(endmem);
 

@@ -94,7 +94,7 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 	pbl_elf_relocate(&elf, (void *)barebox_base);
 
 	/* 6. Move the handoff data, including the update ELF info */
-	handoff_data = (void *)barebox_base + uncompressed_len + MAX_BSS_SIZE;
+	handoff_data = (void *)barebox_base + uncompressed_len;
 	handoff_data_move(handoff_data);
 
 	/* 7. For later decompression, register a malloc pool */

@@ -13,7 +13,7 @@ ENTRY(start)
 	bl	armv7_hyp_install
 #endif
 	bl	relocate_to_current_adr
-	bl	setup_c
+	/* BSS was zeroed by PBL's ELF loader */
 
 	pop	{r0, r1, r2, r3}
 	b	barebox_non_pbl_start
