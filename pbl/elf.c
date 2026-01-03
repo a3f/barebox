@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 
 #include <elf.h>
+#include <pbl.h>
 #include <pbl/elf.h>
 #include <linux/string.h>
 #include <linux/printk.h>
@@ -98,14 +99,23 @@ void pbl_elf_load(struct elf_image *elf)
 		u64 p_filesz = elf_phdr_p_filesz(elf, phdr);
 		u64 p_memsz = elf_phdr_p_memsz(elf, phdr);
 		void *dst = elf_phdr_relocated_paddr(elf, phdr);
+		void *src = elf->hdr_buf + p_offset;
+		unsigned flags = elf_phdr_p_flags(elf, phdr);
+		bool is_compressed = flags & PF_COMPRESSED;
 
-		pr_debug("Loading phdr offset 0x%llx to 0x%p (%llu bytes)\n",
-			 p_offset, dst, p_filesz);
+		pr_debug("%s phdr offset 0x%llx+%llu to 0x%p (%llu bytes)\n",
+			 is_compressed ? "Decompressing" : "Copying",
+			 p_offset, p_filesz, dst, p_memsz);
 
-		memcpy(dst, elf->hdr_buf + p_offset, p_filesz);
-
-		if (p_filesz < p_memsz)
-			memset(dst + p_filesz, 0x00, p_memsz - p_filesz);
+		if (is_compressed) {
+			long pos = pbl_barebox_uncompress_noverify(dst, src, p_filesz);
+			if (pos != p_filesz)
+				panic("Corruption detected: ELF segment size mismatch\n");
+		} else {
+			memcpy(dst, src, p_filesz);
+			if (p_filesz < p_memsz)
+				memset(dst + p_filesz, 0x00, p_memsz - p_filesz);
+		}
 
 		phdr += elf_size_of_phdr(elf);
 	}

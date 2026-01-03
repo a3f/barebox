@@ -245,8 +245,10 @@ quiet_cmd_sha256sum ?= SHA     $@
 # Gzip
 # ---------------------------------------------------------------------------
 
+    shell_gzip = $(KGZIP) -n -f -9
+
 quiet_cmd_gzip = GZIP    $@
-      cmd_gzip = cat $(real-prereqs) | $(KGZIP) -n -f -9 > $@
+      cmd_gzip = cat $(real-prereqs) | $(shell_gzip) > $@
 
 # Bzip2
 # ---------------------------------------------------------------------------

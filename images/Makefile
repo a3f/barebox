@@ -148,11 +148,19 @@ $(obj)/barebox.sha.bin: $(obj)/barebox.sum FORCE
 $(obj)/barebox.sum: $(obj)/barebox.z FORCE
 	$(call if_changed,sha256sum,$<)
 
+# TODO add new shell_ commands
+quiet_cmd_elfz ?= ELF.Z $@
+      cmd_elfz ?= $< -o $@ -C "$(shell_$(2))" $(filter-out FORCE $<,$^)
 
 # barebox.z - compressed barebox binary
 # ----------------------------------------------------------------
+ifdef CONFIG_PBL_ELF_LOADER
+$(obj)/barebox.z: scripts/elfcompress $(obj)/../$(BAREBOX_PROPER) FORCE
+	$(call if_changed,elfz,$(suffix_y))
+else
 $(obj)/barebox.z: $(obj)/../$(BAREBOX_PROPER) FORCE
 	$(call if_changed,$(suffix_y))
+endif
 
 # %.img - create a copy from another file
 # ----------------------------------------------------------------
