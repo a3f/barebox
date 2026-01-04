@@ -1211,7 +1211,7 @@ PHONY += prepare archprepare
 
 archprepare: outputmakefile scripts include/config/kernel.release \
 	$(version_h) include/generated/utsrelease.h \
-	include/generated/compile.h include/generated/autoconf.h \
+	include/generated/autoconf.h \
 	remove-stale-files
 
 prepare0: archprepare
@@ -1289,12 +1289,6 @@ $(version_h): FORCE
 
 include/generated/utsrelease.h: include/config/kernel.release FORCE
 	$(call filechk,utsrelease.h)
-
-filechk_compile.h = $(srctree)/scripts/mkcompile_h \
-	"$(UTS_MACHINE)" "$(CONFIG_CC_VERSION_TEXT)" "$(LD)"
-
-include/generated/compile.h: FORCE
-	$(call filechk,compile.h)
 
 PHONY += headerdep
 headerdep:
