@@ -382,18 +382,21 @@ typedef struct elf64_note {
 extern Elf32_Dyn _DYNAMIC [];
 #define elfhdr		elf32_hdr
 #define elf_phdr	elf32_phdr
+#define elf_dyn		Elf32_Dyn
 #define elf_note	elf32_note
 #define elf_addr_t	Elf32_Off
 
 #else
 
-extern Elf64_Dyn _DYNAMIC [];
 #define elfhdr		elf64_hdr
 #define elf_phdr	elf64_phdr
+#define elf_dyn		Elf64_Dyn
 #define elf_note	elf64_note
 #define elf_addr_t	Elf64_Off
 
 #endif
+
+extern elf_dyn _DYNAMIC [];
 
 struct elf_image {
 	struct_group_tagged(elf_image_info, info,

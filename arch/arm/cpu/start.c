@@ -149,13 +149,20 @@ static int barebox_memory_areas_init(void)
 }
 coredevice_initcall(barebox_memory_areas_init);
 
-__noreturn void barebox_non_pbl_start(unsigned long membase,
+/* This will be the barebox proper ELF entry point */
+void start(unsigned long membase,
+	   unsigned long memsize, struct handoff_data *hd);
+
+__noreturn void start(unsigned long membase,
 		unsigned long memsize, struct handoff_data *hd)
 {
 	unsigned long endmem = membase + memsize;
 	unsigned long malloc_start, malloc_end;
 	struct elf_image_info *elfinfo;
 	unsigned long barebox_base;
+
+	if (IS_ENABLED(CONFIG_CPU_V7))
+		armv7_hyp_install();
 
 	pbl_barebox_break();
 

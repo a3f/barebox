@@ -2,7 +2,9 @@
 
 #include <elf.h>
 #include <pbl.h>
+#include <mmu.h>
 #include <pbl/elf.h>
+#include <asm/reloc.h>
 #include <linux/string.h>
 #include <linux/printk.h>
 
@@ -89,10 +91,76 @@ void pbl_elf_relocate(struct elf_image *elf, void *reloc_base)
 	elf_parse_segments(elf);
 }
 
+static inline void *elf_reloc_ptr(const struct elf_image *elf, const elf_dyn *reloc)
+{
+	return elf->reloc_base + reloc->d_un.d_ptr;
+}
+
+static void pbl_elf_apply_relocs(struct elf_image *elf,
+				 const elf_dyn *relocs, size_t count)
+{
+	void *rela = NULL, *rel = NULL, *dynsym = NULL;
+	ulong rela_sz = 0, rel_sz = 0;
+	void *dstart, *dend;
+
+	for (int i = 0; i < count; i++) {
+		const elf_dyn *reloc = &relocs[i];
+
+		switch (reloc->d_tag) {
+		case DT_RELA:
+			rela = elf_reloc_ptr(elf, reloc);
+			break;
+		case DT_RELASZ:
+			rela_sz = reloc->d_un.d_val;
+			break;
+		case DT_REL:
+			rel = elf_reloc_ptr(elf, reloc);
+			break;
+		case DT_RELSZ:
+			rel_sz = reloc->d_un.d_val;
+			break;
+		case DT_SYMTAB:
+			dynsym = elf_reloc_ptr(elf, reloc);
+			break;
+		}
+	}
+
+	if (rela && rela_sz) {
+		dstart = rela;
+		dend = rela + rela_sz;
+	} else if (rel && rel_sz) {
+		dstart = rel;
+		dend = rel + rel_sz;
+	} else {
+		pr_debug("No relocations to fixup\n");
+		return;
+	}
+
+	relocate_image((ulong)elf->reloc_base,
+		       dstart, dend, dynsym, NULL);
+}
+
+static maptype_t get_maptype(unsigned flags)
+{
+	switch (flags & (PF_R | PF_W | PF_X)) {
+	case PF_R | PF_X:
+		return MAP_CODE;
+	case PF_R | PF_W:
+		return MAP_CACHED;
+	case PF_R:
+		return MAP_RO;
+	}
+
+	pr_warn("Unexpected ELF segment flags: 0x%x\n", flags);
+	return MAP_CACHED;
+}
+
 void pbl_elf_load(struct elf_image *elf)
 {
 	void *buf = elf->hdr_buf;
 	void *phdr = (void *) (buf + elf_hdr_e_phoff(elf, buf));
+	elf_dyn *dyn = NULL;
+	size_t ndyn;
 
 	for (int i = 0; i < elf_hdr_e_phnum(elf, buf); i++) {
 		u64 p_offset = elf_phdr_p_offset(elf, phdr);
@@ -116,6 +184,31 @@ void pbl_elf_load(struct elf_image *elf)
 			if (p_filesz < p_memsz)
 				memset(dst + p_filesz, 0x00, p_memsz - p_filesz);
 		}
+
+
+		if (elf_phdr_p_type(elf, phdr) == PT_DYNAMIC) {
+			dyn = dst;
+			ndyn = p_filesz / sizeof(*dyn);
+		}
+
+		phdr += elf_size_of_phdr(elf);
+	}
+
+	if (dyn)
+		pbl_elf_apply_relocs(elf, dyn, ndyn);
+
+	phdr = (void *) (buf + elf_hdr_e_phoff(elf, buf));
+
+	for (int i = 0; i < elf_hdr_e_phnum(elf, buf); i++) {
+		u64 p_memsz = elf_phdr_p_memsz(elf, phdr);
+		void *dst = elf_phdr_relocated_paddr(elf, phdr);
+		unsigned flags = elf_phdr_p_flags(elf, phdr);
+
+		if (PTR_IS_ALIGNED(dst, PAGE_SIZE))
+			remap_range(dst, p_memsz, get_maptype(flags));
+		else if ((flags & (PF_R | PF_W)) != (PF_R | PF_W))
+			pr_err("Skipping remap for segment #%d (flags=0x%x) at 0x%p-%llu\n",
+			       i, flags, dst, p_memsz);
 
 		phdr += elf_size_of_phdr(elf);
 	}

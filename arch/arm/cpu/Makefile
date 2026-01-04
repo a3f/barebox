@@ -12,7 +12,7 @@ obj-pbl-$(CONFIG_CPU_32v7) += hyp.o
 AFLAGS_hyp.o :=-Wa,-march=armv7-a -Wa,-mcpu=all
 AFLAGS_hyp.pbl.o :=-Wa,-march=armv7-a -Wa,-mcpu=all
 
-obj-y += start.o start_$(S64_32).o entry.o entry_ll_$(S64_32).o
+obj-y += start.o entry.o entry_ll_$(S64_32).o
 KASAN_SANITIZE_start.o := n
 
 pbl-$(CONFIG_CPU_64) += head_64.o
