@@ -379,7 +379,6 @@ typedef struct elf64_note {
 
 #if ELF_CLASS == ELFCLASS32
 
-extern Elf32_Dyn _DYNAMIC [];
 #define elfhdr		elf32_hdr
 #define elf_phdr	elf32_phdr
 #define elf_dyn		Elf32_Dyn
