@@ -60,22 +60,10 @@ void pbl_barebox_break(void)
 /*
  * relocate binary to the currently running address
  */
-void __prereloc relocate_to_current_adr(void)
+void __prereloc relocate_image(unsigned long offset,
+			       void *dstart, void *dend,
+			       long *dynsym, long *dynend)
 {
-	unsigned long offset;
-	unsigned long __maybe_unused *dynsym, *dynend;
-	void *dstart, *dend;
-
-	/* Get offset between linked address and runtime address */
-	offset = get_runtime_offset();
-
-	/*
-	 * We have yet to relocate, so using runtime_address
-	 * to compute the relocated address
-	 */
-	dstart = runtime_address(__rel_dyn_start);
-	dend = runtime_address(__rel_dyn_end);
-
 #if defined(CONFIG_CPU_64)
 	while (dstart < dend) {
 		struct elf64_rela *rel = dstart;
@@ -105,8 +93,6 @@ void __prereloc relocate_to_current_adr(void)
 		dstart += sizeof(*rel);
 	}
 #elif defined(CONFIG_CPU_32)
-	dynsym = runtime_address(__dynsym_start);
-	dynend = runtime_address(__dynsym_end);
 
 	while (dstart < dend) {
 		struct elf32_rel *rel = dstart;
@@ -141,10 +127,21 @@ void __prereloc relocate_to_current_adr(void)
 		dstart += sizeof(*rel);
 	}
 
-	__memset(dynsym, 0, (unsigned long)dynend - (unsigned long)dynsym);
+	/* Optional: not required for correctness */
+	if (dynend)
+		__memset(dynsym, 0, (unsigned long)dynend - (unsigned long)dynsym);
 #else
 #error "Architecture not specified"
 #endif
+}
+
+void __prereloc relocate_to_current_adr(void)
+{
+	relocate_image(get_runtime_offset(),
+		       runtime_address(__rel_dyn_start),
+		       runtime_address(__rel_dyn_end),
+		       runtime_address(__dynsym_start),
+		       runtime_address(__dynsym_end));
 
 	sync_caches_for_execution();
 }
@@ -196,4 +193,3 @@ void print_pbl_mem_layout(ulong membase, ulong endmem, ulong barebox_base)
 	printf("membase               = 0x%08lx+0x%08lx\n",
 	       membase, endmem - membase);
 }
-
