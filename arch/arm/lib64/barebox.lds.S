@@ -38,6 +38,8 @@ SECTIONS
 
 	ASSERT_NO_DEPRECATED(rodata)
 
+	.dynamic : ALIGN(8) { *(.dynamic) }	:rodata :dynamic
+
 	. = ALIGN(4096);
 
 	__end_rodata = .;

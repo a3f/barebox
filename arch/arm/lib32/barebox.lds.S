@@ -43,6 +43,8 @@ SECTIONS
 
 	ASSERT_NO_DEPRECATED(rodata)
 
+	.dynamic : ALIGN(8) { *(.dynamic) }	:rodata :dynamic
+
 #ifdef CONFIG_ARM_UNWIND
 	/*
 	 * Stack unwinding tables
