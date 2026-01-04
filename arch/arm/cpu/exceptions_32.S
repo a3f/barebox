@@ -127,34 +127,6 @@ fiq:
 	bad_save_user_regs
 	bl 	do_fiq
 
-#ifdef CONFIG_ARM_EXCEPTIONS
-/*
- * With relocatable binary support the runtime exception vectors do not match
- * the addresses in the binary. We have to fix them up during runtime
- */
-ENTRY(arm_fixup_vectors)
-	ldr	r0, =undefined_instruction
-	ldr	r1, =_undefined_instruction
-	str	r0, [r1]
-	ldr	r0, =software_interrupt
-	ldr	r1, =_software_interrupt
-	str	r0, [r1]
-	ldr	r0, =prefetch_abort
-	ldr	r1, =_prefetch_abort
-	str	r0, [r1]
-	ldr	r0, =data_abort
-	ldr	r1, =_data_abort
-	str	r0, [r1]
-	ldr	r0, =irq
-	ldr	r1, =_irq
-	str	r0, [r1]
-	ldr	r0, =fiq
-	ldr	r1, =_fiq
-	str	r0, [r1]
-	bx	lr
-ENDPROC(arm_fixup_vectors)
-#endif
-
 .section .text_exceptions
 .globl extable
 extable:
