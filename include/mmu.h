@@ -16,6 +16,12 @@
 #define MAP_WRITECOMBINE	MAP_UNCACHED
 #endif
 
+#ifdef CONFIG_ARCH_HAS_RO_MAPPINGS
+#define MAP_RO			5
+#else
+#define MAP_RO			MAP_CACHED
+#endif
+
 #define MAP_TYPE_MASK	0xFFFF
 #define MAP_ARCH(x)	((u16)~(x))
 
