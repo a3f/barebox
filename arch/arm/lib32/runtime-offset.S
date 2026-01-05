@@ -3,7 +3,7 @@
 #include <linux/linkage.h>
 #include <asm/assembler.h>
 
-.section ".text_bare_init","ax"
+.section ".text.bare_init","ax"
 
 /*
  * Get the offset between the link address and the address

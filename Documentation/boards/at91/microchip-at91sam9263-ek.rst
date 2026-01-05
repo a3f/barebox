@@ -115,11 +115,11 @@ a binary with the following structure:
   |+--------------------+|
   +----------------------+
 
-The PBL contains code from the sections .text_head_entry*, .text_bare_init* and .text*
+The PBL contains code from the sections .text.head_entry*, .text.bare_init* and .text
 
-``.text_head_entry*:``
+``.text.head_entry*:``
 This is the reset vector and exception vectors. Must be the very first in the file
 
-``.text_bare_init*:``
+``.text.bare_init*:``
 Everything in this section, and , is checked at link time.
 Size most be less than BAREBOX_MAX_BARE_INIT_SIZE / ARCH_BAREBOX_MAX_BARE_INIT_SIZE

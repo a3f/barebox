@@ -17,13 +17,16 @@ SECTIONS
 	.text      :
 	{
 		_stext = .;
-		*(.text_entry*)
+		*(.text.entry*)
 		__bare_init_start = .;
-		*(.text_bare_init*)
+		*(.text.bare_init*)
 		__bare_init_end = .;
-		*(.text*)
+		*(.text)
+		*(.text.*)
 	}
 	BAREBOX_BARE_INIT_SIZE
+
+	ASSERT_NO_DEPRECATED(text)
 
 	. = ALIGN(4096);
 	__start_rodata = .;

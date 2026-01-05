@@ -87,7 +87,7 @@ static inline unsigned long riscv_mem_barebox_image(unsigned long membase,
 #define ENTRY_FUNCTION(name, arg0, arg1, arg2)                          \
 	void name (ulong r0, ulong r1, ulong r2);                       \
 	static void __##name(ulong, ulong, ulong);                      \
-	void __naked __noreturn __section(.text_head_entry_##name) name \
+	void __naked __noreturn __section(.text.head_entry_##name) name \
 		(ulong a0, ulong a1, ulong a2)                          \
 	{                                                               \
 		__barebox_riscv_head();                                 \

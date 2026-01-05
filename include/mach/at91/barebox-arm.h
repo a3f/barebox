@@ -42,7 +42,7 @@ static __always_inline void __barebox_at91_head(void)
 										\
 	static void __##name(u32);						\
 										\
-	void __naked __section(.text_head_entry_##name)	name			\
+	void __naked __section(.text.head_entry_##name)	name			\
 				(u32 r0, u32 r1, u32 r2)			\
 		{								\
 			register u32 r4 asm("r4");				\

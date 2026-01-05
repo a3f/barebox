@@ -7,7 +7,7 @@
 	(ARM64_IMAGE_FLAG_PAGE_SIZE_4K << ARM64_IMAGE_FLAG_PAGE_SIZE_SHIFT) | \
 	(ARM64_IMAGE_FLAG_PHYS_BASE << ARM64_IMAGE_FLAG_PHYS_BASE_SHIFT)
 
-.section .text_head_entry_exynos
+.section .text.head_entry_exynos
 ENTRY("start_exynos")
 	nop                        /* code0 */
 	b 2f                       /* code1 */

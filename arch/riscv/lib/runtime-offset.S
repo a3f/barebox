@@ -3,7 +3,7 @@
 #include <linux/linkage.h>
 #include <asm/sections.h>
 
-.section ".text_bare_init","ax"
+.section ".text.bare_init","ax"
 ENTRY(get_runtime_offset)
 	lla	a0, _text	/* load addr */
 	la	a1, _text	/* link addr */

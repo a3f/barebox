@@ -60,13 +60,15 @@ SECTIONS
   .plt           : { *(.plt)		}
   .text      :
   {
-    *(.text*)
+    *(.text)
+    *(.text.*)
     *(.got1*)
-
    } :text
     _etext = .;
     PROVIDE (etext = .);
     _sdata = .;
+
+    ASSERT_NO_DEPRECATED(text)
 
     __start_rodata = .;
    .barebox_imd : { BAREBOX_IMD }

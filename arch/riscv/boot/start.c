@@ -114,7 +114,7 @@ device_initcall(barebox_memory_areas_init);
  * First function in the uncompressed image. We get here from
  * the pbl. The stack already has been set up by the pbl.
  */
-__noreturn __no_sanitize_address __section(.text_entry)
+__noreturn __no_sanitize_address __section(.text.entry)
 void barebox_non_pbl_start(unsigned long membase, unsigned long memsize,
 			   void *boarddata)
 {
@@ -189,7 +189,7 @@ void start(unsigned long membase, unsigned long memsize, void *boarddata);
  * First function in the uncompressed image. We get here from
  * the pbl. The stack already has been set up by the pbl.
  */
-void __no_sanitize_address __section(.text_entry) start(unsigned long membase,
+void __no_sanitize_address __section(.text.entry) start(unsigned long membase,
 		unsigned long memsize, void *boarddata)
 {
 	barebox_non_pbl_start(membase, memsize, boarddata);

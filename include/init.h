@@ -14,7 +14,7 @@
 #define __exitdata
 
 /* For assembly routines */
-#define __BARE_INIT	.section ".text_bare_init.text","ax"
+#define __BARE_INIT	.section ".text.bare_init.text","ax"
 
 #ifndef __ASSEMBLY__
 typedef int (*initcall_t)(void);
@@ -27,7 +27,7 @@ typedef void (*exitcall_t)(void);
  *
  * Mainly useful for booting from NAND Controllers
  */
-#define __bare_init          __section(.text_bare_init.text)
+#define __bare_init          __section(.text.bare_init.text)
 
 #endif
 

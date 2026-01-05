@@ -5,7 +5,7 @@
 #include <asm/system.h>
 #include <asm/opcodes-virt.h>
 
-.section ".text_bare_init_","ax"
+.section ".text.bare_init_","ax"
 ENTRY(arm_cpu_lowlevel_init)
 	/* save lr, since it may be banked away with a processor mode change */
 	mov	r2, lr
