@@ -5,7 +5,7 @@
  * First function in the uncompressed image. We get here from
  * the pbl. The stack already has been set up by the pbl.
  */
-.section .text_entry, "ax"
+.section .text.entry, "ax"
 ENTRY(start)
 	push	{r0, r1, r2, r3}
 

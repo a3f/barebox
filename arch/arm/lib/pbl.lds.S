@@ -47,17 +47,20 @@ SECTIONS
 	.text      :
 	{
 		_stext = .;
-		*(.text_head_prologue*)
-		*(.text_head_entry*)
+		*(.text.head_prologue*)
+		*(.text.head_entry*)
 		__bare_init_start = .;
-		*(.text_bare_init*)
+		*(.text.bare_init*)
 		__bare_init_end = .;
 		. = ALIGN(0x20);
 		__exceptions_start = .;
-		KEEP(*(.text_exceptions*))
+		KEEP(*(.text.exceptions*))
 		__exceptions_stop = .;
-		*(.text*)
+		*(.text)
+		*(.text.*)
 	}
+
+	ASSERT_NO_DEPRECATED(text)
 
 	/* Discard unwind if enable in barebox */
 	/DISCARD/ : { *(.ARM.ex*) }

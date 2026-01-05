@@ -18,12 +18,15 @@ SECTIONS
 	.text      :
 	{
 		_stext = .;
-		*(.text_head_entry*)
+		*(.text.head_entry*)
 		__bare_init_start = .;
-		*(.text_bare_init*)
+		*(.text.bare_init*)
 		__bare_init_end = .;
-		*(.text*)
+		*(.text)
+		*(.text.*)
 	}
+
+	ASSERT_NO_DEPRECATED(text)
 
 	BAREBOX_BARE_INIT_SIZE
 	BAREBOX_PBL_SIZE

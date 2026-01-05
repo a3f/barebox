@@ -5,7 +5,7 @@
 #include "asm/debug_ll.h"
 #include "asm/riscv_nmon.h"
 
-.section .text_bare_init
+.section .text.bare_init
 
 ENTRY(__barebox_nmon_entry)
 	riscv_nmon

@@ -19,7 +19,7 @@
 #include <mach/imx/imx35-regs.h>
 
 #define BARE_INIT_FUNCTION(name)  \
-	__section(.text_bare_init_##name) \
+	__section(.text.bare_init_##name) \
 		name
 
 static void __bare_init noinline imx_nandboot_wait_op_done(void __iomem *regs)

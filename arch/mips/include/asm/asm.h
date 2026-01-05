@@ -81,7 +81,7 @@ symbol:
  */
 #define ENTRY_FUNCTION(symbol)				\
 	.set noreorder;					\
-	.section .text_head_entry.symbol;		\
+	.section .text.head_entry.symbol;		\
 	.align 4;					\
 EXPORT(symbol)						\
 	mips_barebox_10h

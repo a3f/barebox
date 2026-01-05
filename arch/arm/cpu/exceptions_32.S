@@ -127,7 +127,7 @@ fiq:
 	bad_save_user_regs
 	bl 	do_fiq
 
-.section .text_exceptions
+.section .text.exceptions
 .globl extable
 extable:
 1:	b 1b				/* barebox_arm_reset_vector */

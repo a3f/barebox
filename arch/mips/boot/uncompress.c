@@ -21,7 +21,7 @@ unsigned long free_mem_end_ptr;
 
 void barebox_pbl_start(void *fdt, void *fdt_end, unsigned long ram_size);
 
-void __section(.text_entry) barebox_pbl_start(void *fdt, void *fdt_end,
+void __section(.text.entry) barebox_pbl_start(void *fdt, void *fdt_end,
 					   unsigned long ram_size)
 {
 	u32 piggy_len, fdt_len;

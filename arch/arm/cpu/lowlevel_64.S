@@ -5,7 +5,7 @@
 #include <asm/system.h>
 #include <asm/assembler64.h>
 
-.section ".text_bare_init_","ax"
+.section ".text.bare_init_","ax"
 ENTRY(arm_cpu_lowlevel_init)
 	switch_el x1, 3f, 2f, 1f
 

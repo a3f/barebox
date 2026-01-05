@@ -12,6 +12,22 @@
 #define PRE_IMAGE
 #endif
 
+#define __ASSERT_NO_DEPRECATED(sect, msg)	\
+	.deprecated.sect : {			\
+		__##sect##_deprecated_start = .;\
+		*(.sect*);			\
+		__##sect##_deprecated_end = .;	\
+	}					\
+	ASSERT(__##sect##_deprecated_start ==	\
+	       __##sect##_deprecated_end, msg)
+
+#define ASSERT_NO_DEPRECATED_text		\
+       __ASSERT_NO_DEPRECATED(text,		\
+	"Arbitrary sections starting with .text* deprecated. \
+	Change to a .text. prefix instead")
+
+#define ASSERT_NO_DEPRECATED(sect)	ASSERT_NO_DEPRECATED_##sect
+
 #define BAREBOX_INITCALLS			\
 	STRUCT_ALIGN();				\
 	__barebox_initcalls_start = .;		\

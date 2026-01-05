@@ -29,7 +29,8 @@ SECTIONS
     _text = .;
     _stext = .;
     arch/powerpc/mach-mpc5xxx/start.o	(.text)
-    *(.text*)
+    *(.text)
+    *(.text.*)
     *(.got1*)
     . = ALIGN(16);
     __start_rodata = .;
@@ -38,6 +39,8 @@ SECTIONS
     *(.rodata.str1.4)
     RO_DATA_SECTION
   }
+
+  ASSERT_NO_DEPRECATED(text)
 
   /* Read-only sections, merged into text segment: */
 /*

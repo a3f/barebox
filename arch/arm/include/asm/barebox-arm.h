@@ -218,7 +218,7 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 									\
 	static void __##name(ulong, ulong, ulong);			\
 									\
-	void __section(.text_head_entry_##name)	name			\
+	void __section(.text.head_entry_##name)	name			\
 				(ulong r0, ulong r1, ulong r2)		\
 		{							\
 			static __section(.pbl_board_stack_top_##name)	\
@@ -254,7 +254,7 @@ void __barebox_arm64_head(ulong x0, ulong x1, ulong x2);
 									\
 	static void __##name(ulong, ulong, ulong);			\
 									\
-	void __naked __section(.text_head_entry_##name)	name		\
+	void __naked __section(.text.head_entry_##name)	name		\
 				(ulong r0, ulong r1, ulong r2)		\
 		{							\
 			head();				\
