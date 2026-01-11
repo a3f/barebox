@@ -25,6 +25,7 @@ static int do_mem_md(int argc, char *argv[])
 	loff_t	start = 0, size = 0x100;
 	int	r, now;
 	int	ret = 0;
+	struct stat st;
 	int fd;
 	char *filename = "/dev/mem";
 	int mode = O_RWSIZE_4;
@@ -53,6 +54,9 @@ static int do_mem_md(int argc, char *argv[])
 		printf("Could not open \"%s\": %m\n", filename);
 		return 1;
 	}
+
+	if (!fstat(fd, &st) && st.st_size != FILE_SIZE_STREAM)
+		size = min(size, st.st_size);
 
 	map = memmap(fd, PROT_READ);
 	if (map != MAP_FAILED) {
