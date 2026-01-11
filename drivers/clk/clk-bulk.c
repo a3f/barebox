@@ -170,7 +170,7 @@ int __must_check clk_bulk_get_all_enabled(struct device *dev,
 
 	return num_clks;
 }
-EXPORT_SYMBOL_GPL(devm_clk_bulk_get_all_enabled);
+EXPORT_SYMBOL_GPL(clk_bulk_get_all_enabled);
 
 /**
  * clk_bulk_disable - gate a set of clocks
