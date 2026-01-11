@@ -61,6 +61,7 @@ static int do_ratp_mem_md(const char *filename,
 			  loff_t size,
 			  uint8_t *output)
 {
+	struct stat st;
 	int r, now, t;
 	int ret = 0;
 	int fd;
@@ -72,6 +73,9 @@ static int do_ratp_mem_md(const char *filename,
 		printf("Could not open \"%s\": %m\n", filename);
 		return -errno;
 	}
+
+	if (!fstat(fd, &st) && st.st_size != FILE_SIZE_STREAM)
+		size = min(size, st.st_size);
 
 	map = memmap(fd, PROT_READ);
 	if (map != MAP_FAILED) {
