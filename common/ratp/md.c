@@ -73,9 +73,9 @@ static int do_ratp_mem_md(const char *filename,
 		return -errno;
 	}
 
-	map = memmap(fd, PROT_READ);
+	map = memmap_file_range(fd, &size, PROT_READ, start);
 	if (map != MAP_FAILED) {
-		memcpy(output, (uint8_t *)(map + start), size);
+		memcpy(output, map, size);
 		goto out;
 	}
 

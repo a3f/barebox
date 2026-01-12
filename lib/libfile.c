@@ -833,6 +833,46 @@ out:
 	return res;
 }
 
+/**
+ * memmap_file_range - map a file descriptor and validate an offset/size range
+ * @fd:     file descriptor to map
+ * @size:   pointer to requested mapping size, updated to the valid size
+ * @flags:  mapping flags to pass to memmap()
+ * @offset: start offset within the file for the mapping
+ *
+ * This helper maps the file referenced by @fd and validates that the
+ * requested byte range defined by @offset and *@size does not exceed
+ * the underlying object size.
+ *
+ * If @fd refers to a regular file with a known size, *@size is clamped
+ * so that (@offset + *@size) does not extend past end of file. If
+ * @offset is beyond EOF, the function fails.
+ *
+ * For stream-like descriptors (with FILE_SIZE_STREAM), no size checking
+ * is performed and *@size is left unchanged.
+ *
+ * Note: @offset is only used for range validation; it is not passed to
+ * memmap() and does not affect the mapping address.
+ *
+ * Return: pointer to the mapped memory on success, or MAP_FAILED on failure.
+ */
+void *memmap_file_range(int fd, loff_t *size, int flags, loff_t offset)
+{
+	struct stat st;
+
+	if (offset < 0 || *size < 0)
+		return MAP_FAILED;
+
+	if (!fstat(fd, &st) && st.st_size != FILE_SIZE_STREAM) {
+		if (offset >= st.st_size)
+			return MAP_FAILED;
+
+		*size = min(*size, st.st_size - offset);
+	}
+
+	return memmap(fd, flags) + offset;
+}
+
 int fixup_path_case(int fd, const char **path)
 {
 	DIR *dir;

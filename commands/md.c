@@ -54,9 +54,9 @@ static int do_mem_md(int argc, char *argv[])
 		return 1;
 	}
 
-	map = memmap(fd, PROT_READ);
+	map = memmap_file_range(fd, &size, PROT_READ, start);
 	if (map != MAP_FAILED) {
-		ret = memory_display(map + start, start, size,
+		ret = memory_display(map, start, size,
 				mode >> O_RWSIZE_SHIFT, swab);
 		goto out;
 	}
