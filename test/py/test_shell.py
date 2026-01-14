@@ -2,6 +2,8 @@
 
 from .helper import skip_disabled
 import json
+import pytest
+import re
 
 
 def test_barebox_true(barebox, barebox_config):
@@ -80,3 +82,49 @@ def test_cmd_clk(barebox, barebox_config):
     assert regions >= 0
 
     assert count_dicts_in_command_output(barebox, 'clk_dump -vj') == regions
+
+
+def test_cmd_addpart(barebox, barebox_config):
+    skip_disabled(barebox_config, "CONFIG_CMD_PARTITION", "CONFIG_CMD_IOMEM")
+
+    def find_first_malloc_space(node, parent=None):
+        if node.get("name") == "malloc space" and parent is not None:
+            start = int(node["start"], 16)
+            offset = start - int(parent["start"], 16)
+
+            return parent["name"], offset
+
+        for child in node.get("children", []):
+            result = find_first_malloc_space(child, node)
+            if result is not None:
+                return result
+
+        return None
+
+    barebox.run_check('ls /dev/ram0')
+
+    iomem = json.loads("\n".join(barebox.run_check("iomem -j")))
+    assert iomem is not None
+
+    parent, start = find_first_malloc_space(iomem)
+    if parent is None:
+        pytest.skip("No malloc space in iomem output")
+
+    cmd = f"addpart /dev/{parent} 4K@0x{start:08x}(test-partition)Ro"
+    barebox.run_check(cmd)
+
+    testpartition = f"/dev/{parent}.test-partition"
+
+    _, _, returncode = barebox.run(f"[ -e {testpartition} ]")
+    assert returncode == 0, f"{cmd} did not add the partition"
+
+    hexdump = barebox.run_check(f"md -b -s /dev/{parent}.test-partition 4091")
+    assert re.fullmatch(r'00000ffb:(?:\s[0-9a-fA-F]{2}){5}\s{37}.{5}', hexdump[0]), \
+           f"expected exactly 5 bytes in hexdump, but got: {hexdump[0]}"
+    assert len(hexdump) == 1
+
+    cmd = f"delpart {testpartition}"
+    barebox.run_check(cmd)
+
+    _, _, returncode = barebox.run(f"[ -e {testpartition} ]")
+    assert returncode != 0, f"{cmd} did not deleete the partition"
