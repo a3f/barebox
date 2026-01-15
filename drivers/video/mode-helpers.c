@@ -97,6 +97,7 @@ int videomode_to_fb_videomode(const struct videomode *vm,
 	fbmode->vsync_len = vm->vsync_len;
 
 	fb_videomode_set_pixclock_hz(fbmode, vm->pixelclock);
+	fbmode->original_clock = vm->pixelclock;
 
 	fbmode->sync = 0;
 	fbmode->vmode = 0;
@@ -130,6 +131,9 @@ void fb_videomode_to_videomode(const struct fb_videomode *fbmode,
 			       struct videomode *vm)
 {
 	vm->pixelclock = fb_videomode_get_pixclock_hz(fbmode);
+	if (fbmode->original_clock) {
+		vm->pixelclock = fbmode->original_clock;
+	}
 	vm->hactive = fbmode->xres;
 	vm->hfront_porch = fbmode->right_margin;
 	vm->hback_porch = fbmode->left_margin;

@@ -75,6 +75,7 @@ struct fb_videomode {
 	u32 sync;
 	u32 vmode;
 	u32 display_flags;
+	int original_clock;
 };
 
 static inline ulong fb_videomode_get_pixclock_hz(const struct fb_videomode *mode)
