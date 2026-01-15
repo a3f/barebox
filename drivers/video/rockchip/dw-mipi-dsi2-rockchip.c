@@ -94,17 +94,17 @@ struct dw_mipi_dsi2_rockchip {
 // 	return container_of(rkencoder, struct dw_mipi_dsi2_rockchip, encoder);
 // }
 
-// static void grf_field_write(struct dw_mipi_dsi2_rockchip *dsi2, enum grf_reg_fields index,
-// 			    unsigned int val)
-// {
-// 	const struct dsigrf_reg *field = &dsi2->cdata->grf_regs[index];
+static void grf_field_write(struct dw_mipi_dsi2_rockchip *dsi2, enum grf_reg_fields index,
+			    unsigned int val)
+{
+	const struct dsigrf_reg *field = &dsi2->cdata->grf_regs[index];
 
-// 	if (!field)
-// 		return;
+	if (!field)
+		return;
 
-// 	regmap_write(dsi2->grf_regmap, field->offset,
-// 		     (val << field->lsb) | (GENMASK(field->msb, field->lsb) << 16));
-// }
+	regmap_write(dsi2->grf_regmap, field->offset,
+		     (val << field->lsb) | (GENMASK(field->msb, field->lsb) << 16));
+}
 
 static int dw_mipi_dsi2_phy_init(void *priv_data)
 {
@@ -463,6 +463,14 @@ static int dw_mipi_dsi2_rockchip_probe(struct device *dev)
 	dsi2->pdata.host_ops = &dw_mipi_dsi2_rockchip_host_ops;
 	dsi2->pdata.priv_data = dsi2;
 	dev_set_drvdata(dev, dsi2);
+
+	// TODO(ailurux): Linux version writes this in 
+	// encoder atomic enable (called just before the video 
+	// mode switch)
+	pr_err("%s about to grf field write\n", __func__);
+ 	grf_field_write(dsi2, IPI_COLOR_DEPTH, IPI_DEPTH_8_BITS);
+	pr_err("%s grf field write done...\n", __func__);
+
 
 	dsi2->dmd = dw_mipi_dsi2_probe(dev, &dsi2->pdata);
 	if (IS_ERR(dsi2->dmd))
