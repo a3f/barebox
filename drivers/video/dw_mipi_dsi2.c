@@ -380,7 +380,7 @@ static void dw_mipi_dsi2_phy_ratio_cfg(struct dw_mipi_dsi2 *dsi2)
 	phy_hsclk = DIV_ROUND_CLOSEST_ULL(dsi2->lane_mbps * USEC_PER_SEC, 16);
 
 	/* IPI_RATIO_MAN_CFG = PHY_HSTX_CLK / IPI_CLK */
-	pixel_clk = mode.crtc_clock * MSEC_PER_SEC;
+	pixel_clk = mode.clock * MSEC_PER_SEC;
 	ipi_clk = pixel_clk / 4;
 
 	tmp = DIV_ROUND_CLOSEST_ULL(phy_hsclk << 16, ipi_clk);
@@ -525,7 +525,7 @@ static void dw_mipi_dsi2_ipi_set(struct dw_mipi_dsi2 *dsi2)
 	hbp = mode.htotal - mode.hsync_end;
 	hline = mode.htotal;
 
-	pixel_clk = mode.crtc_clock * MSEC_PER_SEC;
+	pixel_clk = mode.clock * MSEC_PER_SEC;
 
 	phy_hs_clk = DIV_ROUND_CLOSEST_ULL(dsi2->lane_mbps * USEC_PER_SEC, 16);
 
