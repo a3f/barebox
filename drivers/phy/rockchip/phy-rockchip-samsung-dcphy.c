@@ -1392,21 +1392,6 @@ static int samsung_mipi_dphy_power_on(struct samsung_mipi_dcphy *samsung)
 static int samsung_mipi_dcphy_power_on(struct phy *phy)
 {
 	struct samsung_mipi_dcphy *samsung = phy_get_drvdata(phy);
-	int ret;
-
-	ret = clk_prepare_enable(samsung->pclk);
-	if (ret) {
-		dev_err(samsung->dev, "Failed to enable pclk, %d\n", ret);
-		return ret;
-	}
-
-	ret = clk_prepare_enable(samsung->ref_clk);
-	if (ret) {
-		dev_err(samsung->dev, "Failed to enable reference clock, %d\n", ret);
-		clk_disable_unprepare(samsung->pclk);
-		return ret;
-	}
-
 
 	reset_control_assert(samsung->apb_rst);
 	udelay(1);
@@ -1622,6 +1607,7 @@ static int samsung_mipi_dcphy_probe(struct device *dev)
 	struct phy_provider *phy_provider;
 	struct resource *res;
 	void __iomem *regs;
+	int ret;
 
 	// samsung = devm_kzalloc(dev, sizeof(*samsung), GFP_KERNEL);
 	// if (!samsung)
@@ -1696,6 +1682,24 @@ static int samsung_mipi_dcphy_probe(struct device *dev)
 	if (IS_ERR(phy_provider))
 		return dev_err_probe(dev, PTR_ERR(phy_provider),
 				     "Failed to register phy provider\n");
+
+	
+	// TODO: In linux the pm resume and suspend
+	// methods get called before any other phy methods
+	// and enables these clocks
+	// Enable them here instead
+	ret = clk_prepare_enable(samsung->pclk);
+	if (ret) {
+		dev_err(samsung->dev, "Failed to enable pclk, %d\n", ret);
+		return ret;
+	}
+
+	ret = clk_prepare_enable(samsung->ref_clk);
+	if (ret) {
+		dev_err(samsung->dev, "Failed to enable reference clock, %d\n", ret);
+		clk_disable_unprepare(samsung->pclk);
+		return ret;
+	}
 
 	pr_err("%s end\n", __func__);
 	return 0;
