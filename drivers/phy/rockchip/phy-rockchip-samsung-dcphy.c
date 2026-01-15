@@ -1540,17 +1540,6 @@ static int samsung_mipi_dcphy_configure(struct phy *phy,
 	samsung_mipi_dcphy_pll_calc_rate(samsung, target_rate);
 	opts->mipi_dphy.hs_clk_rate = samsung->pll.rate;
 
-    // TODO: Use the phy_mipi_dphy_config_validate method?
-    // Barebox has something like this for inno dsidphy
-    // int ret;
-	// ret = phy_mipi_dphy_config_validate(&opts->mipi_dphy);
-	// if (ret)
-	// 	return ret;
-
-    // TODO: Do we need soemthing like this as well?
-	// memcpy(&inno->dphy_cfg, &opts->mipi_dphy, sizeof(inno->dphy_cfg));
-
-
 	pr_err("%s end\n", __func__);
 	return 0;
 }

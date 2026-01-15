@@ -657,6 +657,10 @@ static int jdi_panel_enable(struct jdi_panel *jdi)
 	} else {
 		jdi->dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 		ret = mipi_dsi_dcs_set_display_on(jdi->dsi);
+		if (ret < 0) {
+			pr_err("%s error setting display on: %pe\n", __func__, ERR_PTR(ret));
+		}
+
 	}
 	jdi->enabled = true;
 
@@ -753,8 +757,8 @@ static int jdi_panel_get_display_info(struct jdi_panel *jdi,
 			     struct drm_display_info *display_info)
 {
     // TODO: Not sure what the bus flags should be here
-    display_info->bus_flags = 0;
-	display_info->panel_orientation = DRM_MODE_PANEL_ORIENTATION_RIGHT_UP;
+	display_info->bus_flags = 0;
+	display_info->panel_orientation = DRM_MODE_PANEL_ORIENTATION_LEFT_UP;
     display_info->width_mm = 95;
     display_info->height_mm = 151;
 
@@ -828,29 +832,25 @@ static int jdi_ioctl(struct vpl *vpl, unsigned int port,
 
 	switch (cmd) {
 	case VPL_PREPARE:
-        pr_err("VPL_PREPARE\n");
+        pr_err("%s VPL_PREPARE\n", __func__);
 		return jdi_panel_prepare(ctx);
 	case VPL_ENABLE:
-        pr_err("VPL_ENABLE\n");
+        pr_err("%s VPL_ENABLE\n", __func__);
 		return jdi_panel_enable(ctx);
 	case VPL_DISABLE:
-        pr_err("VPL_DISABLE\n");
+        pr_err("%s VPL_DISABLE\n", __func__);
 		return jdi_panel_disable(ctx);
 	case VPL_UNPREPARE:
-        pr_err("VPL_UNPREPARE\n");
+        pr_err("%s VPL_UNPREPARE\n", __func__);
 		return jdi_panel_unprepare(ctx);
 	case VPL_GET_VIDEOMODES:
-        pr_err("VPL_GET_VIDEOMODES\n");
+        pr_err("%s VPL_GET_VIDEOMODES\n", __func__);
 		return jdi_panel_get_modes(ctx, ptr);
-	// case VPL_GET_BUS_FORMAT:
-    //     pr_err("VPL_GET_BUS_FORMAT\n");
-	// 	*(u32 *)ptr = ctx->info->bus_format;
-	// 	return 0;
 	case VPL_GET_DISPLAY_INFO:
-        pr_err("VPL_GET_DISPLAY_INFO\n");
+        pr_err("%s VPL_GET_DISPLAY_INFO\n", __func__);
 		return jdi_panel_get_display_info(ctx, ptr);
 	case VPL_GET_BUS_FORMAT:
-        pr_err("VPL_GET_BUS_FORMAT\n");
+        pr_err("%s VPL_GET_BUS_FORMAT\n", __func__);
 		*(u32 *)ptr = MEDIA_BUS_FMT_RGB888_1X24;
 		return 0;
 	default:
@@ -915,11 +915,6 @@ static int jdi_panel_probe(struct mipi_dsi_device *dsi)
 	// 	pr_err("failed to register pocket reform panel attr group\n");
 	// }
 
-
-	jdi->vpl.node = dev->of_node;
-	jdi->vpl.ioctl = jdi_ioctl;
-
-	return vpl_register(&jdi->vpl);
 
 	return 0;
 }
