@@ -80,7 +80,7 @@
 	status = "okay";
 };
 
-&vp3 {
+&vp2 {
 	vp_out_dsi1: endpoint@ROCKCHIP_VOP2_EP_MIPI1 {
 		reg = <ROCKCHIP_VOP2_EP_MIPI1>;
 		remote-endpoint = <&dsi1_in_vp>;

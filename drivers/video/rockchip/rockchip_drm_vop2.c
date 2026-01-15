@@ -1130,6 +1130,19 @@ static void vop2_crtc_atomic_enable(struct vop2_video_port *vp,
 
 	clk_set_rate(vp->dclk, clock);
 
+	// HACK: Make sure parent clock gets set
+	// because dclk_vop2 will not set the rate 
+	// on the parent
+	pr_err("%s vp->id: %d\n", __func__, vp->id);
+	if (vp->id == 2) {
+		vp->dclk_src = clk_get_parent(vp->dclk);
+		if (vp->dclk_src) {
+			pr_err("%s setting rate on %s, rate: %lu\n", __func__, vp->dclk_src->name, clock);
+			clk_set_rate(vp->dclk_src, clock);
+		}
+	}
+
+
 	vop2_post_config(vp, mode);
 
 	vop2_cfg_done(vp);
