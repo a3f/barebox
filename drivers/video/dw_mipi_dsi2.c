@@ -978,8 +978,12 @@ static int dw_mipi_dsi2_ioctl(struct vpl *vpl, unsigned int port,
 			dw_mipi_dsi2_set_data_stream_mode(dsi2);
 		break;
 	case VPL_DISABLE:
+		// post_atomic_disable has a note that the bridge should have already disabled
+		vpl_bridge_ioctl(dsi2->panel_bridge, cmd, data);
 		dw_mipi_dsi2_bridge_post_atomic_disable(dsi2);
-		break;
+		// Return early here as we've already called 
+		// VPL_DISABLE on the panel bridge
+		return 0;
 	case VPL_PREPARE:
 		/*
 		 * We store this to simplify debugging by allowing:
