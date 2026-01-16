@@ -7,6 +7,7 @@
 #include <elf.h>
 #include <debug_ll.h>
 #include <asm/reloc.h>
+#include <asm/sections.h>
 
 /*
  * relocate binary to the currently running address
@@ -50,7 +51,8 @@ void __prereloc relocate_image(unsigned long offset,
 int elf_apply_relocations(struct elf_image *elf, const void *dyn_seg)
 {
 	void *rela_ptr = NULL, *symtab = NULL;
-	u64 relasz;
+	void *relr_ptr = NULL;
+	u64 relasz, relrsz;
 	phys_addr_t base = (phys_addr_t)elf->reloc_offset;
 	int ret;
 
@@ -58,7 +60,13 @@ int elf_apply_relocations(struct elf_image *elf, const void *dyn_seg)
 	if (ret)
 		return ret;
 
-	relocate_image(base, rela_ptr, rela_ptr + relasz, symtab, NULL);
+	if (rela_ptr)
+		relocate_image(base, rela_ptr, rela_ptr + relasz, symtab, NULL);
+
+	/* Apply RELR relocations if present */
+	ret = elf_parse_dynamic_section_relr(elf, dyn_seg, &relr_ptr, &relrsz);
+	if (ret == 0)
+		relocate_relr(base, relr_ptr, relrsz);
 
 	return 0;
 }

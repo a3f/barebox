@@ -9,6 +9,7 @@ hostprogs-always-y					+= fix_size
 hostprogs-always-y					+= bareboxenv
 hostprogs-always-y					+= bareboxcrc32
 hostprogs-always-y					+= kernel-install
+hostprogs-always-y					+= shelf
 hostprogs-always-$(CONFIG_QOICONV)			+= qoiconv
 hostprogs-always-$(CONFIG_TLV)				+= bareboxtlv
 hostprogs-always-$(CONFIG_KEYTOC)			+= keytoc

@@ -461,11 +461,11 @@ static void *elf_find_dynamic_segment(struct elf_image *elf)
  */
 static int elf_parse_dynamic_section(struct elf_image *elf, const void *dyn_seg,
 				     void **rel_out, u64 *relsz_out, void **symtab,
-				     bool is_rela)
+				     bool is_rela, void **relr_out, u64 *relrsz_out)
 {
 	const void *dyn = dyn_seg;
-	void *rel = NULL, *rela = NULL;
-	u64 relsz = 0, relasz = 0;
+	void *rel = NULL, *rela = NULL, *relr = NULL;
+	u64 relsz = 0, relasz = 0, relrsz = 0;
 	u64 relent = 0, relaent = 0;
 	phys_addr_t base = (phys_addr_t)elf->reloc_offset;
 	size_t expected_rel_size, expected_rela_size;
@@ -504,14 +504,36 @@ static int elf_parse_dynamic_section(struct elf_image *elf, const void *dyn_seg,
 		case DT_RELAENT:
 			relaent = elf_dyn_d_val(elf, dyn);
 			break;
+		case DT_RELR:
+			/* RELR table address - needs to be adjusted by load offset */
+			relr = (void *)(unsigned long)(base + elf_dyn_d_ptr(elf, dyn));
+			break;
+		case DT_RELRSZ:
+			relrsz = elf_dyn_d_val(elf, dyn);
+			break;
 		case DT_SYMTAB:
-			*symtab = (void *)(unsigned long)(base + elf_dyn_d_val(elf, dyn));
+			if (symtab)
+				*symtab = (void *)(unsigned long)(base + elf_dyn_d_val(elf, dyn));
 			break;
 		default:
 			break;
 		}
 
 		dyn += elf_size_of_dyn(elf);
+	}
+
+	/* Output RELR if requested */
+	if (relr_out && relrsz_out) {
+		if (relr && relrsz) {
+			*relr_out = relr;
+			*relrsz_out = relrsz;
+		} else {
+			pr_debug("No RELR relocations found in dynamic section\n");
+			return -EINVAL;
+		}
+		/* For RELR-only parsing, return success now */
+		if (!rel_out && !relsz_out)
+			return 0;
 	}
 
 	/* Check that we found exactly one relocation type */
@@ -540,6 +562,8 @@ static int elf_parse_dynamic_section(struct elf_image *elf, const void *dyn_seg,
 		*relsz_out = relasz;
 
 		return 0;
+	} else if (relr && relrsz) {
+		return 0;
 	}
 
 	pr_debug("No relocations found in dynamic section\n");
@@ -551,14 +575,21 @@ int elf_parse_dynamic_section_rel(struct elf_image *elf, const void *dyn_seg,
 				     void **rel_out, u64 *relsz_out, void **symtab)
 {
 	return elf_parse_dynamic_section(elf, dyn_seg, rel_out, relsz_out, symtab,
-					 false);
+					 false, NULL, NULL);
 }
 
 int elf_parse_dynamic_section_rela(struct elf_image *elf, const void *dyn_seg,
 				     void **rel_out, u64 *relsz_out, void **symtab)
 {
 	return elf_parse_dynamic_section(elf, dyn_seg, rel_out, relsz_out, symtab,
-					 true);
+					 true, NULL, NULL);
+}
+
+int elf_parse_dynamic_section_relr(struct elf_image *elf, const void *dyn_seg,
+				    void **relr_out, u64 *relrsz_out)
+{
+	return elf_parse_dynamic_section(elf, dyn_seg, NULL, NULL, NULL,
+					 false, relr_out, relrsz_out);
 }
 
 /*
