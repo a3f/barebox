@@ -1101,13 +1101,19 @@ barebox.fit: images/barebox-$(CONFIG_ARCH_LINUX_NAME).fit
 barebox.srec: barebox
 	$(OBJCOPY) -O srec $< $@
 
-OBJCOPYFLAGS_vmbarebox = $(call objcopy-option,--strip-section-headers,--strip-all)  \
+OBJCOPYFLAGS_.vmbarebox.tmp = $(call objcopy-option,--strip-section-headers,--strip-all)  \
 			 --remove-section=.comment \
 			 --remove-section=.note* \
 			 --remove-section=.gnu.hash
 
-vmbarebox: barebox FORCE
+quiet_cmd_shelf_relr = SHELF   $@
+      cmd_shelf_relr = scripts/shelf --to-relr $< -o $@
+
+.vmbarebox.tmp: barebox FORCE
 	$(call if_changed,objcopy)
+
+vmbarebox: .vmbarebox.tmp scripts FORCE
+	$(call if_changed,shelf_relr)
 
 quiet_cmd_barebox_proper__ = CC      $@
       cmd_barebox_proper__ = $(CC) -r -o $@ -Wl,--whole-archive $(BAREBOX_OBJS)
@@ -1397,7 +1403,7 @@ CLEAN_FILES +=	barebox System.map include/generated/barebox_default_env.h \
                 .tmp_version .tmp_barebox* barebox.bin barebox.map \
 		.tmp_kallsyms* compile_commands.json \
 		.tmp_barebox.o barebox.o barebox-flash-image \
-		barebox.srec barebox.efi vmbarebox
+		barebox.srec barebox.efi vmbarebox .vmbarebox.tmp
 
 CLEAN_FILES +=	scripts/bareboxenv-target scripts/kernel-install-target \
 		scripts/bareboxcrc32-target scripts/bareboximd-target \

@@ -105,6 +105,11 @@ typedef __s64	Elf64_Sxword;
 #define DT_LOPROC	0x70000000
 #define DT_HIPROC	0x7fffffff
 
+/* RELR relocation format */
+#define DT_RELRSZ	35
+#define DT_RELR		36
+#define DT_RELRENT	37
+
 /* This info is needed when parsing the symbol table */
 #define STB_LOCAL  0
 #define STB_GLOBAL 1
@@ -381,6 +386,14 @@ extern Elf32_Dyn _DYNAMIC [];
 #define elf_note	elf32_note
 #define elf_addr_t	Elf32_Off
 
+/* Architecture-generic ELF types for relocation */
+#define Elf_Ehdr	Elf32_Ehdr
+#define Elf_Phdr	Elf32_Phdr
+#define Elf_Dyn		Elf32_Dyn
+typedef __u32		elf_relr_t;
+#define ELF_RELR_WORD_SIZE	4
+#define ELF_RELR_BITMAP_BITS	31
+
 #else
 
 extern Elf64_Dyn _DYNAMIC [];
@@ -388,6 +401,14 @@ extern Elf64_Dyn _DYNAMIC [];
 #define elf_phdr	elf64_phdr
 #define elf_note	elf64_note
 #define elf_addr_t	Elf64_Off
+
+/* Architecture-generic ELF types for relocation */
+#define Elf_Ehdr	Elf64_Ehdr
+#define Elf_Phdr	Elf64_Phdr
+#define Elf_Dyn		Elf64_Dyn
+typedef __u64		elf_relr_t;
+#define ELF_RELR_WORD_SIZE	8
+#define ELF_RELR_BITMAP_BITS	63
 
 #endif
 
@@ -448,6 +469,8 @@ int elf_parse_dynamic_section_rel(struct elf_image *elf, const void *dyn_seg,
 				  void **rel_out, u64 *relsz_out, void **symtab);
 int elf_parse_dynamic_section_rela(struct elf_image *elf, const void *dyn_seg,
 				   void **rel_out, u64 *relsz_out, void **symtab);
+int elf_parse_dynamic_section_relr(struct elf_image *elf, const void *dyn_seg,
+				    void **relr_out, u64 *relrsz_out);
 
 #define ELF_GET_FIELD(__s, __field, __type) \
 static inline __type elf_##__s##_##__field(struct elf_image *elf, void *arg) { \

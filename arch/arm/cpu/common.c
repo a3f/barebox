@@ -55,11 +55,16 @@ void pbl_barebox_break(void)
 
 void __prereloc relocate_to_current_adr(void)
 {
-	relocate_image(get_runtime_offset(),
+	unsigned long offset = get_runtime_offset();
+
+	relocate_image(offset,
 		       runtime_address(__rel_dyn_start),
 		       runtime_address(__rel_dyn_end),
 		       runtime_address(__dynsym_start),
 		       runtime_address(__dynsym_end));
+
+	/* Apply RELR relocations if present (from asm-generic/reloc.h) */
+	relocate_relr_dynamic(offset, runtime_address(_text));
 
 	sync_caches_for_execution();
 }

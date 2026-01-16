@@ -62,16 +62,20 @@ static void relocate_image(unsigned long offset,
 			__hang();
 		}
 	}
-
 }
 
 void relocate_to_current_adr(void)
 {
-	relocate_image(get_runtime_offset(),
+	unsigned long offset = get_runtime_offset();
+
+	relocate_image(offset,
 		       runtime_address(__rel_dyn_start),
 		       runtime_address(__rel_dyn_end),
 		       runtime_address(__dynsym_start),
 		       NULL);
+
+	/* Apply RELR relocations if present (from asm-generic/reloc.h) */
+	relocate_relr_dynamic(offset, runtime_address(_text));
 
 	sync_caches_for_execution();
 }
@@ -79,7 +83,8 @@ void relocate_to_current_adr(void)
 int elf_apply_relocations(struct elf_image *elf, const void *dyn_seg)
 {
 	void *rela_ptr = NULL, *symtab = NULL;
-	u64 relasz;
+	void *relr_ptr = NULL;
+	u64 relasz, relrsz;
 	phys_addr_t base = (phys_addr_t)elf->reloc_offset;
 	int ret;
 
@@ -88,6 +93,11 @@ int elf_apply_relocations(struct elf_image *elf, const void *dyn_seg)
 		return ret;
 
 	relocate_image(base, rela_ptr, rela_ptr + relasz, symtab, NULL);
+
+	/* Apply RELR relocations if present */
+	ret = elf_parse_dynamic_section_relr(elf, dyn_seg, &relr_ptr, &relrsz);
+	if (ret == 0)
+		relocate_relr(base, relr_ptr, relrsz);
 
 	return 0;
 }
