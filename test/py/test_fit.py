@@ -69,20 +69,20 @@ def test_fit(barebox, strategy, testfs, fit_testdata):
     assert ver.startswith('barebox-2')
 
     barebox.run_check("of_property -s /chosen barebox,boot-count '<0x0>'")
-    assert of_get_property(barebox, "/chosen/barebox,boot-count") == '<0x0>'
+    assert of_get_property(barebox, "/chosen/barebox,boot-count") == 0x0
 
     barebox.run_check("of_property -fs /chosen barebox,boot-count '<0x1>'")
-    assert of_get_property(barebox, "/chosen/barebox,boot-count") == '<0x0>'
+    assert of_get_property(barebox, "/chosen/barebox,boot-count") == 0x0
 
     barebox.run_check("global linux.bootargs.testarg=barebox.chainloaded")
 
     boottarget = generate_bootscript(barebox, fit_name('gzipped'))
 
     with strategy.boot_barebox(boottarget) as barebox:
-        assert of_get_property(barebox, "/chosen/barebox-version") == f'"{ver}"', \
+        assert of_get_property(barebox, "/chosen/barebox-version") == ver, \
                "/chosen/barebox-version suggests we did not chainload"
 
-        assert of_get_property(barebox, "/chosen/barebox,boot-count") == '<0x1>', \
+        assert of_get_property(barebox, "/chosen/barebox,boot-count") == 0x1, \
                "/chosen/barebox,boot-count suggests we got bultin DT"
 
         # Check that command line arguments were fixed up
