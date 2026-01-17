@@ -59,33 +59,39 @@ static int fitconfig_count_ramdisks(struct image_data *data)
  */
 struct resource *bootm_load_fit_initrd(struct image_data *data, unsigned long load_address)
 {
-	struct resource *res;
-	const void *initrd;
-	unsigned long initrd_size;
-	int nramdisks, ret;
+	struct resource *res = NULL;
+	int nramdisks;
 
 	nramdisks = fitconfig_count_ramdisks(data);
-	if (nramdisks > 1) {
-		pr_err("Multiple %s entries not supported\n", "ramdisk");
-		return ERR_PTR(-EINVAL);
-	}
-	if (!nramdisks)
-		return NULL;
 
-	ret = fit_open_image(data->os_fit, data->fit_config, "ramdisk", 0,
-			     &initrd, &initrd_size);
-	if (ret) {
-		pr_err("Cannot open ramdisk image in FIT image: %pe\n",
-				ERR_PTR(ret));
-		return ERR_PTR(ret);
-	}
-	res = request_sdram_region("initrd",
-				   load_address, initrd_size,
-				   MEMTYPE_LOADER_DATA, MEMATTRS_RW);
-	if (!res)
-		return ERR_PTR(-ENOMEM);
+	for (int i = 0; i < nramdisks; i++) {
+		const void *initrd;
+		unsigned long initrd_size;
+		struct resource *tmp;
+		int ret;
 
-	memcpy((void *)load_address, initrd, initrd_size);
+		ret = fit_open_image(data->os_fit, data->fit_config, "ramdisk", i,
+				     &initrd, &initrd_size);
+		if (ret) {
+			pr_err("Cannot open ramdisk image in FIT image: %pe\n",
+					ERR_PTR(ret));
+			return ERR_PTR(ret);
+		}
+
+		tmp = request_sdram_region("initrd",
+					   load_address, initrd_size,
+					   MEMTYPE_LOADER_DATA, MEMATTRS_RW);
+		if (!tmp)
+			return ERR_PTR(-ENOMEM);
+
+		memcpy((void *)load_address, initrd, initrd_size);
+
+		printf("aggregating CPIO %u to %lu\n", i, load_address);
+
+		res = __merge_regions("initrd", res, tmp);
+		load_address += initrd_size;
+	}
+
 	return res;
 }
 
