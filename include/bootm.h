@@ -134,6 +134,7 @@ struct image_handler {
 };
 
 int register_image_handler(struct image_handler *handle);
+int register_image_handler_head(struct image_handler *handler);
 
 #ifdef CONFIG_BOOTM_VERBOSE
 static inline int bootm_verbose(struct image_data *data)

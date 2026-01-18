@@ -709,6 +709,17 @@ config BOOTM_OPTIONAL_SIGNED_IMAGES
 	  bootm_force_signed_images() when secure booted to ensure that runtime
 	  reconfiguration is no longer possible.
 
+config BOOTM_MOCK
+	bool "Mock image handler"
+	depends on BOOTM
+	depends on GLOBALVAR
+	help
+	  Enable a mock image handler that captures the image, device tree,
+	  and initrd to /tmp/lastboot/ for testing purposes. The handler is
+	  activated by setting global.bootm.mock=1. This aborts earlier than
+	  the dryrun support, but is more useful for programmatically testing
+	  the boot infrastructure without actually booting.
+
 config BLSPEC
 	depends on FLEXIBLE_BOOTARGS
 	depends on !SHELL_NONE
