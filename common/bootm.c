@@ -44,6 +44,20 @@ static bool filetype_check(struct image_handler *handler,
 	return handler->filetype == detected_filetype;
 }
 
+int register_image_handler_head(struct image_handler *handler)
+{
+	if (!handler->check_image) {
+		if (IS_ENABLED(CONFIG_BOOTM_UIMAGE) &&
+		    handler->filetype == filetype_uimage)
+			handler->check_image = uimage_check;
+		else
+			handler->check_image = filetype_check;
+	}
+
+	list_add(&handler->list, &handler_list);
+	return 0;
+}
+
 int register_image_handler(struct image_handler *handler)
 {
 	if (!handler->check_image) {

@@ -175,10 +175,14 @@ def of_scan_property(val, ncells=1):
     return items[0] if len(items) == 1 else items
 
 
-def of_get_property(barebox, path, ncells=1):
+def of_get_property(barebox, path, file=None, ncells=1):
     node, prop = os.path.split(path)
+    opts = ""
 
-    stdout = barebox.run_check(f"of_dump -p {node}")
+    if file is not None:
+        opts = f"-f {file}"
+
+    stdout = barebox.run_check(f"of_dump {opts} -p {node}")
     for line in stdout:
         if line == f'{prop};':
             return True
