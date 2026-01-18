@@ -463,6 +463,27 @@ config CMD_BOOT
 	      -o DTS     specify open firmware device tree
 	      -v         verbose
 
+config CMD_NETBOOT
+	tristate
+	depends on CMD_BOOT
+	depends on BOOT_OVERRIDE
+	depends on BOOTM_OPTIONAL_SIGNED_IMAGES
+	prompt "netboot"
+	default y
+	help
+	  Network-assisted boot command. Same as 'boot' but executes a
+	  configuration script from TFTP before each boot attempt.
+
+	  Script lookup order:
+	  1. /mnt/tftp/${global.user}-netboot-${global.hostname}
+	  2. /mnt/tftp/${global.user}-netboot-${global.arch}
+
+	  The boot entry name is passed as argument to the script.
+	  The script can set netboot.image, netboot.initrd, and netboot.oftree
+	  parameters. Command-line -o overrides take precedence (per-field).
+
+	  This command is not available when signed images are forced.
+
 config CMD_BOOTM
 	tristate
 	default y

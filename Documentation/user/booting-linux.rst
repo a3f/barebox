@@ -377,3 +377,73 @@ If the preconfigured paths or names are not suitable, they can be adjusted in
 
 ``boot net`` will then retrieve the kernel (and also the device tree and
 initramfs, if used) over TFTP and boot it.
+
+.. _netboot_command:
+
+The netboot command
+-------------------
+
+The ``netboot`` command is an alias for :ref:`command_boot` that adds
+TFTP-based dynamic configuration. Before each boot attempt, ``netboot``
+looks for a configuration script on the TFTP server and executes it.
+
+Script Lookup
+^^^^^^^^^^^^^
+
+The command searches for scripts in this order:
+
+1. ``/mnt/tftp/${global.user}-netboot-${global.hostname}``
+2. ``/mnt/tftp/${global.user}-netboot-${global.arch}``
+
+The first script found is executed. The boot entry name is passed as
+an argument to the script, allowing per-entry customization.
+
+Script Parameters
+^^^^^^^^^^^^^^^^^
+
+The script can configure boot overrides by setting these parameters:
+
+``netboot.image``
+   Path to the kernel image (forwarded to bootm.image)
+
+``netboot.initrd``
+   Path to the initrd/initramfs
+
+``netboot.oftree``
+   Path to the device tree blob
+
+Example script (``afa-netboot-myboard``)::
+
+    #!/bin/sh
+
+    # $1 contains the boot entry name
+    echo "Configuring netboot for entry: $1"
+
+    netboot.oftree=/mnt/tftp/afa-oftree-myboard
+    netboot.initrd=/mnt/tftp/afa-initrd-myboard
+
+    # Can also set kernel command line
+    global linux.bootargs.dyn.netboot="netboot_test=1"
+
+Override Precedence
+^^^^^^^^^^^^^^^^^^^
+
+Command-line overrides (``-o``) take precedence over script-configured
+values on a per-field basis. For example::
+
+    # Uses script's oftree, but command-line initrd
+    netboot -o bootm.initrd=/mnt/tftp/test-initrd mmc
+
+Usage Examples
+^^^^^^^^^^^^^^
+
+Basic usage::
+
+    # Boot $global.boot.default with TFTP configuration
+    netboot
+
+    # Boot specific target with TFTP configuration
+    netboot mmc0
+
+    # Override specific field while using script for others
+    netboot -o bootm.oftree=/mnt/tftp/debug.dtb 
