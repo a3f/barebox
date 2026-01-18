@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
 from labgrid.driver import BareboxDriver
+import json
 import pytest
 import os
 import re
@@ -175,10 +176,14 @@ def of_scan_property(val, ncells=1):
     return items[0] if len(items) == 1 else items
 
 
-def of_get_property(barebox, path, ncells=1):
+def of_get_property(barebox, path, file=None, ncells=1):
     node, prop = os.path.split(path)
+    opts = ""
 
-    stdout = barebox.run_check(f"of_dump -p {node}")
+    if file is not None:
+        opts = f"-f {file}"
+
+    stdout = barebox.run_check(f"of_dump {opts} -p {node}")
     for line in stdout:
         if line == f'{prop};':
             return True
@@ -197,3 +202,149 @@ def skip_disabled(config, *options):
 
         if bool(undefined):
             pytest.skip("skipping test due to disabled " + (",".join(undefined)) + " dependency")
+
+
+def mock_boot(barebox, boot_cmd: str) -> dict | None:
+    """
+    Enable mock mode, run boot command, disable mock, return manifest dict.
+
+    Cleans up /tmp/lastboot before running, enables global.bootm.mock=1,
+    executes the boot command, then disables the mock handler and reads
+    the manifest.json file.
+
+    Args:
+        barebox: BareboxDriver instance
+        boot_cmd: Full boot command (e.g., "bootm -r /path/initrd /path/image"
+                  or "boot scriptname")
+
+    Returns:
+        dict: Parsed manifest.json content, or None if boot failed/no manifest
+    """
+    barebox.run("rm -rf /tmp/lastboot")
+    barebox.run_check("global bootm.mock=1")
+    try:
+        barebox.run(boot_cmd)
+        stdout, _, ret = barebox.run("cat /tmp/lastboot/manifest.json")
+        if ret != 0:
+            return None
+        return json.loads("\n".join(stdout))
+    finally:
+        barebox.run_check("global bootm.mock=0")
+
+
+def mock_boot_check(barebox, boot_cmd: str) -> dict:
+    """
+    Like mock_boot but raises AssertionError if no manifest found.
+
+    Args:
+        barebox: BareboxDriver instance
+        boot_cmd: Full boot command
+
+    Returns:
+        dict: Parsed manifest.json content
+
+    Raises:
+        AssertionError: If boot failed or manifest.json not found
+    """
+    result = mock_boot(barebox, boot_cmd)
+    if result is None:
+        raise AssertionError(f"Mock boot failed or no manifest: {boot_cmd}")
+    return result
+
+
+def verify_mock_boot_files(barebox, manifest: dict) -> None:
+    """
+    Verify that all loadables in the manifest have corresponding files in /tmp/lastboot.
+
+    Checks that:
+    - /tmp/lastboot directory exists
+    - If manifest["os"] is not null → /tmp/lastboot/image exists
+    - If manifest["initrd"] is not null → /tmp/lastboot/initrd exists
+    - If manifest["oftree"] is not null → /tmp/lastboot/oftree exists
+
+    Args:
+        barebox: BareboxDriver instance
+        manifest: Parsed manifest.json dict from mock_boot or mock_boot_check
+
+    Raises:
+        AssertionError: If directory or any expected file is missing
+    """
+    # First verify the directory exists
+    _, _, ret = barebox.run("test -d /tmp/lastboot")
+    assert ret == 0, "/tmp/lastboot directory does not exist"
+
+    loadable_to_file = {
+        "os": "image",
+        "initrd": "initrd",
+        "oftree": "oftree",
+    }
+
+    for loadable_name, filename in loadable_to_file.items():
+        if manifest.get(loadable_name) is not None:
+            _, _, ret = barebox.run(f"test -f /tmp/lastboot/{filename}")
+            assert ret == 0, \
+                f"Manifest has '{loadable_name}' loadable but /tmp/lastboot/{filename} is missing"
+
+
+def ensure_debian_vfat_image():
+    """
+    Create a VFAT disk image from the Debian ISO if needed.
+
+    barebox does not support mounting ISO9660 filesystems, so we extract
+    the kernel and initrd from the ISO and create a VFAT image that barebox
+    can mount. Uses mtools for image creation (no root/KVM required).
+
+    The ISO should be placed in test/testdata/. The VFAT image is
+    generated in $LG_BUILDDIR/test/testdata/ (cached based on ISO mtime).
+
+    Returns the path to the VFAT image, or None if the ISO doesn't exist.
+    """
+    testdata_dir = os.path.join(os.path.dirname(__file__), "..", "testdata")
+    iso_path = os.path.join(testdata_dir, "debian-13.3.0-arm64-netinst.iso")
+
+    builddir = os.environ.get('LG_BUILDDIR')
+    if builddir:
+        vfat_dir = os.path.join(builddir, "test", "testdata")
+    else:
+        vfat_dir = testdata_dir
+    os.makedirs(vfat_dir, exist_ok=True)
+    vfat_path = os.path.join(vfat_dir, "debian-13.3.0-arm64-netinst.vfat")
+
+    if not os.path.exists(iso_path):
+        return None
+
+    if os.path.exists(vfat_path):
+        if os.path.getmtime(vfat_path) >= os.path.getmtime(iso_path):
+            return vfat_path
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        vmlinuz_path = os.path.join(tmpdir, "vmlinuz")
+        initrd_path = os.path.join(tmpdir, "initrd.gz")
+
+        with open(vmlinuz_path, "wb") as f:
+            subprocess.run(
+                ["isoinfo", "-i", iso_path, "-x", "/INSTALL.A64/VMLINUZ.;1"],
+                stdout=f, check=True,
+            )
+
+        with open(initrd_path, "wb") as f:
+            subprocess.run(
+                ["isoinfo", "-i", iso_path, "-x", "/INSTALL.A64/INITRD.GZ;1"],
+                stdout=f, check=True,
+            )
+
+        total_size = os.path.getsize(vmlinuz_path) + os.path.getsize(initrd_path)
+        image_size_mb = (total_size // (1024 * 1024)) + 10
+
+        subprocess.run(["truncate", "-s", f"{image_size_mb}M", vfat_path], check=True)
+        env = os.environ.copy()
+        env["PATH"] = env.get("PATH", "") + ":/usr/sbin"
+        subprocess.run(["mkfs.fat", vfat_path], check=True,
+                       stdout=subprocess.DEVNULL, env=env)
+        subprocess.run(["mmd", "-i", vfat_path, "::install.a64"], check=True)
+        subprocess.run(["mcopy", "-i", vfat_path, vmlinuz_path,
+                        "::install.a64/vmlinuz"], check=True)
+        subprocess.run(["mcopy", "-i", vfat_path, initrd_path,
+                        "::install.a64/initrd.gz"], check=True)
+
+    return vfat_path
