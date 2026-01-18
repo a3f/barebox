@@ -186,7 +186,7 @@ static int fhctl_hopping(struct mtk_fh *fh, unsigned int new_dds,
 	struct fh_pll_state *state = &fh->pllfh_data->state;
 	struct fh_pll_regs *regs = &fh->regs;
 	struct mtk_clk_pll *pll = &fh->clk_pll;
-	unsigned int pll_postdiv;
+	unsigned int pll_postdiv = 0;
 	int ret;
 
 	if (postdiv) {
