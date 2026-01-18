@@ -39,6 +39,41 @@ static bool filetype_check(struct image_handler *handler,
 	return handler->filetype == detected_filetype;
 }
 
+/**
+ * register_image_handler_head - Register an image handler with high priority
+ * @handler: The image handler to register
+ *
+ * Register an image handler at the head of the handler list. This handler
+ * will be checked before any previously registered handlers, making it
+ * useful for handlers that need to intercept boot attempts (e.g., mock
+ * handlers for testing).
+ *
+ * Return: 0 on success
+ */
+int register_image_handler_head(struct image_handler *handler)
+{
+	if (!handler->check_image) {
+		if (IS_ENABLED(CONFIG_BOOTM_UIMAGE) &&
+		    handler->filetype == filetype_uimage)
+			handler->check_image = uimage_check;
+		else
+			handler->check_image = filetype_check;
+	}
+
+	list_add(&handler->list, &handler_list);
+	return 0;
+}
+
+/**
+ * register_image_handler - Register an image handler
+ * @handler: The image handler to register
+ *
+ * Register an image handler at the tail of the handler list. The handler's
+ * check_image callback will be used to determine if this handler matches
+ * a given image; if not provided, a default filetype-based check is used.
+ *
+ * Return: 0 on success
+ */
 int register_image_handler(struct image_handler *handler)
 {
 	if (!handler->check_image) {
@@ -139,6 +174,14 @@ static const char * const bootm_verify_names[] = {
 #endif
 	[BOOTM_VERIFY_SIGNATURE] = "signature",
 };
+
+const char *bootm_verify_tostr(enum bootm_verify mode)
+{
+	if (mode >= ARRAY_SIZE(bootm_verify_names))
+		return NULL;
+
+	return bootm_verify_names[mode];
+}
 
 /*
  * There's three ways to influence whether signed images are forced:
@@ -833,6 +876,14 @@ static const char * const bootm_efi_loader_mode_names[] = {
 	[BOOTM_EFI_AVAILABLE] = "available",
 	[BOOTM_EFI_REQUIRED] = "required",
 };
+
+const char *bootm_efi_loader_mode_tostr(enum bootm_efi_mode mode)
+{
+	if (mode >= ARRAY_SIZE(bootm_efi_loader_mode_names))
+		return NULL;
+
+	return bootm_efi_loader_mode_names[mode];
+}
 
 static int bootm_init(void)
 {
