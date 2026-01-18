@@ -6,7 +6,7 @@
 #include <mfd/syscon.h>
 #include <linux/module.h>
 #include <of.h>
-#include <linux/platform_device.h>
+#include <linux/device.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
 
