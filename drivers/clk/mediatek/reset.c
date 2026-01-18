@@ -159,7 +159,7 @@ int mtk_register_reset_controller_with_dev(struct device *dev,
 		data->rcdev.nr_resets = desc->rst_bank_nr * RST_NR_PER_BANK;
 	}
 
-	ret = devm_reset_controller_register(dev, &data->rcdev);
+	ret = reset_controller_register(&data->rcdev);
 	if (ret) {
 		dev_err(dev, "could not register reset controller: %d\n", ret);
 		return ret;
