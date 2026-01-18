@@ -27,7 +27,6 @@ targets:
       - smbios
       - bootable
       - efi
-      - testfs
     options:
       root_dev: virtioblk0.0
       bootm.image: 'boot/vmlinuz-*'
