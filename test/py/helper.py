@@ -6,6 +6,7 @@ import os
 import re
 import shlex
 import subprocess
+import json
 
 
 def parse_config(lines):
@@ -176,10 +177,14 @@ def of_scan_property(val, ncells=1):
     return items[0] if len(items) == 1 else items
 
 
-def of_get_property(barebox, path, ncells=1):
+def of_get_property(barebox, path, file=None, ncells=1):
     node, prop = os.path.split(path)
+    opts = ""
 
-    stdout = barebox.run_check(f"of_dump -p {node}")
+    if file is not None:
+        opts = f"-f {file}"
+
+    stdout = barebox.run_check(f"of_dump {opts} -p {node}")
     for line in stdout:
         if line == f'{prop};':
             return True
@@ -236,3 +241,85 @@ def ensure_debian_iso(env, destdir):
         )
 
     return destdir
+
+
+def mock_boot(barebox, boot_cmd: str) -> dict | None:
+    """
+    Enable mock mode, run boot command, disable mock, return manifest dict.
+
+    Cleans up /tmp/lastboot before running, enables global.bootm.mock=1,
+    executes the boot command, then disables the mock handler and reads
+    the manifest.json file.
+
+    Args:
+        barebox: BareboxDriver instance
+        boot_cmd: Full boot command (e.g., "bootm -r /path/initrd /path/image"
+                  or "boot scriptname")
+
+    Returns:
+        dict: Parsed manifest.json content, or None if boot failed/no manifest
+    """
+    barebox.run("rm -rf /tmp/lastboot")
+    barebox.run_check("global bootm.mock=1")
+    try:
+        barebox.run(boot_cmd)
+        stdout, _, ret = barebox.run("cat /tmp/lastboot/manifest.json")
+        if ret != 0:
+            return None
+        return json.loads("\n".join(stdout))
+    finally:
+        barebox.run_check("global bootm.mock=0")
+
+
+def mock_boot_check(barebox, boot_cmd: str) -> dict:
+    """
+    Like mock_boot but raises AssertionError if no manifest found.
+
+    Args:
+        barebox: BareboxDriver instance
+        boot_cmd: Full boot command
+
+    Returns:
+        dict: Parsed manifest.json content
+
+    Raises:
+        AssertionError: If boot failed or manifest.json not found
+    """
+    result = mock_boot(barebox, boot_cmd)
+    if result is None:
+        raise AssertionError(f"Mock boot failed or no manifest: {boot_cmd}")
+    return result
+
+
+def verify_mock_boot_files(barebox, manifest: dict) -> None:
+    """
+    Verify that all loadables in the manifest have corresponding files in /tmp/lastboot.
+
+    Checks that:
+    - /tmp/lastboot directory exists
+    - If manifest["os"] is not null → /tmp/lastboot/image exists
+    - If manifest["initrd"] is not null → /tmp/lastboot/initrd exists
+    - If manifest["oftree"] is not null → /tmp/lastboot/oftree exists
+
+    Args:
+        barebox: BareboxDriver instance
+        manifest: Parsed manifest.json dict from mock_boot or mock_boot_check
+
+    Raises:
+        AssertionError: If directory or any expected file is missing
+    """
+    # First verify the directory exists
+    _, _, ret = barebox.run("test -d /tmp/lastboot")
+    assert ret == 0, "/tmp/lastboot directory does not exist"
+
+    loadable_to_file = {
+        "os": "image",
+        "initrd": "initrd",
+        "oftree": "oftree",
+    }
+
+    for loadable_name, filename in loadable_to_file.items():
+        if manifest.get(loadable_name) is not None:
+            _, _, ret = barebox.run(f"test -f /tmp/lastboot/{filename}")
+            assert ret == 0, \
+                f"Manifest has '{loadable_name}' loadable but /tmp/lastboot/{filename} is missing"

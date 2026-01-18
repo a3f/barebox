@@ -163,6 +163,7 @@ struct image_handler {
 };
 
 int register_image_handler(struct image_handler *handle);
+int register_image_handler_head(struct image_handler *handler);
 
 #ifdef CONFIG_BOOTM_VERBOSE
 static inline int bootm_verbose(struct image_data *data)
@@ -196,6 +197,9 @@ loff_t bootm_get_os_size(struct image_data *data);
 
 enum bootm_verify bootm_get_verify_mode(void);
 void bootm_set_verify_mode(enum bootm_verify mode);
+const char *bootm_verify_tostr(enum bootm_verify mode);
+
+const char *bootm_efi_loader_mode_tostr(enum bootm_efi_mode mode);
 
 bool bootm_signed_images_are_forced(void);
 void bootm_force_signed_images(void);
