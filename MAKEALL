@@ -137,6 +137,12 @@ do_build_defconfig() {
 	[ -n "$logdir" ] && mkdir -p "${logdir}/${defconfig}"
 
 	MAKE="make -j${JOBS} ARCH=${arch} O=${BUILDDIR}"
+
+	# Save existing .config for later comparison (to avoid unnecessary rebuilds)
+	if [ -f "${BUILDDIR}/.config" ]; then
+		cp -p "${BUILDDIR}/.config" "${BUILDDIR}/makeall.config"
+	fi
+
 	shuffle=$(${MAKE} --debug=basic ${defconfig} 2>&1 | sed -n 's/.*Enabled shuffle mode: //p' | head -n1)
 
 	if [ -n "$shuffle" ]; then
@@ -177,8 +183,16 @@ do_build_defconfig() {
 		fi
 	done
 	with_logs_collected ${MAKE} $silent_flag olddefconfig
-
 	configure_result="$?"
+
+	# Restore previous .config if unchanged to avoid unnecessary rebuilds
+	if [ -f "${BUILDDIR}/makeall.config" ]; then
+		if cmp -s "${BUILDDIR}/.config" "${BUILDDIR}/makeall.config"; then
+			mv "${BUILDDIR}/makeall.config" "${BUILDDIR}/.config"
+		else
+			rm -f "${BUILDDIR}/makeall.config"
+		fi
+	fi
 
 	report "Configure: "
 
