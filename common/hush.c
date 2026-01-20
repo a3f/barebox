@@ -634,15 +634,14 @@ static int builtin_exit(struct p_context *ctx, struct child_prog *child,
 static void remove_quotes_in_str(char *src)
 {
 	char *trg = src;
-	int in_double_quotes = 0;
+	bool in_double_quotes = false;
 
 	while (*src) {
-		if (*src == '\'' && !in_double_quotes) {
+		if (*src == '\'') {
 			src++;
-			while (*src && *src != '\'')
+			while (*src != '\'')
 				*trg++ = *src++;
-			if (*src == '\'')
-				src++;
+			src++;
 			continue;
 		}
 
