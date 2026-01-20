@@ -893,6 +893,8 @@ int bootm_boot(struct bootm_data *bootm_data)
 err_out:
 	bootm_reset_overrides();
 	release_sdram_region(data->os_res);
+	if (data->initrd_res)
+		of_del_reserve_entry(data->initrd_res->start, data->initrd_res->end);
 	release_sdram_region(data->initrd_res);
 	release_sdram_region(data->oftree_res);
 	release_sdram_region(data->tee_res);
