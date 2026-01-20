@@ -72,6 +72,7 @@ obj-$(CONFIG_STMP_DEVICE) += stmp-device.o
 obj-y			+= ucs2_string.o wchar.o
 obj-$(CONFIG_FUZZ)	+= fuzz.o
 obj-y			+= libfile.o
+obj-$(CONFIG_LOADABLE)	+= loadable.o
 obj-y			+= bitmap.o
 obj-y			+= gcd.o
 obj-y			+= bsearch.o

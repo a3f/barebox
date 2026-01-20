@@ -8,6 +8,13 @@ config UNCOMPRESS
 	bool
 	select FILETYPE
 
+config LOADABLE
+	bool "Lazy loadable resource infrastructure"
+	help
+	  Provides infrastructure for lazy-loadable resources that can be
+	  queried for metadata without loading data, and committed to memory
+	  on demand. Used by bootm for managing kernel/initrd/fdt loading.
+
 config JSMN
 	bool "JSMN JSON Parser" if COMPILE_TEST
 	help

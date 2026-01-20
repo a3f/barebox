@@ -3,6 +3,7 @@
 #define __BOOTM_H
 
 #include <image.h>
+#include <loadable.h>
 #include <filetype.h>
 #include <linux/list.h>
 
@@ -171,11 +172,6 @@ void bootm_set_verify_mode(enum bootm_verify mode);
 
 bool bootm_signed_images_are_forced(void);
 void bootm_force_signed_images(void);
-
-#define UIMAGE_SOME_ADDRESS (UIMAGE_INVALID_ADDRESS - 1)
-#define UIMAGE_IS_ADDRESS_VALID(addr) \
-	((addr) != UIMAGE_INVALID_ADDRESS && \
-	 (addr) != UIMAGE_SOME_ADDRESS)
 
 void *booti_load_image(struct image_data *data, phys_addr_t *oftree);
 
