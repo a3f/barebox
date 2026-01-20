@@ -626,6 +626,80 @@ int bootm_boot(struct bootm_data *bootm_data)
 
 	os_type = data->os_type = file_detect_boot_image_type(data->os_header, PAGE_SIZE);
 
+	if (IS_ENABLED(CONFIG_BOOT_OVERRIDE) && bootm_overrides.os_file) {
+		enum filetype override_type;
+		void *override_header;
+
+		if (bootm_signed_images_are_forced()) {
+			pr_err("bootm.image override not allowed when signed images are forced\n");
+			ret = -EPERM;
+			goto err_out;
+		}
+
+		/* Read override file to detect its type */
+		ret = read_file_2(bootm_overrides.os_file, &size, &override_header, PAGE_SIZE);
+		if (ret < 0 && ret != -EFBIG) {
+			pr_err("could not open override image %s: %pe\n",
+			       bootm_overrides.os_file, ERR_PTR(ret));
+			goto err_out;
+		}
+		if (size < PAGE_SIZE) {
+			pr_err("override image %s too small\n", bootm_overrides.os_file);
+			ret = -EINVAL;
+			goto err_out;
+		}
+
+		override_type = file_detect_boot_image_type(override_header, PAGE_SIZE);
+		free(override_header);
+
+		/*
+		 * Override behavior depends on original and override types:
+		 * - Same type: Replace immediately
+		 * - FIT -> non-FIT: Delay replacement until bootm_load_os
+		 * - Non-FIT -> FIT: Error (not supported)
+		 */
+		if (os_type == filetype_fit && override_type != filetype_fit) {
+			/* FIT -> non-FIT: Store override for delayed application */
+			data->os_file_override = xstrdup(bootm_overrides.os_file);
+		} else if (os_type != filetype_fit && override_type == filetype_fit) {
+			/* Non-FIT -> FIT: Not supported */
+			pr_err("Cannot override non-FIT image with FIT image\n");
+			ret = -EINVAL;
+			goto err_out;
+		} else {
+			/* Same type or FIT -> FIT: Do type check and replace immediately */
+			if (!data->force) {
+				if (os_type == filetype_unknown && override_type == filetype_unknown) {
+					/* Both unknown: allow */
+				} else if (os_type != override_type) {
+					pr_err("Override image file type mismatch: original '%s' is %s, override '%s' is %s\n",
+					       data->os_file, file_type_to_short_string(os_type),
+					       bootm_overrides.os_file, file_type_to_short_string(override_type));
+					ret = -EINVAL;
+					goto err_out;
+				}
+			}
+
+			free(data->os_file);
+			data->os_file = xstrdup(bootm_overrides.os_file);
+
+			free(data->os_header);
+			ret = read_file_2(data->os_file, &size, &data->os_header, PAGE_SIZE);
+			if (ret < 0 && ret != -EFBIG) {
+				pr_err("could not open override image %s: %pe\n",
+				       data->os_file, ERR_PTR(ret));
+				goto err_out;
+			}
+			if (size < PAGE_SIZE) {
+				pr_err("override image %s too small\n", data->os_file);
+				ret = -EINVAL;
+				goto err_out;
+			}
+
+			os_type = data->os_type = file_detect_boot_image_type(data->os_header, PAGE_SIZE);
+		}
+	}
+
 	if (!data->force && os_type == filetype_unknown) {
 		pr_err("Unknown OS filetype (try -f)\n");
 		ret = -EINVAL;

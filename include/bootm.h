@@ -69,6 +69,9 @@ struct image_data {
 	/* otherwise only the filename will be provided */
 	char *os_file;
 
+	/* delayed override file (for FIT -> non-FIT override) */
+	char *os_file_override;
+
 	/*
 	 * The address the user wants to load the os image to.
 	 * May be UIMAGE_INVALID_ADDRESS to indicate that the

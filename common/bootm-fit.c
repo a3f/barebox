@@ -5,6 +5,9 @@
 #include <bootm-fit.h>
 #include <memory.h>
 #include <zero_page.h>
+#include <filetype.h>
+#include <fs.h>
+#include <libfile.h>
 
 /*
  * bootm_load_fit_os() - load OS from FIT to RAM
@@ -22,6 +25,53 @@ int bootm_load_fit_os(struct image_data *data, unsigned long load_address)
 {
 	const void *kernel = data->fit_kernel;
 	unsigned long kernel_size = data->fit_kernel_size;
+
+	/* Check for delayed override (FIT -> non-FIT case) */
+	if (IS_ENABLED(CONFIG_BOOT_OVERRIDE) && data->os_file_override) {
+		enum filetype fit_kernel_type, override_type;
+		void *override_header;
+		size_t size;
+		int ret;
+
+		/* Detect type of extracted FIT kernel */
+		fit_kernel_type = file_detect_boot_image_type(kernel, kernel_size);
+
+		/* Read override file header to detect its type */
+		ret = read_file_2(data->os_file_override, &size, &override_header, PAGE_SIZE);
+		if (ret < 0 && ret != -EFBIG) {
+			pr_err("could not open override image %s: %pe\n",
+			       data->os_file_override, ERR_PTR(ret));
+			return ret;
+		}
+		if (size < PAGE_SIZE) {
+			pr_err("override image %s too small\n", data->os_file_override);
+			free(override_header);
+			return -EINVAL;
+		}
+
+		override_type = file_detect_boot_image_type(override_header, PAGE_SIZE);
+		free(override_header);
+
+		/* Type check unless force mode */
+		if (!data->force) {
+			if (fit_kernel_type == filetype_unknown && override_type == filetype_unknown) {
+				/* Both unknown: allow */
+			} else if (fit_kernel_type != override_type) {
+				pr_err("Override image file type mismatch: FIT kernel is %s, override '%s' is %s\n",
+				       file_type_to_short_string(fit_kernel_type),
+				       data->os_file_override,
+				       file_type_to_short_string(override_type));
+				return -EINVAL;
+			}
+		}
+
+		/* Load override file instead of FIT kernel */
+		data->os_res = file_to_sdram(data->os_file_override, load_address, MEMTYPE_LOADER_CODE);
+		if (!data->os_res)
+			return -ENOMEM;
+
+		return 0;
+	}
 
 	data->os_res = request_sdram_region("kernel",
 			load_address, kernel_size,
