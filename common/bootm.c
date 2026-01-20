@@ -237,7 +237,7 @@ static bool bootm_get_override(char **oldpath, const char *newpath)
 
 	if (oldpath && !streq_ptr(*oldpath, newpath)) {
 		free(*oldpath);
-		*oldpath = *newpath ? xstrdup(newpath) : NULL;
+		*oldpath = xstrdup(newpath);
 	}
 
 	return true;
@@ -401,7 +401,7 @@ void *bootm_get_devicetree(struct image_data *data)
 
 	if (from_fit) {
 		data->of_root_node = bootm_get_fit_devicetree(data);
-	} else if (data->oftree_file) {
+	} else if (!isempty(data->oftree_file)) {
 		size_t size;
 
 		ret = file_name_detect_type(data->oftree_file, &type);
