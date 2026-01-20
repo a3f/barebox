@@ -2,6 +2,7 @@
 
 from .helper import skip_disabled
 import json
+import pytest
 
 
 def test_barebox_true(barebox, barebox_config):
@@ -16,6 +17,19 @@ def test_barebox_false(barebox, barebox_config):
 
     _, _, returncode = barebox.run('false')
     assert returncode == 1
+
+
+@pytest.mark.xfail(reason="barebox Hush quote handling is bogus")
+def test_shell_quoting(barebox):
+    # Labgrid will write this command to a file and execute that and add
+    # extra quoting in the process, which we want hush to be able to handle
+    # Below is equivalent to
+    # echo > testcmd 'echo > /tmp/script '"'"'var="A B"'"'"''; sh testcmd
+    barebox.console.sendline(r"""echo -o testcmd 'echo -o /tmp/script '"'"'var="A B"'"'"''; sh testcmd""")
+    barebox._await_prompt()
+    assert barebox.run_check('cat testcmd') == [r"""echo -o /tmp/script 'var="A B"'"""]
+    assert barebox.run_check('cat /tmp/script') == [r'''var="A B"''']
+    assert barebox.run_check('source /tmp/script && echo "$var"') == "A B"
 
 
 def test_barebox_echo_cat(barebox, barebox_config):
