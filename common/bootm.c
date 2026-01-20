@@ -228,6 +228,11 @@ static bool bootm_get_override(char **oldpath, const char *newpath)
 	return true;
 }
 
+static void bootm_reset_overrides(void)
+{
+	bootm_overrides = (struct bootm_overrides) {};
+}
+
 /*
  * bootm_load_os() - load OS to RAM
  *
@@ -752,6 +757,7 @@ int bootm_boot(struct bootm_data *bootm_data)
 		pr_info("Dryrun. Aborted\n");
 
 err_out:
+	bootm_reset_overrides();
 	release_sdram_region(data->os_res);
 	release_sdram_region(data->initrd_res);
 	release_sdram_region(data->oftree_res);
