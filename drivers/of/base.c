@@ -2079,6 +2079,9 @@ int of_set_root_node(struct device_node *node)
 	if (node && root_node)
 		return -EBUSY;
 
+	if (node)
+		of_property_write_bool(node, "$barebox,root-node", true);
+
 	root_node = node;
 
 	of_chosen = of_find_node_by_path("/chosen");
@@ -2134,6 +2137,28 @@ int barebox_register_fdt(const void *dtb)
 	}
 
 	return barebox_register_of(root);
+}
+
+/**
+ *  of_device_was_barebox_root_node - check if node was barebox root DT node
+ *
+ *  @device: Node to check
+ *
+ *  Returns true if the device tree node is a root node that of the
+ *  barebox live tree or it was cloned from the barebox live tree.
+ *  Anything else, including barebox live tree that was flattened
+ *  and unflatted again and passed to this function will return false.
+ */
+bool of_device_was_barebox_root_node(const struct device_node *device)
+{
+	/* Many of_* functions substitute the barebox DT on NULL */
+	if (!device)
+		return true;
+
+	if (device->parent)
+		return false;
+
+	return of_property_read_bool(device, "$barebox,root-node");
 }
 
 /**
