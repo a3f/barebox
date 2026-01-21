@@ -126,6 +126,26 @@ static int uimage_loadable_get_info(struct loadable *l, struct loadable_info *in
 	return 0;
 }
 
+/**
+ * uimage_loadable_commit - load uImage data to target address
+ * @l: loadable representing uImage component
+ * @load_addr: physical address to load data to
+ * @buf_size: size of buffer at load_addr (0 = no limit check)
+ *
+ * Commits the uImage component to the specified memory address. This involves:
+ * 1. Getting size information from loadable
+ * 2. Checking buffer size if buf_size > 0
+ * 3. Calling uimage_load_to_sdram() to decompress and load data
+ * 4. Returning actual bytes written
+ *
+ * The uimage_load_to_sdram() function handles decompression (if needed),
+ * memory allocation with request_sdram_region(), and copying data to the
+ * target address.
+ *
+ * Return: actual number of bytes written on success, negative errno on error
+ *         -ENOSPC if buf_size is specified and too small
+ *         -ENOMEM if failed to load to SDRAM
+ */
 static int uimage_loadable_commit(struct loadable *l, unsigned long load_addr, size_t buf_size)
 {
 	struct uimage_loadable_priv *priv = l->priv;
@@ -183,6 +203,23 @@ static const struct loadable_ops uimage_loadable_ops = {
 	.describe = uimage_loadable_describe,
 };
 
+/**
+ * loadable_from_uimage - create a loadable from uImage component
+ * @uimage: opened uImage handle
+ * @part_num: partition/part number within uImage (0 for single-part)
+ * @type: type of loadable (LOADABLE_KERNEL, LOADABLE_INITRD, etc.)
+ *
+ * Creates a loadable structure that wraps access to a component within a
+ * uImage. For multi-part uImages, part_num selects which part to load.
+ * The loadable uses the uImage handle to access and potentially decompress
+ * data on demand during commit.
+ *
+ * The created loadable must be freed with loadable_release() when done.
+ * The uImage handle itself is managed by the caller and must remain valid
+ * until the loadable is released.
+ *
+ * Return: pointer to allocated loadable on success, ERR_PTR() on error
+ */
 struct loadable *loadable_from_uimage(struct uimage_handle *uimage,
 				      int part_num,
 				      enum loadable_type type)
@@ -214,12 +251,28 @@ struct loadable *loadable_from_uimage(struct uimage_handle *uimage,
 }
 
 
-/*
- * bootm_collect_uimage_loadables - collect loadables from a uImage
+/**
+ * bootm_collect_uimage_loadables - create loadables from opened uImage
+ * @data: image data context with opened uImage handle
  *
- * This creates loadable structures for kernel and initrd from the opened
- * uImage handles. The loadables are added to data->loadables list but not
- * yet committed to memory.
+ * Creates loadable structures for boot components from opened uImage handles.
+ * This includes:
+ * * Kernel from data->os uImage (using data->os_part for multi-part selection)
+ * * Initrd from data->initrd_files uImage if specified (opens it if needed)
+ *
+ * For initrd handling:
+ * * If initrd_files matches os_file: uses same uImage handle (multi-part)
+ * * Otherwise: opens separate uImage for initrd and verifies it
+ *
+ * Each loadable is added to data->loadables list and appropriate shortcuts
+ * (data->kernel) are set. The loadables are not yet committed to memory - that
+ * happens later during bootm_load_os/bootm_load_initrd.
+ *
+ * Note: FDT and TEE are not commonly used in uImage format and are not
+ * collected here.
+ *
+ * Requires: data->os must be already opened by bootm_open_uimage()
+ * Context: Called during boot preparation for uImage boots
  */
 void bootm_collect_uimage_loadables(struct image_data *data)
 {

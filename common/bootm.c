@@ -645,16 +645,28 @@ static void bootm_release_loadables(struct image_data *data)
 	data->tee = NULL;
 }
 
-/*
- * bootm_apply_image_override - Apply bootm.image override
+/**
+ * bootm_apply_image_override - apply bootm.image override to loadables
+ * @data: image data context containing collected loadables
  *
- * This processes the bootm.image override by detecting its type:
- * - FIT image: Opens it, finds config, and replaces kernel/initrd/fdt loadables
- * - uImage: Returns error (not supported)
- * - Other: Replaces only the kernel loadable
+ * Processes the bootm.image (bootm_overrides.os_file) override by detecting
+ * its type and replacing loadables accordingly:
  *
- * This must be called AFTER main image loadables are collected but BEFORE
- * other overrides (bootm.initrd, bootm.oftree) are applied.
+ * * FIT image: Opens the FIT, finds configuration (via partition specification
+ *   or default), and replaces ALL loadables (kernel, initrd(s), fdt, tee) from
+ *   that FIT image. This allows complete image replacement.
+ *
+ * * uImage: Returns -EINVAL (not supported as override)
+ *
+ * * Raw file: Replaces only the kernel loadable, preserving initrd/fdt from
+ *   original image
+ *
+ * This function must be called AFTER main image loadables are collected but
+ * BEFORE other overrides (bootm.initrd, bootm.oftree) are applied. This
+ * ordering allows subsequent overrides to modify what came from the FIT.
+ *
+ * Context: Called during boot preparation, before loadables are committed
+ * Return: 0 on success, negative errno on error
  */
 static int bootm_apply_image_override(struct image_data *data)
 {
@@ -815,12 +827,30 @@ static int bootm_apply_image_override(struct image_data *data)
 	return 0;
 }
 
-/*
- * bootm_apply_overrides_to_loadables - translate overrides into loadables
+/**
+ * bootm_apply_overrides_to_loadables - apply bootm.initrd and bootm.oftree overrides
+ * @data: image data context containing collected loadables
  *
- * This replaces collected loadables with overrides from bootm_overrides.
- * Overrides are translated into file-based loadables and replace the
- * corresponding loadables in data->loadables list.
+ * Applies bootm.initrd and bootm.oftree overrides by translating them into
+ * file-based loadables and replacing corresponding loadables in the
+ * data->loadables list.
+ *
+ * For bootm.initrd override:
+ * * If the override string contains '@' marker: preserves original initrd
+ *   loadables and appends new ones after them (concatenation mode)
+ * * Otherwise: removes all existing initrd loadables and replaces with
+ *   the override files
+ * * Supports space-separated list of initrd files
+ *
+ * For bootm.oftree override:
+ * * Removes existing FDT loadable if present
+ * * Creates new FDT loadable from the override file
+ *
+ * Note: bootm.image override is handled separately in bootm_apply_image_override()
+ * which must be called before this function.
+ *
+ * Context: Called during boot preparation, after bootm_apply_image_override()
+ * Return: 0 on success, negative errno on error
  */
 static int bootm_apply_overrides_to_loadables(struct image_data *data)
 {
@@ -897,11 +927,24 @@ static int bootm_apply_overrides_to_loadables(struct image_data *data)
 	return 0;
 }
 
-/*
- * bootm_collect_file_loadables - collect loadables from raw files
+/**
+ * bootm_collect_file_loadables - create loadables from raw file paths
+ * @data: image data context with file paths to load
  *
- * For raw file boots (non-FIT, non-uImage), create loadables from the
- * specified file paths.
+ * Creates file-based loadables from the raw file paths specified in
+ * image_data for non-FIT, non-uImage boots. This is used when booting
+ * raw kernel/initrd/fdt files directly from filesystem.
+ *
+ * Creates loadables for:
+ * * Kernel from data->os_file
+ * * Initrd(s) from data->initrd_files (space-separated list, '@' marker skipped)
+ * * FDT from data->oftree_file
+ *
+ * Each loadable is added to data->loadables list and appropriate shortcuts
+ * (data->kernel, data->fdt) are set. The loadables are not yet committed to
+ * memory - that happens later during bootm_load_os/bootm_load_initrd.
+ *
+ * Context: Called during boot preparation for raw file boots
  */
 static void bootm_collect_file_loadables(struct image_data *data)
 {

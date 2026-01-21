@@ -81,6 +81,27 @@ static int file_loadable_get_info(struct loadable *l, struct loadable_info *info
 	return 0;
 }
 
+/**
+ * file_loadable_commit - load file data to target address
+ * @l: loadable representing a file
+ * @load_addr: physical address to load data to
+ * @size: size of buffer at load_addr (0 = no limit check)
+ *
+ * Commits the file to the specified memory address. This involves:
+ * 1. Getting file size information
+ * 2. Checking buffer size if size > 0
+ * 3. Reading file directly into target address with read_file_into_buf()
+ * 4. Registering memory region with request_sdram_region()
+ * 5. Returning actual bytes read
+ *
+ * No decompression is performed - the file is read as-is from the filesystem.
+ * The caller must provide a valid address; this function does not allocate
+ * memory.
+ *
+ * Return: actual number of bytes read on success, negative errno on error
+ *         -ENOSPC if size is specified and too small
+ *         -ENOMEM if failed to register SDRAM region
+ */
 static int file_loadable_commit(struct loadable *l, unsigned long load_addr, size_t size)
 {
 	struct file_loadable_priv *priv = l->priv;
@@ -162,6 +183,20 @@ static const struct loadable_ops file_loadable_ops = {
 	.describe = file_loadable_describe,
 };
 
+/**
+ * loadable_from_file - create a loadable from filesystem file
+ * @path: filesystem path to the file
+ * @type: type of loadable (LOADABLE_KERNEL, LOADABLE_INITRD, etc.)
+ *
+ * Creates a loadable structure that wraps access to a file in the filesystem.
+ * The file is read directly during commit with no decompression - it is
+ * loaded as-is from the filesystem.
+ *
+ * The created loadable must be freed with loadable_release() when done.
+ * The file path is copied internally, so the caller's string can be freed.
+ *
+ * Return: pointer to allocated loadable on success, ERR_PTR() on error
+ */
 struct loadable *loadable_from_file(const char *path, enum loadable_type type)
 {
 	struct loadable *l;

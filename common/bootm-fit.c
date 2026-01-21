@@ -40,6 +40,20 @@ void *bootm_get_fit_devicetree(struct image_data *data)
 	return of_unflatten_dtb(of_tree, of_size);
 }
 
+/**
+ * bootm_fit_config_valid - validate FIT configuration for bootm
+ * @fit: FIT image handle
+ * @config: configuration device node to validate
+ *
+ * Validation function for FIT configurations used by bootm. A configuration
+ * is considered valid for bootm if it contains a kernel image, as this is
+ * the minimum requirement for booting.
+ *
+ * This function is passed to fit_open_configuration() to filter available
+ * configurations when opening a FIT image for boot.
+ *
+ * Return: true if configuration is valid for bootm, false otherwise
+ */
 bool bootm_fit_config_valid(struct fit_handle *fit,
 			    struct device_node *config)
 {
@@ -160,6 +174,26 @@ static int fit_loadable_get_info(struct loadable *l, struct loadable_info *info)
 	return 0;
 }
 
+/**
+ * fit_loadable_commit - load FIT image data to target address
+ * @l: loadable representing FIT image component
+ * @load_addr: physical address to load data to
+ * @buf_size: size of buffer at load_addr (0 = no limit check)
+ *
+ * Commits the FIT image component to the specified memory address. This
+ * involves:
+ * 1. Opening the FIT image to get decompressed data
+ * 2. Checking buffer size if buf_size > 0
+ * 3. Copying data to target address
+ * 4. Registering memory region with request_sdram_region()
+ *
+ * The FIT data is already decompressed by fit_open_image(), so this just
+ * performs a memcpy to the target address.
+ *
+ * Return: actual number of bytes written on success, negative errno on error
+ *         -ENOSPC if buf_size is specified and too small
+ *         -ENOMEM if failed to register SDRAM region
+ */
 static int fit_loadable_commit(struct loadable *l, unsigned long load_addr, size_t buf_size)
 {
 	struct fit_loadable_priv *priv = l->priv;
@@ -243,6 +277,24 @@ static const struct loadable_ops fit_loadable_ops = {
 	.describe = fit_loadable_describe,
 };
 
+/**
+ * loadable_from_fit - create a loadable from FIT image component
+ * @fit: opened FIT image handle
+ * @config: FIT configuration device node
+ * @image_name: name of image in FIT (e.g., "kernel", "ramdisk", "fdt")
+ * @index: index for multi-image types (e.g., ramdisk-0, ramdisk-1)
+ * @type: type of loadable (LOADABLE_KERNEL, LOADABLE_INITRD, etc.)
+ *
+ * Creates a loadable structure that wraps access to a component within a
+ * FIT image. The loadable uses the FIT handle to access decompressed image
+ * data on demand during commit.
+ *
+ * The created loadable must be freed with loadable_release() when done.
+ * The FIT handle itself is managed by the caller and must remain valid
+ * until the loadable is released.
+ *
+ * Return: pointer to allocated loadable on success, ERR_PTR() on error
+ */
 struct loadable *loadable_from_fit(struct fit_handle *fit,
 				   void *config,
 				   const char *image_name,
@@ -278,12 +330,24 @@ struct loadable *loadable_from_fit(struct fit_handle *fit,
 	return l;
 }
 
-/*
- * bootm_collect_fit_loadables - collect loadables from a FIT image
+/**
+ * bootm_collect_fit_loadables - create loadables from opened FIT image
+ * @data: image data context with opened FIT image
  *
- * This creates loadable structures for kernel, initrd(s), fdt, and tee
- * found in the FIT image. The loadables are added to data->loadables list
- * but not yet committed to memory.
+ * Creates loadable structures for all boot components found in the opened
+ * FIT image configuration. This includes:
+ * * Kernel from "kernel" image
+ * * Initrd(s) from "ramdisk" images (supports multiple ramdisks)
+ * * FDT from "fdt" image if present
+ * * TEE from "tee" image if present
+ *
+ * Each loadable wraps access to the FIT image data and is added to
+ * data->loadables list. Appropriate shortcuts (data->kernel, data->fdt,
+ * data->tee) are set. The loadables are not yet committed to memory - that
+ * happens later during bootm_load_os/bootm_load_initrd.
+ *
+ * Requires: data->os_fit and data->fit_config must be already opened
+ * Context: Called during boot preparation for FIT image boots
  */
 void bootm_collect_fit_loadables(struct image_data *data)
 {
