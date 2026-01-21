@@ -1,0 +1,6 @@
+#!/bin/sh
+
+fb0.enable=1
+msleep 200
+fbconsole0.active=oe
+fbconsole0.rotation=90
