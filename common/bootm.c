@@ -33,7 +33,7 @@ static bool uimage_check(struct image_handler *handler,
 			 enum filetype detected_filetype)
 {
 	return detected_filetype == filetype_uimage &&
-		handler->ih_os == data->os->header.ih_os;
+		handler->ih_os == data->os_uimage->header.ih_os;
 }
 
 static bool filetype_check(struct image_handler *handler,
@@ -208,7 +208,7 @@ static int uimage_part_num(const char *partname)
 
 static inline bool image_is_uimage(struct image_data *data)
 {
-	return IS_ENABLED(CONFIG_BOOTM_UIMAGE) && data->os;
+	return IS_ENABLED(CONFIG_BOOTM_UIMAGE) && data->os_uimage;
 }
 
 static bool bootm_get_override(char **oldpath, const char *newpath)
@@ -308,7 +308,7 @@ bootm_load_initrd(struct image_data *data, unsigned long load_address)
 
 	if (type == filetype_uimage) {
 		res = bootm_load_uimage_initrd(data, load_address);
-		if (data->initrd->header.ih_type == IH_TYPE_MULTI)
+		if (data->initrd_uimage->header.ih_type == IH_TYPE_MULTI)
 			initrd_part = data->initrd_part;
 
 	} else if (initrd) {
@@ -471,7 +471,7 @@ int bootm_get_os_size(struct image_data *data)
 	int ret;
 
 	if (image_is_uimage(data))
-		return uimage_get_size(data->os, uimage_part_num(data->os_part));
+		return uimage_get_size(data->os_uimage, uimage_part_num(data->os_part));
 	if (data->os_fit)
 		return data->fit_kernel_size;
 	if (!data->os_file)
@@ -717,7 +717,7 @@ int bootm_boot(struct bootm_data *bootm_data)
 	pr_info("\nLoading %s '%s'", file_type_to_string(data->kernel_type),
 		data->os_file);
 	if (data->kernel_type == filetype_uimage &&
-			data->os->header.ih_type == IH_TYPE_MULTI)
+			data->os_uimage->header.ih_type == IH_TYPE_MULTI)
 		pr_info(", multifile image %d", uimage_part_num(data->os_part));
 	pr_info("\n");
 
@@ -731,7 +731,7 @@ int bootm_boot(struct bootm_data *bootm_data)
 		pr_err("no image handler found for image type %s\n",
 		       file_type_to_string(data->kernel_type));
 		if (data->kernel_type == filetype_uimage)
-			pr_err("and OS type: %d\n", data->os->header.ih_os);
+			pr_err("and OS type: %d\n", data->os_uimage->header.ih_os);
 		ret = -ENODEV;
 		goto err_out;
 	}
