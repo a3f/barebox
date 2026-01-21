@@ -10,10 +10,7 @@ struct resource;
 
 #ifdef CONFIG_BOOTM_FITIMAGE
 
-int bootm_load_fit_os(struct image_data *data, unsigned long load_address);
-
-struct resource *bootm_load_fit_initrd(struct image_data *data,
-				       unsigned long load_address);
+/* bootm_load_fit_os() and bootm_load_fit_initrd() removed - use loadables */
 
 void *bootm_get_fit_devicetree(struct image_data *data);
 
@@ -32,19 +29,11 @@ static inline bool bootm_fit_has_fdt(struct image_data *data)
 	return fit_has_image(data->os_fit, data->fit_config, "fdt");
 }
 
+void bootm_collect_fit_loadables(struct image_data *data);
+
 #else
 
-static inline int bootm_load_fit_os(struct image_data *data,
-				    unsigned long load_address)
-{
-	return -ENOSYS;
-}
-
-static inline struct resource *bootm_load_fit_initrd(struct image_data *data,
-						     unsigned long load_address)
-{
-	return ERR_PTR(-ENOSYS);
-}
+/* bootm_load_fit_os() and bootm_load_fit_initrd() removed - use loadables */
 
 static inline void *bootm_get_fit_devicetree(struct image_data *data)
 {
@@ -63,6 +52,10 @@ static inline void bootm_close_fit(struct image_data *data)
 static inline bool bootm_fit_has_fdt(struct image_data *data)
 {
 	return false;
+}
+
+static inline void bootm_collect_fit_loadables(struct image_data *data)
+{
 }
 
 #endif

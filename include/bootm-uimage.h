@@ -11,10 +11,7 @@ struct resource;
 
 #ifdef CONFIG_BOOTM_UIMAGE
 
-int bootm_load_uimage_os(struct image_data *data, unsigned long load_address);
-
-struct resource *bootm_load_uimage_initrd(struct image_data *data,
-					  unsigned long load_address);
+/* bootm_load_uimage_os() and bootm_load_uimage_initrd() removed - use loadables */
 
 int bootm_open_oftree_uimage(struct image_data *data, size_t *size,
 			     struct fdt_header **fdt);
@@ -22,19 +19,11 @@ int bootm_open_uimage(struct image_data *data);
 
 void bootm_close_uimage(struct image_data *data);
 
+void bootm_collect_uimage_loadables(struct image_data *data);
+
 #else
 
-static inline int bootm_load_uimage_os(struct image_data *data,
-				       unsigned long load_address)
-{
-	return -ENOSYS;
-}
-
-static inline struct resource *
-bootm_load_uimage_initrd(struct image_data *data, unsigned long load_address)
-{
-	return ERR_PTR(-ENOSYS);
-}
+/* bootm_load_uimage_os() and bootm_load_uimage_initrd() removed - use loadables */
 
 static inline int bootm_open_oftree_uimage(struct image_data *data,
 					   size_t *size,
@@ -49,6 +38,10 @@ static inline int bootm_open_uimage(struct image_data *data)
 }
 
 static inline void bootm_close_uimage(struct image_data *data)
+{
+}
+
+static inline void bootm_collect_uimage_loadables(struct image_data *data)
 {
 }
 

@@ -572,6 +572,7 @@ config TIMESTAMP
 menuconfig BOOTM
 	default y if COMMAND_SUPPORT
 	bool "bootm support"
+	select LOADABLE
 
 config BOOT_OVERRIDE
 	bool "Support partial override of boot entries"

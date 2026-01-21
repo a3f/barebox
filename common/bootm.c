@@ -12,6 +12,7 @@
 #include <block.h>
 #include <libfile.h>
 #include <bootm-fit.h>
+#include <image.h>
 #include <image-fit.h>
 #include <bootm-uimage.h>
 #include <globalvar.h>
@@ -23,6 +24,8 @@
 #include <uncompress.h>
 #include <zero_page.h>
 #include <security/config.h>
+#include <loadable.h>
+#include <of.h>
 
 static LIST_HEAD(handler_list);
 static struct sconfig_notifier_block sconfig_notifier;
@@ -262,25 +265,24 @@ static void bootm_reset_overrides(void)
  */
 int bootm_load_os(struct image_data *data, unsigned long load_address)
 {
+	int ret;
+
 	if (data->os_res)
 		return 0;
 
 	if (load_address == UIMAGE_INVALID_ADDRESS)
 		return -EINVAL;
 
-	if (data->os_fit)
-		return bootm_load_fit_os(data, load_address);
-
-	if (image_is_uimage(data))
-		return bootm_load_uimage_os(data, load_address);
-
-	if (!data->os_file)
+	/* Use loadable (FIT, uImage, and raw file images) */
+	if (!data->kernel) {
+		pr_err("No kernel loadable available\n");
 		return -EINVAL;
+	}
 
-	data->os_res = file_to_sdram(data->os_file, load_address, MEMTYPE_LOADER_CODE);
-	if (!data->os_res)
-		return -ENOMEM;
-
+	ret = loadable_commit(data->kernel, load_address);
+	if (ret)
+		return ret;
+	data->os_res = data->kernel->res;
 	return 0;
 }
 
@@ -300,9 +302,8 @@ int bootm_load_os(struct image_data *data, unsigned long load_address)
 const struct resource *
 bootm_load_initrd(struct image_data *data, unsigned long load_address)
 {
-	struct resource *res = NULL;
-	const char *initrd;
-	char *files;
+	struct loadable *l;
+	bool has_initrd_loadables = false;
 	int ret;
 
 	if (!IS_ENABLED(CONFIG_BOOTM_INITRD))
@@ -314,61 +315,45 @@ bootm_load_initrd(struct image_data *data, unsigned long load_address)
 	if (WARN_ON(data->initrd_res))
 		return data->initrd_res;
 
-	bootm_get_override(&data->initrd_files, bootm_overrides.initrd_files);
+	/* Use loadables if available */
+	if (list_empty(&data->loadables))
+		return NULL;
 
-	files = xstrdup(data->initrd_files ?: "@");
+	/* Check if we have any initrd loadables */
+	list_for_each_entry(l, &data->loadables, list) {
+		if (l->type == LOADABLE_INITRD) {
+			has_initrd_loadables = true;
+			break;
+		}
+	}
 
-	while ((initrd = strsep_unescaped(&files, " ", NULL))) {
-		enum filetype type = filetype_unknown;
+	/* No initrd loadables - no initrd to load */
+	if (!has_initrd_loadables)
+		return NULL;
+
+	/* Commit all initrd loadables in order */
+	list_for_each_entry(l, &data->loadables, list) {
 		resource_size_t initrdsz;
 
-		if (*initrd == '\0') {
-			continue;
-		} else if (*initrd == '@') {
-			if (initrd[1]) {
-				pr_err("Unsupported initrd specifier '%s'\n",
-				       initrd);
-				return ERR_PTR(-EINVAL);
-			}
-
-			initrd = NULL;
-		} else {
-			ret = file_name_detect_type(initrd, &type);
-			if (ret) {
-				pr_err("could not open initrd \"%s\": %pe\n",
-				       initrd, ERR_PTR(ret));
-				return ERR_PTR(ret);
-			}
-		}
-
-		if (type == filetype_uimage) {
-			res = bootm_load_uimage_initrd(data, load_address);
-
-		} else if (initrd) {
-			res = file_to_sdram(initrd, load_address,
-					    MEMTYPE_LOADER_DATA) ?: ERR_PTR(-ENOMEM);
-
-		} else if (data->os_fit) {
-			res = bootm_load_fit_initrd(data, load_address);
-			type = filetype_fit;
-
-		}
-
-		if (IS_ERR(res))
-			return res;
-		if (!res)
+		if (l->type != LOADABLE_INITRD)
 			continue;
 
-		initrdsz = resource_size(res);
-		data->initrd_res = __merge_regions("initrd", data->initrd_res, res);
+		ret = loadable_commit(l, load_address);
+		if (ret)
+			return ERR_PTR(ret);
+
+		initrdsz = resource_size(l->res);
+		data->initrd_res = __merge_regions("initrd",
+						    data->initrd_res,
+						    l->res);
 		load_address += initrdsz;
 	}
 
-	if (!data->initrd_res)
-		return NULL;
-
-	pr_info("Loaded initrd to %pa-%pa\n",
-		&data->initrd_res->start, &data->initrd_res->end);
+	if (data->initrd_res) {
+		pr_info("Loaded initrd to %pa-%pa\n",
+			&data->initrd_res->start,
+			&data->initrd_res->end);
+	}
 
 	return data->initrd_res;
 }
@@ -388,20 +373,64 @@ bootm_load_initrd(struct image_data *data, unsigned long load_address)
 void *bootm_get_devicetree(struct image_data *data)
 {
 	enum filetype type;
-	struct fdt_header *oftree;
-	bool from_fit = false;
+	struct fdt_header *oftree = NULL;
+	unsigned long fdt_load_address;
 	int ret;
 
 	if (!IS_ENABLED(CONFIG_OFTREE))
 		return ERR_PTR(-ENOSYS);
 
-	from_fit = bootm_fit_has_fdt(data);
-	if (bootm_get_override(&data->oftree_file, bootm_overrides.oftree_file))
-		from_fit = false;
+	/* Use FDT loadable if available (FIT or file-based) */
+	if (data->fdt) {
+		struct loadable_info info;
 
-	if (from_fit) {
-		data->of_root_node = bootm_get_fit_devicetree(data);
+		/* Get info to determine size */
+		ret = loadable_get_info(data->fdt, &info);
+		if (ret) {
+			pr_err("Failed to get FDT loadable info: %pe\n", ERR_PTR(ret));
+			return ERR_PTR(ret);
+		}
+
+		/* Allocate temporary buffer for FDT */
+		fdt_load_address = (unsigned long)xmalloc(info.size);
+		oftree = (struct fdt_header *)fdt_load_address;
+
+		/* Get FDT data - handle FIT and file-based differently */
+		if (data->os_fit) {
+			/* FIT loadable: directly access FIT data */
+			const void *fdt_data;
+			unsigned long fdt_size;
+			ret = fit_open_image(data->os_fit, data->fit_config,
+					     "fdt", 0, &fdt_data, &fdt_size);
+			if (ret) {
+				free(oftree);
+				pr_err("Failed to open FDT from FIT: %pe\n", ERR_PTR(ret));
+				return ERR_PTR(ret);
+			}
+			memcpy(oftree, fdt_data, fdt_size);
+		} else {
+			/* File-based loadable: use commit to load from file */
+			ret = loadable_commit(data->fdt, fdt_load_address);
+			if (ret) {
+				free(oftree);
+				pr_err("Failed to commit FDT loadable: %pe\n", ERR_PTR(ret));
+				return ERR_PTR(ret);
+			}
+		}
+
+		/* Unflatten the DTB (makes a copy) */
+		data->of_root_node = of_unflatten_dtb(oftree, info.size);
+
+		/* Free temporary buffer - unflatten made a copy */
+		free(oftree);
+
+		if (IS_ERR(data->of_root_node)) {
+			data->of_root_node = NULL;
+			pr_err("unable to unflatten devicetree from loadable\n");
+			return ERR_PTR(-EINVAL);
+		}
 	} else if (!isempty(data->oftree_file)) {
+		/* Old path for uImage FDT (not yet converted to loadables) */
 		size_t size;
 
 		ret = file_name_detect_type(data->oftree_file, &type);
@@ -414,11 +443,6 @@ void *bootm_get_devicetree(struct image_data *data)
 		switch (type) {
 		case filetype_uimage:
 			ret = bootm_open_oftree_uimage(data, &size, &oftree);
-			break;
-		case filetype_oftree:
-			pr_info("Loading devicetree from '%s'\n", data->oftree_file);
-			ret = read_file_2(data->oftree_file, &size, (void *)&oftree,
-					  FILESIZE_MAX);
 			break;
 		case filetype_empty:
 			return NULL;
@@ -438,8 +462,8 @@ void *bootm_get_devicetree(struct image_data *data)
 			pr_err("unable to unflatten devicetree\n");
 			return ERR_PTR(-EINVAL);
 		}
-
 	} else {
+		/* Use internal devicetree */
 		data->of_root_node = of_dup_root_node_for_boot();
 		if (!data->of_root_node)
 			return NULL;
@@ -506,23 +530,31 @@ int bootm_load_devicetree(struct image_data *data, void *fdt,
 
 int bootm_get_os_size(struct image_data *data)
 {
-	const char *os_file;
-	struct stat s;
+	struct loadable_info info;
 	int ret;
 
+	/* Use loadable API if kernel loadable exists */
+	if (data->kernel) {
+		ret = loadable_get_info(data->kernel, &info);
+		if (ret)
+			return ret;
+		return info.size;
+	}
+
+	/* Fallback for cases where loadable hasn't been created yet */
 	if (image_is_uimage(data))
 		return uimage_get_size(data->os, uimage_part_num(data->os_part));
 	if (data->os_fit)
 		return data->fit_kernel_size;
-	if (!data->os_file)
-		return -EINVAL;
-	os_file = data->os_file;
+	if (data->os_file) {
+		struct stat s;
+		ret = stat(data->os_file, &s);
+		if (ret)
+			return ret;
+		return s.st_size;
+	}
 
-	ret = stat(os_file, &s);
-	if (ret)
-		return ret;
-
-	return s.st_size;
+	return -EINVAL;
 }
 
 static void bootm_print_info(struct image_data *data)
@@ -579,6 +611,156 @@ int validate_image_data(const struct image_data *data)
 }
 
 /*
+ * bootm_release_loadables - release all collected loadables
+ */
+static void bootm_release_loadables(struct image_data *data)
+{
+	struct loadable *l, *tmp;
+
+	list_for_each_entry_safe(l, tmp, &data->loadables, list) {
+		list_del(&l->list);
+		loadable_release(l);
+	}
+
+	data->kernel = NULL;
+	data->fdt = NULL;
+	data->tee = NULL;
+}
+
+/*
+ * bootm_apply_overrides_to_loadables - translate overrides into loadables
+ *
+ * This replaces collected loadables with overrides from bootm_overrides.
+ * Overrides are translated into file-based loadables and replace the
+ * corresponding loadables in data->loadables list.
+ */
+static void bootm_apply_overrides_to_loadables(struct image_data *data)
+{
+	struct loadable *l;
+
+	if (!IS_ENABLED(CONFIG_BOOT_OVERRIDE))
+		return;
+	if (bootm_signed_images_are_forced())
+		return;
+
+	/* Override kernel (os_file) */
+	if (data->os_file_override) {
+		/* Remove existing kernel loadable if present */
+		if (data->kernel) {
+			list_del(&data->kernel->list);
+			loadable_release(data->kernel);
+			data->kernel = NULL;
+		}
+
+		/* Create new kernel loadable from override file */
+		l = loadable_from_file(data->os_file_override, LOADABLE_KERNEL);
+		if (!IS_ERR(l)) {
+			data->kernel = l;
+			list_add(&l->list, &data->loadables);
+		}
+	}
+
+	/* Override device tree */
+	if (bootm_overrides.oftree_file) {
+		/* Remove existing FDT loadable if present */
+		if (data->fdt) {
+			list_del(&data->fdt->list);
+			loadable_release(data->fdt);
+			data->fdt = NULL;
+		}
+
+		/* Create new FDT loadable from override file */
+		l = loadable_from_file(bootm_overrides.oftree_file, LOADABLE_FDT);
+		if (!IS_ERR(l)) {
+			data->fdt = l;
+			list_add(&l->list, &data->loadables);
+		}
+	}
+
+	/* Override initrd */
+	if (bootm_overrides.initrd_files) {
+		struct loadable *tmp;
+		char *files, *path;
+		bool has_at = false;
+
+		/* Check if override contains '@' (preserve original initrds) */
+		if (strchr(bootm_overrides.initrd_files, '@'))
+			has_at = true;
+
+		/* Remove existing initrd loadables only if no '@' marker */
+		if (!has_at) {
+			list_for_each_entry_safe(l, tmp, &data->loadables, list) {
+				if (l->type == LOADABLE_INITRD) {
+					list_del(&l->list);
+					loadable_release(l);
+				}
+			}
+		}
+
+		/* Parse and create new initrd loadables from override */
+		files = xstrdup(bootm_overrides.initrd_files);
+		while ((path = strsep_unescaped(&files, " ", NULL))) {
+			if (*path == '\0')
+				continue;
+			if (*path == '@')
+				continue; /* Skip @ marker, preserves original initrds */
+
+			l = loadable_from_file(path, LOADABLE_INITRD);
+			if (!IS_ERR(l))
+				list_add_tail(&l->list, &data->loadables);
+		}
+		free(files);
+	}
+}
+
+/*
+ * bootm_collect_file_loadables - collect loadables from raw files
+ *
+ * For raw file boots (non-FIT, non-uImage), create loadables from the
+ * specified file paths.
+ */
+static void bootm_collect_file_loadables(struct image_data *data)
+{
+	struct loadable *l;
+
+	/* Create kernel loadable from os_file */
+	if (data->os_file && *data->os_file) {
+		l = loadable_from_file(data->os_file, LOADABLE_KERNEL);
+		if (!IS_ERR(l)) {
+			data->kernel = l;
+			list_add_tail(&l->list, &data->loadables);
+		}
+	}
+
+	/* Create initrd loadables from initrd_files */
+	if (data->initrd_files && *data->initrd_files) {
+		char *files, *path;
+
+		files = xstrdup(data->initrd_files);
+		while ((path = strsep_unescaped(&files, " ", NULL))) {
+			if (*path == '\0')
+				continue;
+			if (*path == '@')
+				continue; /* Skip @ marker */
+
+			l = loadable_from_file(path, LOADABLE_INITRD);
+			if (!IS_ERR(l))
+				list_add_tail(&l->list, &data->loadables);
+		}
+		free(files);
+	}
+
+	/* Create FDT loadable from oftree_file */
+	if (data->oftree_file && *data->oftree_file) {
+		l = loadable_from_file(data->oftree_file, LOADABLE_FDT);
+		if (!IS_ERR(l)) {
+			data->fdt = l;
+			list_add_tail(&l->list, &data->loadables);
+		}
+	}
+}
+
+/*
  * bootm_boot - Boot an application image described by bootm_data
  */
 int bootm_boot(struct bootm_data *bootm_data)
@@ -596,6 +778,8 @@ int bootm_boot(struct bootm_data *bootm_data)
 	}
 
 	data = xzalloc(sizeof(*data));
+	INIT_LIST_HEAD(&data->loadables);
+	INIT_LIST_HEAD(&data->initrds);
 
 	bootm_image_name_and_part(bootm_data->os_file, &data->os_file, &data->os_part);
 	bootm_image_name_and_part(bootm_data->oftree_file, &data->oftree_file, &data->oftree_part);
@@ -742,6 +926,20 @@ int bootm_boot(struct bootm_data *bootm_data)
 		pr_err("Loading %s image failed with: %pe\n", os_type_str, ERR_PTR(ret));
 		goto err_out;
 	}
+
+	/* Collect loadables from the opened image */
+	if (data->os_fit) {
+		bootm_collect_fit_loadables(data);
+	} else if (image_is_uimage(data)) {
+		/* uImage - create loadables from opened handles */
+		bootm_collect_uimage_loadables(data);
+	} else {
+		/* Raw file boot - create file-based loadables */
+		bootm_collect_file_loadables(data);
+	}
+
+	/* Apply overrides by translating them into loadables */
+	bootm_apply_overrides_to_loadables(data);
 
 	if (bootm_data->appendroot) {
 		const char *root = NULL;
@@ -909,6 +1107,7 @@ err_out:
 	globalvar_remove("linux.bootargs.bootm.appendroot");
 	free(data->os_header);
 out:
+	bootm_release_loadables(data);
 	free(data->os_file);
 	free(data->oftree_file);
 	free(data->initrd_files);

@@ -8,142 +8,11 @@
 #include <filetype.h>
 #include <fs.h>
 #include <libfile.h>
+#include <loadable.h>
+#include <malloc.h>
 
-/*
- * bootm_load_fit_os() - load OS from FIT to RAM
- *
- * @data:		image data context
- * @load_address:	The address where the OS should be loaded to
- *
- * This loads the OS to a RAM location. load_address must be a valid
- * address. If the image_data doesn't have a OS specified it's considered
- * an error.
- *
- * Return: 0 on success, negative error code otherwise
- */
-int bootm_load_fit_os(struct image_data *data, unsigned long load_address)
-{
-	const void *kernel = data->fit_kernel;
-	unsigned long kernel_size = data->fit_kernel_size;
-
-	/* Check for delayed override (FIT -> non-FIT case) */
-	if (IS_ENABLED(CONFIG_BOOT_OVERRIDE) && data->os_file_override) {
-		enum filetype fit_kernel_type, override_type;
-		void *override_header;
-		size_t size;
-		int ret;
-
-		/* Detect type of extracted FIT kernel */
-		fit_kernel_type = file_detect_boot_image_type(kernel, kernel_size);
-
-		/* Read override file header to detect its type */
-		ret = read_file_2(data->os_file_override, &size, &override_header, PAGE_SIZE);
-		if (ret < 0 && ret != -EFBIG) {
-			pr_err("could not open override image %s: %pe\n",
-			       data->os_file_override, ERR_PTR(ret));
-			return ret;
-		}
-		if (size < PAGE_SIZE) {
-			pr_err("override image %s too small\n", data->os_file_override);
-			free(override_header);
-			return -EINVAL;
-		}
-
-		override_type = file_detect_boot_image_type(override_header, PAGE_SIZE);
-		free(override_header);
-
-		/* Type check unless force mode */
-		if (!data->force) {
-			if (fit_kernel_type == filetype_unknown && override_type == filetype_unknown) {
-				/* Both unknown: allow */
-			} else if (fit_kernel_type != override_type) {
-				pr_err("Override image file type mismatch: FIT kernel is %s, override '%s' is %s\n",
-				       file_type_to_short_string(fit_kernel_type),
-				       data->os_file_override,
-				       file_type_to_short_string(override_type));
-				return -EINVAL;
-			}
-		}
-
-		/* Load override file instead of FIT kernel */
-		data->os_res = file_to_sdram(data->os_file_override, load_address, MEMTYPE_LOADER_CODE);
-		if (!data->os_res)
-			return -ENOMEM;
-
-		return 0;
-	}
-
-	data->os_res = request_sdram_region("kernel",
-			load_address, kernel_size,
-			MEMTYPE_LOADER_CODE, MEMATTRS_RWX);
-	if (!data->os_res)
-		return -ENOMEM;
-
-	zero_page_memcpy((void *)load_address, kernel, kernel_size);
-	return 0;
-}
-
-static int fitconfig_count_ramdisks(struct image_data *data)
-{
-	int nramdisks;
-
-	nramdisks = fit_count_images(data->os_fit, data->fit_config, "ramdisk");
-	if (nramdisks < 0)
-		return 0;
-
-	return nramdisks;
-}
-
-/*
- * bootm_load_fit_initrd() - load initrd from FIT to RAM
- *
- * @data:		image data context
- * @load_address:	The address where the initrd should be loaded to
- *
- * This loads the initrd to a RAM location. load_address must be a valid
- * address. If the image_data doesn't have a initrd specified this function
- * still returns successful as an initrd is optional.
- *
- * Return: initrd resource on success, NULL if no initrd is present or
- *         an error pointer if an error occurred.
- */
-struct resource *bootm_load_fit_initrd(struct image_data *data, unsigned long load_address)
-{
-	struct resource *res = NULL;
-	int nramdisks;
-
-	nramdisks = fitconfig_count_ramdisks(data);
-
-	for (int i = 0; i < nramdisks; i++) {
-		const void *initrd;
-		unsigned long initrd_size;
-		struct resource *tmp;
-		int ret;
-
-		ret = fit_open_image(data->os_fit, data->fit_config, "ramdisk", i,
-				     &initrd, &initrd_size);
-		if (ret) {
-			pr_err("Cannot open ramdisk image in FIT image: %pe\n",
-					ERR_PTR(ret));
-			return ERR_PTR(ret);
-		}
-
-		tmp = request_sdram_region("initrd",
-					   load_address, initrd_size,
-					   MEMTYPE_LOADER_DATA, MEMATTRS_RW);
-		if (!tmp)
-			return ERR_PTR(-ENOMEM);
-
-		memcpy((void *)load_address, initrd, initrd_size);
-
-		printf("aggregating CPIO %u to %lu\n", i, load_address);
-
-		res = __merge_regions("initrd", res, tmp);
-		load_address += initrd_size;
-	}
-
-	return res;
-}
+/* Old bootm_load_fit_os() and bootm_load_fit_initrd() functions removed.
+ * All loading now goes through the loadable infrastructure. */
 
 /*
  * bootm_get_fit_devicetree() - get devicetree
@@ -240,4 +109,218 @@ int bootm_open_fit(struct image_data *data)
 	}
 
 	return 0;
+}
+
+/* === Loadable implementation for FIT images === */
+
+struct fit_loadable_priv {
+	struct fit_handle *fit;
+	struct device_node *config;
+	const char *image_name;
+	int index;
+};
+
+static int fit_loadable_get_info(struct loadable *l, struct loadable_info *info)
+{
+	struct fit_loadable_priv *priv = l->priv;
+	unsigned long load_addr = UIMAGE_INVALID_ADDRESS;
+	unsigned long entry = 0;
+	const void *data;
+	unsigned long size;
+	int ret;
+
+	/* Open image to get size */
+	ret = fit_open_image(priv->fit, priv->config, priv->image_name,
+			     priv->index, &data, &size);
+	if (ret)
+		return ret;
+
+	info->size = size;
+	info->compressed_size = size; /* fit_open_image already decompresses */
+	info->compressed = false;
+
+	/* Try to get load address */
+	ret = fit_get_image_address(priv->fit, priv->config,
+				     priv->image_name, "load", &load_addr);
+	if (!ret)
+		info->load_addr = load_addr;
+	else
+		info->load_addr = UIMAGE_SOME_ADDRESS;
+
+	/* Try to get entry address */
+	ret = fit_get_image_address(priv->fit, priv->config,
+				     priv->image_name, "entry", &entry);
+	if (!ret && UIMAGE_IS_ADDRESS_VALID(load_addr))
+		info->entry_offset = entry - load_addr;
+	else
+		info->entry_offset = 0;
+
+	info->filetype = filetype_unknown;
+
+	return 0;
+}
+
+static int fit_loadable_commit(struct loadable *l, unsigned long load_addr)
+{
+	struct fit_loadable_priv *priv = l->priv;
+	const void *data;
+	unsigned long size;
+	int ret;
+	enum resource_memtype memtype;
+	unsigned memattrs;
+
+	/* Open image to get data */
+	ret = fit_open_image(priv->fit, priv->config, priv->image_name,
+			     priv->index, &data, &size);
+	if (ret)
+		return ret;
+
+	/* Determine memory type and attributes based on loadable type */
+	switch (l->type) {
+	case LOADABLE_KERNEL:
+	case LOADABLE_TEE:
+		memtype = MEMTYPE_LOADER_CODE;
+		memattrs = MEMATTRS_RWX;
+		break;
+	case LOADABLE_INITRD:
+	case LOADABLE_FDT:
+	default:
+		memtype = MEMTYPE_LOADER_DATA;
+		memattrs = MEMATTRS_RW;
+		break;
+	}
+
+	/* Allocate region */
+	l->res = request_sdram_region(l->name, load_addr, size,
+				      memtype, memattrs);
+	if (!l->res)
+		return -ENOMEM;
+
+	/* Copy data to target */
+	memcpy((void *)load_addr, data, size);
+
+	return 0;
+}
+
+static void fit_loadable_release(struct loadable *l)
+{
+	struct fit_loadable_priv *priv = l->priv;
+
+	if (priv) {
+		free((void *)priv->image_name);
+		free(priv);
+	}
+}
+
+static int fit_loadable_describe(struct loadable *l, char *buf, size_t len)
+{
+	struct fit_loadable_priv *priv = l->priv;
+	struct loadable_info info;
+	int ret;
+
+	ret = loadable_get_info(l, &info);
+	if (ret)
+		return ret;
+
+	return snprintf(buf, len, "FIT:%s[%d] size=%zu load=0x%lx",
+			priv->image_name, priv->index, info.size, info.load_addr);
+}
+
+static const struct loadable_ops fit_loadable_ops = {
+	.get_info = fit_loadable_get_info,
+	.commit = fit_loadable_commit,
+	.release = fit_loadable_release,
+	.describe = fit_loadable_describe,
+};
+
+struct loadable *loadable_from_fit(struct fit_handle *fit,
+				   void *config,
+				   const char *image_name,
+				   int index,
+				   enum loadable_type type)
+{
+	struct loadable *l;
+	struct fit_loadable_priv *priv;
+
+	if (!fit || !config || !image_name)
+		return ERR_PTR(-EINVAL);
+
+	l = xzalloc(sizeof(*l));
+	priv = xzalloc(sizeof(*priv));
+
+	priv->fit = fit;
+	priv->config = config;
+	priv->image_name = xstrdup(image_name);
+	priv->index = index;
+
+	/* Create descriptive name */
+	if (index > 0)
+		l->name = xasprintf("fit-%s-%d", image_name, index);
+	else
+		l->name = xasprintf("fit-%s", image_name);
+	if (!l->name)
+		l->name = image_name;
+	l->type = type;
+	l->ops = &fit_loadable_ops;
+	l->priv = priv;
+	INIT_LIST_HEAD(&l->list);
+
+	return l;
+}
+
+/*
+ * bootm_collect_fit_loadables - collect loadables from a FIT image
+ *
+ * This creates loadable structures for kernel, initrd(s), fdt, and tee
+ * found in the FIT image. The loadables are added to data->loadables list
+ * but not yet committed to memory.
+ */
+void bootm_collect_fit_loadables(struct image_data *data)
+{
+	struct loadable *l;
+	int nramdisks, i;
+
+	if (!IS_ENABLED(CONFIG_BOOTM_FITIMAGE) || !data->os_fit)
+		return;
+
+	/* Create kernel loadable */
+	if (data->fit_kernel) {
+		l = loadable_from_fit(data->os_fit, data->fit_config,
+				      "kernel", 0, LOADABLE_KERNEL);
+		if (!IS_ERR(l)) {
+			data->kernel = l;
+			list_add_tail(&l->list, &data->loadables);
+		}
+	}
+
+	/* Create initrd loadable(s) */
+	nramdisks = fit_count_images(data->os_fit, data->fit_config, "ramdisk");
+	for (i = 0; i < nramdisks; i++) {
+		l = loadable_from_fit(data->os_fit, data->fit_config,
+				      "ramdisk", i, LOADABLE_INITRD);
+		if (!IS_ERR(l)) {
+			/* Add to main loadables list only */
+			list_add_tail(&l->list, &data->loadables);
+		}
+	}
+
+	/* Create FDT loadable if present */
+	if (fit_has_image(data->os_fit, data->fit_config, "fdt")) {
+		l = loadable_from_fit(data->os_fit, data->fit_config,
+				      "fdt", 0, LOADABLE_FDT);
+		if (!IS_ERR(l)) {
+			data->fdt = l;
+			list_add_tail(&l->list, &data->loadables);
+		}
+	}
+
+	/* Create TEE loadable */
+	if (fit_has_image(data->os_fit, data->fit_config, "tee")) {
+		l = loadable_from_fit(data->os_fit, data->fit_config,
+				      "tee", 0, LOADABLE_TEE);
+		if (!IS_ERR(l)) {
+			data->tee = l;
+			list_add_tail(&l->list, &data->loadables);
+		}
+	}
 }

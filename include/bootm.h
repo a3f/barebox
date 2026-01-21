@@ -121,6 +121,15 @@ struct image_data {
 	int force;
 	int dryrun;
 	enum bootm_efi_mode efi_boot;
+
+	/* === New: collected loadables === */
+	struct list_head loadables;     /* all collected loadables */
+
+	/* Convenience pointers into loadables list (NULL if not present) */
+	struct loadable *kernel;
+	struct loadable *fdt;
+	struct loadable *tee;
+	struct list_head initrds;       /* supports multiple initrds */
 };
 
 struct image_handler {
