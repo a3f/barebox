@@ -40,8 +40,8 @@ void *bootm_get_fit_devicetree(struct image_data *data)
 	return of_unflatten_dtb(of_tree, of_size);
 }
 
-static bool bootm_fit_config_valid(struct fit_handle *fit,
-				   struct device_node *config)
+bool bootm_fit_config_valid(struct fit_handle *fit,
+			    struct device_node *config)
 {
 	/*
 	 * Consider only FIT configurations which do provide a loadable kernel
@@ -160,7 +160,7 @@ static int fit_loadable_get_info(struct loadable *l, struct loadable_info *info)
 	return 0;
 }
 
-static int fit_loadable_commit(struct loadable *l, unsigned long load_addr)
+static int fit_loadable_commit(struct loadable *l, unsigned long load_addr, size_t buf_size)
 {
 	struct fit_loadable_priv *priv = l->priv;
 	const void *data;
@@ -174,6 +174,13 @@ static int fit_loadable_commit(struct loadable *l, unsigned long load_addr)
 			     priv->index, &data, &size);
 	if (ret)
 		return ret;
+
+	/* Check if buffer is large enough (if size provided) */
+	if (buf_size > 0 && buf_size < size) {
+		pr_err("Buffer too small for FIT:%s[%d]: need %lu, have %zu\n",
+		       priv->image_name, priv->index, size, buf_size);
+		return -ENOSPC;
+	}
 
 	/* Determine memory type and attributes based on loadable type */
 	switch (l->type) {
@@ -190,16 +197,19 @@ static int fit_loadable_commit(struct loadable *l, unsigned long load_addr)
 		break;
 	}
 
-	/* Allocate region */
-	l->res = request_sdram_region(l->name, load_addr, size,
-				      memtype, memattrs);
-	if (!l->res)
-		return -ENOMEM;
-
 	/* Copy data to target */
 	memcpy((void *)load_addr, data, size);
 
-	return 0;
+	/* Create resource descriptor */
+	l->res = request_sdram_region(l->name, load_addr, size,
+				      memtype, memattrs);
+	if (!l->res) {
+		pr_err("Failed to create resource for FIT:%s[%d]\n",
+		       priv->image_name, priv->index);
+		return -ENOMEM;
+	}
+
+	return size; /* Return actual bytes written */
 }
 
 static void fit_loadable_release(struct loadable *l)

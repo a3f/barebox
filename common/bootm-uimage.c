@@ -126,16 +126,30 @@ static int uimage_loadable_get_info(struct loadable *l, struct loadable_info *in
 	return 0;
 }
 
-static int uimage_loadable_commit(struct loadable *l, unsigned long load_addr)
+static int uimage_loadable_commit(struct loadable *l, unsigned long load_addr, size_t buf_size)
 {
 	struct uimage_loadable_priv *priv = l->priv;
+	struct loadable_info info;
+	int ret;
 
-	/* Load uImage to target address */
+	/* Get size info */
+	ret = loadable_get_info(l, &info);
+	if (ret)
+		return ret;
+
+	/* Check size if specific address provided */
+	if (load_addr != UIMAGE_SOME_ADDRESS && buf_size < info.size) {
+		pr_err("Buffer too small for uImage[%d]: need %zu, have %zu\n",
+		       priv->part_num, info.size, buf_size);
+		return -ENOSPC;
+	}
+
+	/* Load uImage to target address (uimage_load_to_sdram handles allocation if needed) */
 	l->res = uimage_load_to_sdram(priv->handle, priv->part_num, load_addr);
 	if (!l->res)
 		return -ENOMEM;
 
-	return 0;
+	return info.size; /* Return actual bytes written */
 }
 
 static void uimage_loadable_release(struct loadable *l)

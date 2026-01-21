@@ -55,13 +55,21 @@ struct loadable_ops {
 	 * commit - load/decompress to target address
 	 *
 	 * @load_addr: final RAM address where data should reside
+	 * @size: size of buffer at load_addr (0 if unknown/unlimited)
 	 *
 	 * This is where data transfer happens.
 	 * For compressed data: decompress to load_addr.
 	 * For uncompressed data: read/copy to load_addr.
-	 * Must request_sdram_region() and populate l->res.
+	 *
+	 * Behavior:
+	 *   - Must respect the provided load_addr
+	 *   - If size > 0, must check if buffer is sufficient, return -ENOSPC if too small
+	 *   - Must call request_sdram_region() to register the memory region
+	 *   - Must populate l->res with the region descriptor
+	 *
+	 * Returns: actual number of bytes written on success, negative errno on error
 	 */
-	int (*commit)(struct loadable *l, unsigned long load_addr);
+	int (*commit)(struct loadable *l, unsigned long load_addr, size_t size);
 
 	/**
 	 * release - free resources associated with this loadable
@@ -101,7 +109,7 @@ struct loadable {
 
 /* Core API */
 int loadable_get_info(struct loadable *l, struct loadable_info *info);
-int loadable_commit(struct loadable *l, unsigned long load_addr);
+int loadable_commit(struct loadable *l, unsigned long load_addr, size_t size);
 void loadable_release(struct loadable *l);
 
 /* Factory functions - to be implemented per format */

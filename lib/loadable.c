@@ -32,12 +32,12 @@ int loadable_get_info(struct loadable *l, struct loadable_info *info)
 /**
  * loadable_commit - load/decompress to target address
  */
-int loadable_commit(struct loadable *l, unsigned long load_addr)
+int loadable_commit(struct loadable *l, unsigned long load_addr, size_t size)
 {
 	if (!l->ops || !l->ops->commit)
 		return -ENOSYS;
 
-	return l->ops->commit(l, load_addr);
+	return l->ops->commit(l, load_addr, size);
 }
 
 /**
@@ -81,11 +81,25 @@ static int file_loadable_get_info(struct loadable *l, struct loadable_info *info
 	return 0;
 }
 
-static int file_loadable_commit(struct loadable *l, unsigned long load_addr)
+static int file_loadable_commit(struct loadable *l, unsigned long load_addr, size_t size)
 {
 	struct file_loadable_priv *priv = l->priv;
 	enum resource_memtype memtype;
 	unsigned memattrs;
+	struct loadable_info info;
+	ssize_t ret;
+
+	/* Get file size */
+	ret = loadable_get_info(l, &info);
+	if (ret)
+		return ret;
+
+	/* Check if buffer is large enough (if size provided) */
+	if (size > 0 && size < info.size) {
+		pr_err("Buffer too small for %s: need %zu, have %zu\n",
+		       priv->path, info.size, size);
+		return -ENOSPC;
+	}
 
 	/* Determine memory type and attributes based on loadable type */
 	switch (l->type) {
@@ -102,15 +116,20 @@ static int file_loadable_commit(struct loadable *l, unsigned long load_addr)
 		break;
 	}
 
-	/* Use existing file_to_sdram function */
-	l->res = file_to_sdram(priv->path, load_addr, memtype);
-	if (!l->res)
+	/* Read file to provided address */
+	ret = read_file_into_buf(priv->path, (void *)load_addr, size > 0 ? size : info.size);
+	if (ret < 0)
+		return ret;
+
+	/* Create resource descriptor */
+	l->res = request_sdram_region(l->name, load_addr, ret,
+				      memtype, memattrs);
+	if (!l->res) {
+		pr_err("Failed to create resource for %s\n", priv->path);
 		return -ENOMEM;
+	}
 
-	/* file_to_sdram doesn't set type/attrs, so set them now */
-	l->res = sdram_region_with_attrs(l->res, memtype, memattrs);
-
-	return 0;
+	return ret; /* Actual bytes read */
 }
 
 static void file_loadable_release(struct loadable *l)

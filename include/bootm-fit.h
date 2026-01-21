@@ -14,6 +14,8 @@ struct resource;
 
 void *bootm_get_fit_devicetree(struct image_data *data);
 
+bool bootm_fit_config_valid(struct fit_handle *fit, struct device_node *config);
+
 int bootm_open_fit(struct image_data *data);
 
 static inline void bootm_close_fit(struct image_data *data)

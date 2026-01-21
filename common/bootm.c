@@ -18,6 +18,7 @@
 #include <globalvar.h>
 #include <init.h>
 #include <environment.h>
+#include <linux/sizes.h>
 #include <linux/stat.h>
 #include <linux/string_helpers.h>
 #include <magicvar.h>
@@ -279,8 +280,8 @@ int bootm_load_os(struct image_data *data, unsigned long load_address)
 		return -EINVAL;
 	}
 
-	ret = loadable_commit(data->kernel, load_address);
-	if (ret)
+	ret = loadable_commit(data->kernel, load_address, 0);
+	if (ret < 0)
 		return ret;
 	data->os_res = data->kernel->res;
 	return 0;
@@ -338,8 +339,8 @@ bootm_load_initrd(struct image_data *data, unsigned long load_address)
 		if (l->type != LOADABLE_INITRD)
 			continue;
 
-		ret = loadable_commit(l, load_address);
-		if (ret)
+		ret = loadable_commit(l, load_address, 0);
+		if (ret < 0)
 			return ERR_PTR(ret);
 
 		initrdsz = resource_size(l->res);
@@ -382,44 +383,61 @@ void *bootm_get_devicetree(struct image_data *data)
 
 	/* Use FDT loadable if available (FIT or file-based) */
 	if (data->fdt) {
-		struct loadable_info info;
+		const size_t fdt_buffer_size = SZ_1M; /* 1M buffer for FDT */
+		size_t fdt_size;
 
-		/* Get info to determine size */
-		ret = loadable_get_info(data->fdt, &info);
-		if (ret) {
-			pr_err("Failed to get FDT loadable info: %pe\n", ERR_PTR(ret));
-			return ERR_PTR(ret);
-		}
-
-		/* Allocate temporary buffer for FDT */
-		fdt_load_address = (unsigned long)xmalloc(info.size);
+		/* Allocate 1M temporary buffer for FDT */
+		fdt_load_address = (unsigned long)xmalloc(fdt_buffer_size);
 		oftree = (struct fdt_header *)fdt_load_address;
 
 		/* Get FDT data - handle FIT and file-based differently */
 		if (data->os_fit) {
 			/* FIT loadable: directly access FIT data */
 			const void *fdt_data;
-			unsigned long fdt_size;
+			unsigned long fit_fdt_size;
 			ret = fit_open_image(data->os_fit, data->fit_config,
-					     "fdt", 0, &fdt_data, &fdt_size);
+					     "fdt", 0, &fdt_data, &fit_fdt_size);
 			if (ret) {
 				free(oftree);
 				pr_err("Failed to open FDT from FIT: %pe\n", ERR_PTR(ret));
 				return ERR_PTR(ret);
 			}
-			memcpy(oftree, fdt_data, fdt_size);
+			if (fit_fdt_size > fdt_buffer_size) {
+				free(oftree);
+				pr_err("FDT too large: %lu > %zu\n", fit_fdt_size, fdt_buffer_size);
+				return ERR_PTR(-ENOSPC);
+			}
+			memcpy(oftree, fdt_data, fit_fdt_size);
+			fdt_size = fit_fdt_size;
 		} else {
-			/* File-based loadable: use commit to load from file */
-			ret = loadable_commit(data->fdt, fdt_load_address);
+			/* File-based loadable: read file into buffer */
+			struct loadable_info info;
+			struct file_loadable_priv {
+				char *path;
+			} *file_priv = data->fdt->priv;
+
+			ret = loadable_get_info(data->fdt, &info);
 			if (ret) {
 				free(oftree);
-				pr_err("Failed to commit FDT loadable: %pe\n", ERR_PTR(ret));
+				pr_err("Failed to get FDT info: %pe\n", ERR_PTR(ret));
 				return ERR_PTR(ret);
 			}
+			if (info.size > fdt_buffer_size) {
+				free(oftree);
+				pr_err("FDT too large: %zu > %zu\n", info.size, fdt_buffer_size);
+				return ERR_PTR(-ENOSPC);
+			}
+			ret = read_file_into_buf(file_priv->path, oftree, fdt_buffer_size);
+			if (ret < 0) {
+				free(oftree);
+				pr_err("Failed to read FDT file: %pe\n", ERR_PTR(ret));
+				return ERR_PTR(ret);
+			}
+			fdt_size = ret;
 		}
 
 		/* Unflatten the DTB (makes a copy) */
-		data->of_root_node = of_unflatten_dtb(oftree, info.size);
+		data->of_root_node = of_unflatten_dtb(oftree, fdt_size);
 
 		/* Free temporary buffer - unflatten made a copy */
 		free(oftree);
@@ -628,37 +646,201 @@ static void bootm_release_loadables(struct image_data *data)
 }
 
 /*
+ * bootm_apply_image_override - Apply bootm.image override
+ *
+ * This processes the bootm.image override by detecting its type:
+ * - FIT image: Opens it, finds config, and replaces kernel/initrd/fdt loadables
+ * - uImage: Returns error (not supported)
+ * - Other: Replaces only the kernel loadable
+ *
+ * This must be called AFTER main image loadables are collected but BEFORE
+ * other overrides (bootm.initrd, bootm.oftree) are applied.
+ */
+static int bootm_apply_image_override(struct image_data *data)
+{
+	enum filetype override_type;
+	void *override_header;
+	size_t size;
+	int ret;
+	struct loadable *l, *tmp;
+
+	if (!bootm_overrides.os_file)
+		return 0;
+
+	/* Detect override image type */
+	ret = read_file_2(bootm_overrides.os_file, &size, &override_header, PAGE_SIZE);
+	if (ret < 0 && ret != -EFBIG) {
+		pr_err("could not open bootm.image override %s: %pe\n",
+		       bootm_overrides.os_file, ERR_PTR(ret));
+		return ret;
+	}
+	if (size < PAGE_SIZE) {
+		pr_err("bootm.image override %s too small\n", bootm_overrides.os_file);
+		return -EINVAL;
+	}
+
+	override_type = file_detect_boot_image_type(override_header, PAGE_SIZE);
+	free(override_header);
+
+	if (override_type == filetype_fit) {
+		/* FIT override: Open FIT, find config, collect all loadables */
+		struct fit_handle *fit;
+		struct device_node *fit_config;
+		struct fdt_header *fit_header;
+		char *fit_file = NULL;
+		char *fit_part = NULL;
+
+		pr_info("bootm.image override: FIT image %s\n", bootm_overrides.os_file);
+
+		/* Parse file and partition from override string */
+		bootm_image_name_and_part(bootm_overrides.os_file, &fit_file, &fit_part);
+
+		/* Read FIT header */
+		ret = read_file_2(fit_file, &size, (void **)&fit_header, PAGE_SIZE);
+		if (ret < 0 && ret != -EFBIG) {
+			pr_err("could not read FIT override: %pe\n", ERR_PTR(ret));
+			free(fit_file);
+			free(fit_part);
+			return ret;
+		}
+
+		/* Open FIT image */
+		fit = fit_open(fit_file, data->verbose, data->verify,
+			       fdt32_to_cpu(fit_header->totalsize));
+		free(fit_header);
+		if (IS_ERR(fit)) {
+			pr_err("Loading FIT override %s failed with: %pe\n",
+			       fit_file, fit);
+			free(fit_file);
+			free(fit_part);
+			return PTR_ERR(fit);
+		}
+
+		/* Find configuration using the validation function from bootm-fit.c */
+		fit_config = fit_open_configuration(fit, fit_part,
+						    bootm_fit_config_valid);
+		if (IS_ERR(fit_config)) {
+			pr_err("Cannot open FIT override configuration '%s'\n",
+			       fit_part ? fit_part : "default");
+			fit_close(fit);
+			free(fit_file);
+			free(fit_part);
+			return PTR_ERR(fit_config);
+		}
+
+		free(fit_file);
+		free(fit_part);
+
+		/* Remove existing kernel, initrd, and fdt loadables */
+		list_for_each_entry_safe(l, tmp, &data->loadables, list) {
+			if (l->type == LOADABLE_KERNEL ||
+			    l->type == LOADABLE_INITRD ||
+			    l->type == LOADABLE_FDT) {
+				list_del(&l->list);
+				loadable_release(l);
+			}
+		}
+		data->kernel = NULL;
+		data->fdt = NULL;
+
+		/* Collect loadables from FIT override */
+		/* Create kernel loadable */
+		if (fit_has_image(fit, fit_config, "kernel")) {
+			l = loadable_from_fit(fit, fit_config, "kernel", 0, LOADABLE_KERNEL);
+			if (!IS_ERR(l)) {
+				data->kernel = l;
+				list_add_tail(&l->list, &data->loadables);
+			}
+		}
+
+		/* Create initrd loadable(s) */
+		int nramdisks = fit_count_images(fit, fit_config, "ramdisk");
+		for (int i = 0; i < nramdisks; i++) {
+			l = loadable_from_fit(fit, fit_config, "ramdisk", i, LOADABLE_INITRD);
+			if (!IS_ERR(l))
+				list_add_tail(&l->list, &data->loadables);
+		}
+
+		/* Create FDT loadable if present */
+		if (fit_has_image(fit, fit_config, "fdt")) {
+			l = loadable_from_fit(fit, fit_config, "fdt", 0, LOADABLE_FDT);
+			if (!IS_ERR(l)) {
+				data->fdt = l;
+				list_add_tail(&l->list, &data->loadables);
+			}
+		}
+
+		/* Create TEE loadable if present */
+		if (fit_has_image(fit, fit_config, "tee")) {
+			l = loadable_from_fit(fit, fit_config, "tee", 0, LOADABLE_TEE);
+			if (!IS_ERR(l)) {
+				data->tee = l;
+				list_add_tail(&l->list, &data->loadables);
+			}
+		}
+
+		/* Store FIT handle and config for later use */
+		if (data->os_fit)
+			fit_close(data->os_fit);
+		data->os_fit = fit;
+		data->fit_config = fit_config;
+
+	} else if (override_type == filetype_uimage) {
+		/* uImage override: Not supported */
+		pr_err("bootm.image override with uImage not supported\n");
+		return -EINVAL;
+
+	} else {
+		/* Raw file override: Replace only kernel loadable */
+		pr_info("bootm.image override: raw file %s\n", bootm_overrides.os_file);
+
+		/* Remove existing kernel loadable */
+		list_for_each_entry_safe(l, tmp, &data->loadables, list) {
+			if (l->type == LOADABLE_KERNEL) {
+				list_del(&l->list);
+				loadable_release(l);
+				break;
+			}
+		}
+		data->kernel = NULL;
+
+		/* Create new kernel loadable from override file */
+		l = loadable_from_file(bootm_overrides.os_file, LOADABLE_KERNEL);
+		if (!IS_ERR(l)) {
+			data->kernel = l;
+			list_add(&l->list, &data->loadables);
+		}
+	}
+
+	return 0;
+}
+
+/*
  * bootm_apply_overrides_to_loadables - translate overrides into loadables
  *
  * This replaces collected loadables with overrides from bootm_overrides.
  * Overrides are translated into file-based loadables and replace the
  * corresponding loadables in data->loadables list.
  */
-static void bootm_apply_overrides_to_loadables(struct image_data *data)
+static int bootm_apply_overrides_to_loadables(struct image_data *data)
 {
 	struct loadable *l;
+	int ret;
 
 	if (!IS_ENABLED(CONFIG_BOOT_OVERRIDE))
-		return;
+		return 0;
 	if (bootm_signed_images_are_forced())
-		return;
+		return 0;
 
-	/* Override kernel (os_file) */
-	if (data->os_file_override) {
-		/* Remove existing kernel loadable if present */
-		if (data->kernel) {
-			list_del(&data->kernel->list);
-			loadable_release(data->kernel);
-			data->kernel = NULL;
-		}
+	ret = bootm_apply_image_override(data);
+	if (ret)
+		return ret;
 
-		/* Create new kernel loadable from override file */
-		l = loadable_from_file(data->os_file_override, LOADABLE_KERNEL);
-		if (!IS_ERR(l)) {
-			data->kernel = l;
-			list_add(&l->list, &data->loadables);
-		}
-	}
+	/*
+	 * Note: bootm.image override is handled separately in
+	 * bootm_apply_image_override() which is called before this function.
+	 * This function only handles bootm.initrd and bootm.oftree overrides.
+	 */
 
 	/* Override device tree */
 	if (bootm_overrides.oftree_file) {
@@ -711,6 +893,8 @@ static void bootm_apply_overrides_to_loadables(struct image_data *data)
 		}
 		free(files);
 	}
+
+	return 0;
 }
 
 /*
@@ -810,80 +994,6 @@ int bootm_boot(struct bootm_data *bootm_data)
 
 	os_type = data->os_type = file_detect_boot_image_type(data->os_header, PAGE_SIZE);
 
-	if (IS_ENABLED(CONFIG_BOOT_OVERRIDE) && bootm_overrides.os_file) {
-		enum filetype override_type;
-		void *override_header;
-
-		if (bootm_signed_images_are_forced()) {
-			pr_err("bootm.image override not allowed when signed images are forced\n");
-			ret = -EPERM;
-			goto err_out;
-		}
-
-		/* Read override file to detect its type */
-		ret = read_file_2(bootm_overrides.os_file, &size, &override_header, PAGE_SIZE);
-		if (ret < 0 && ret != -EFBIG) {
-			pr_err("could not open override image %s: %pe\n",
-			       bootm_overrides.os_file, ERR_PTR(ret));
-			goto err_out;
-		}
-		if (size < PAGE_SIZE) {
-			pr_err("override image %s too small\n", bootm_overrides.os_file);
-			ret = -EINVAL;
-			goto err_out;
-		}
-
-		override_type = file_detect_boot_image_type(override_header, PAGE_SIZE);
-		free(override_header);
-
-		/*
-		 * Override behavior depends on original and override types:
-		 * - Same type: Replace immediately
-		 * - FIT -> non-FIT: Delay replacement until bootm_load_os
-		 * - Non-FIT -> FIT: Error (not supported)
-		 */
-		if (os_type == filetype_fit && override_type != filetype_fit) {
-			/* FIT -> non-FIT: Store override for delayed application */
-			data->os_file_override = xstrdup(bootm_overrides.os_file);
-		} else if (os_type != filetype_fit && override_type == filetype_fit) {
-			/* Non-FIT -> FIT: Not supported */
-			pr_err("Cannot override non-FIT image with FIT image\n");
-			ret = -EINVAL;
-			goto err_out;
-		} else {
-			/* Same type or FIT -> FIT: Do type check and replace immediately */
-			if (!data->force) {
-				if (os_type == filetype_unknown && override_type == filetype_unknown) {
-					/* Both unknown: allow */
-				} else if (os_type != override_type) {
-					pr_err("Override image file type mismatch: original '%s' is %s, override '%s' is %s\n",
-					       data->os_file, file_type_to_short_string(os_type),
-					       bootm_overrides.os_file, file_type_to_short_string(override_type));
-					ret = -EINVAL;
-					goto err_out;
-				}
-			}
-
-			free(data->os_file);
-			data->os_file = xstrdup(bootm_overrides.os_file);
-
-			free(data->os_header);
-			ret = read_file_2(data->os_file, &size, &data->os_header, PAGE_SIZE);
-			if (ret < 0 && ret != -EFBIG) {
-				pr_err("could not open override image %s: %pe\n",
-				       data->os_file, ERR_PTR(ret));
-				goto err_out;
-			}
-			if (size < PAGE_SIZE) {
-				pr_err("override image %s too small\n", data->os_file);
-				ret = -EINVAL;
-				goto err_out;
-			}
-
-			os_type = data->os_type = file_detect_boot_image_type(data->os_header, PAGE_SIZE);
-		}
-	}
-
 	if (!data->force && os_type == filetype_unknown) {
 		pr_err("Unknown OS filetype (try -f)\n");
 		ret = -EINVAL;
@@ -938,8 +1048,11 @@ int bootm_boot(struct bootm_data *bootm_data)
 		bootm_collect_file_loadables(data);
 	}
 
-	/* Apply overrides by translating them into loadables */
-	bootm_apply_overrides_to_loadables(data);
+	/* Apply bootm.image override (must be done BEFORE other overrides) */
+	/* Apply other overrides (bootm.initrd, bootm.oftree) by translating them into loadables */
+	ret = bootm_apply_overrides_to_loadables(data);
+	if (ret)
+		goto err_out;
 
 	if (bootm_data->appendroot) {
 		const char *root = NULL;
