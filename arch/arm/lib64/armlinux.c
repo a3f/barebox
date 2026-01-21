@@ -43,6 +43,7 @@ static int do_bootm_barebox(struct image_data *data)
 {
 	void (*fn)(unsigned long x0, unsigned long x1, unsigned long x2,
 		       unsigned long x3);
+	const struct resource *os_res;
 	resource_size_t start, end;
 	unsigned long barebox;
 	int ret;
@@ -53,9 +54,9 @@ static int do_bootm_barebox(struct image_data *data)
 
 	barebox = PAGE_ALIGN(start);
 
-	ret = bootm_load_os(data, barebox);
-	if (ret)
-		goto out;
+	os_res = bootm_load_os(data, barebox, end);
+	if (IS_ERR(os_res))
+		return PTR_ERR(os_res);
 
 	printf("Loaded barebox image to 0x%08lx\n", barebox);
 
