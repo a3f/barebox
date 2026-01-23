@@ -3,4 +3,8 @@
 fb0.enable=1
 msleep 200
 fbconsole0.active=oe
-fbconsole0.rotation=90
+fbconsole0.rotation=270
+fbconsole0.font=TER16x32
+
+usb
+
