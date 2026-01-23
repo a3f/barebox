@@ -76,6 +76,15 @@ config KEYBOARD_USB
 	help
 	  This driver implements support for usb keyboard.
 
+config KEYBOARD_USB_HID
+	bool "USB HID keyboard"
+	depends on USB_HOST
+	depends on CONSOLE_FULL
+	select POLLER
+	select INPUT
+	help
+	  USB HID Keyboard driver.
+
 config INPUT_SPECIALKEYS
 	bool "Special keys handler"
 	select POLLER
