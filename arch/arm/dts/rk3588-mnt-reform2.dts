@@ -30,16 +30,6 @@
 	status = "disabled";
 };
 
-&usb_host0_ehci {
-	/* Does not work in barebox (missing phy driver) */
-	status = "disabled";
-};
-
-&usb_host1_ehci {
-	/* Does not work in barebox (missing phy driver) */
-	status = "disabled";
-};
-
 &dsi1 {
 	status = "okay";
 	rockchip,lane-rate = <936000>;
