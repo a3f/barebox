@@ -15,8 +15,8 @@
 #include "rk3588.dtsi"
 
 / {
-	model = "MNT Reform 2 with RCORE-DSI RK3588 Module";
-	compatible = "mntre,reform2-rcore-dsi", "firefly,icore3588q", "rockchip,rk3588";
+ 	model = "MNT Pocket Reform with RCORE RK3588 Module";
+	compatible = "mntre,pocket-reform-rcore", "firefly,icore3588q", "rockchip,rk3588";
 
 	aliases {
 		ethernet0 = &gmac0;
