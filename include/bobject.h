@@ -41,4 +41,9 @@ void bobject_free(struct bobject *bobj);
 
 void bobject_del(struct bobject *bobj);
 
+char *bobject_format_json(struct bobject *bobj);
+char *bobject_format_json_params(struct bobject *bobj);
+char *bobject_format_json_append(const char *json, struct bobject *bobj);
+void bobject_print_json(struct bobject *bobj);
+
 #endif
