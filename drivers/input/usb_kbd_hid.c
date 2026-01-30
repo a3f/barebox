@@ -115,52 +115,52 @@ static void usb_kbd_poll(void *arg)
 		goto exit;
 
 	/*printk(KERN_ALERT "%s: %02x %02x %02x %02x %02x %02x %02x %02x\n", __func__,
-         data->new[0], // 0x01
-         data->new[1],
-         data->new[2],
-         data->new[3], // first key
-         data->new[4],
-         data->new[5],
-         data->new[6],
-         data->new[7]
-         );*/
+				 data->new[0], // 0x01
+				 data->new[1],
+				 data->new[2],
+				 data->new[3], // first key
+				 data->new[4],
+				 data->new[5],
+				 data->new[6],
+				 data->new[7]
+				 );*/
 
-  for (i = 3; i <= 7; i++) {
-    uint8_t pressed_new = data->new[i];
-    
-    if (pressed_new > 0) {
-      // new keypress?
-      int new = 1;
-      for (int j = 3; j <= 7; j++) {
-        if (data->old[j] == pressed_new) {
-          new = 0;
-          break;
-        }
-      }
-      if (new) {
-        input_report_key_event(&data->input, usb_kbd_keycode[pressed_new], 1);
-      }
-    }
-  }
-  
-  for (i = 3; i <= 7; i++) {
-    uint8_t pressed_old = data->old[i];
-    if (pressed_old > 0) {
-      // key released?
-      int gone = 1;
-      for (int j = 3; j <= 7; j++) {
-        if (data->new[j] == pressed_old) {
-          gone = 0;
-          break;
-        }
-      }
-      if (gone) {
-        input_report_key_event(&data->input, usb_kbd_keycode[pressed_old], 0);
-      }
-    } else {
-      break;
-    }
-  }
+	for (i = 3; i <= 7; i++) {
+		uint8_t pressed_new = data->new[i];
+
+		if (pressed_new > 0) {
+			// new keypress?
+			int new = 1;
+			for (int j = 3; j <= 7; j++) {
+				if (data->old[j] == pressed_new) {
+					new = 0;
+					break;
+				}
+			}
+			if (new) {
+				input_report_key_event(&data->input, usb_kbd_keycode[pressed_new], 1);
+			}
+		}
+	}
+
+	for (i = 3; i <= 7; i++) {
+		uint8_t pressed_old = data->old[i];
+		if (pressed_old > 0) {
+			// key released?
+			int gone = 1;
+			for (int j = 3; j <= 7; j++) {
+				if (data->new[j] == pressed_old) {
+					gone = 0;
+					break;
+				}
+			}
+			if (gone) {
+				input_report_key_event(&data->input, usb_kbd_keycode[pressed_old], 0);
+			}
+		} else {
+			break;
+		}
+	}
 
 	memcpy(data->old, data->new, USB_KBD_BOOT_REPORT_SIZE);
 
