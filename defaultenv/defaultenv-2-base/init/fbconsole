@@ -1,5 +1,16 @@
 #!/bin/sh
 
+# FIXME: can it be done in DTS?
+clk_set_rate scmi_spll 702000000
+clk_set_parent v0pll pll_v0pll
+clk_set_rate pll_v0pll 1680000000
+clk_set_parent dclk_vop2_src v0pll
+
+# FIXME: investigate why these are not parented by default
+clk_set_parent b0pll pll_b0pll
+clk_set_parent b1pll pll_b1pll
+clk_set_parent lpll pll_lpll
+
 fb0.enable=1
 msleep 200
 fbconsole0.active=oe
