@@ -15,12 +15,10 @@ obj-$(CONFIG_DRIVER_VIDEO_MIPI_DSI) += mipi_dsi.o
 obj-$(CONFIG_DRIVER_VIDEO_PANEL_ILITEK_ILI9341) += panel-ilitek-ili9341.o
 obj-$(CONFIG_DRIVER_VIDEO_PANEL_ILITEK_ILI9488) += panel-ilitek-ili9488.o
 obj-$(CONFIG_DRIVER_VIDEO_PANEL_MIPI_DBI) += panel-mipi-dbi.o
+obj-$(CONFIG_DRIVER_VIDEO_PANEL_MNT_POCKET_REFORM) += panel-mnt-reform.o
 obj-$(CONFIG_DRIVER_VIDEO_PANEL_SITRONIX_ST7789V) += panel-sitronix-st7789v.o
 obj-$(CONFIG_DRIVER_VIDEO_PANEL_SITRONIX_ST7703) += panel-sitronix-st7703.o
-# TODO:
-obj-y += panel-mnt-reform.o
 obj-$(CONFIG_DRIVER_VIDEO_PANEL_ORISETECH_OTM8009A) += panel-orisetech-otm8009a.o
-
 obj-$(CONFIG_DRIVER_VIDEO_ATMEL) += atmel_lcdfb.o atmel_lcdfb_core.o
 obj-$(CONFIG_DRIVER_VIDEO_ATMEL_HLCD) += atmel_hlcdfb.o atmel_lcdfb_core.o
 obj-$(CONFIG_DRIVER_VIDEO_STM) += stm.o
@@ -42,8 +40,7 @@ obj-$(CONFIG_BACKLIGHT_RAVE_SP)	+= rave-sp-backlight.o
 obj-$(CONFIG_DRIVER_VIDEO_DW_HDMI) += dw-hdmi.o
 obj-$(CONFIG_DRIVER_VIDEO_DW_HDMI_QP) += dw-hdmi-qp.o
 obj-$(CONFIG_DRIVER_VIDEO_DW_MIPI_DSI) += dw_mipi_dsi.o
-#TODO:
-obj-y += dw_mipi_dsi2.o
+obj-$(CONFIG_DRIVER_VIDEO_DW_MIPI_DSI2) += dw_mipi_dsi2.o
 obj-$(CONFIG_DRIVER_VIDEO_BOCHS) += bochs/
 obj-$(CONFIG_DRIVER_VIDEO_ROCKCHIP) += rockchip/
 obj-$(CONFIG_DRIVER_VIDEO_FSL_LDB) += fsl-ldb.o

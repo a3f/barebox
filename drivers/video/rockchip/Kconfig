@@ -34,4 +34,12 @@ config DRIVER_VIDEO_ROCKCHIP_MIPI_DSI
         select GENERIC_PHY
         select GENERIC_PHY_MIPI_DPHY
 
+config DRIVER_VIDEO_ROCKCHIP_MIPI_DSI2
+        bool "Rockchip MIPI-DSI2 driver"
+        select VIDEO_VPL
+        select OFTREE
+        select DRIVER_VIDEO_DW_MIPI_DSI2
+        select GENERIC_PHY
+        select GENERIC_PHY_MIPI_DPHY
+
 endif
