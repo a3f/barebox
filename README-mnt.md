@@ -10,7 +10,11 @@ export ARCH=arm64
 cp mnt-reform-defconfig .config
 
 cp rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.19.bin arch/arm/boards/mnt-reform2-rk3588/sdram-init.bin
-cp rkbin/bin/rk35/rk3588_bl31_v1.51.elf firmware/rk3588-bl31.bin
+
+# UPDATE: probably _don't_ do this
+#   cp rkbin/bin/rk35/rk3588_bl31_v1.51.elf firmware/rk3588-bl31.bin
+# but get upstream TF-A instead, see https://source.mnt.re/reform/reform-rk3588-uboot/-/blob/main/build.sh?ref_type=heads#L30
+# a binary for your convenience included here now: firmware/rk3588-bl31.bin
 
 make menuconfig
 make -j8
