@@ -49,14 +49,17 @@ extern char __dtb_rk3588_mnt_reform2_start[];
 #define RK3588_PLLCON1_PWRDOWN          BIT(13)
 #define RK3588_PLLCON6_LOCK_STATUS      BIT(15)
 
-/* TODD: do we need to set K to 0? */
-
 static void rk3588_spll_set_rate(void);
 
+/* via https://lists.denx.de/pipermail/u-boot/2024-May/554225.html */
 static void rk3588_spll_set_rate(void) {
 	void __iomem *base = (void __iomem *)SBUSCRU_BASE;
 
-	// 702000000 Hz
+	putc_ll('1');
+	/*
+		702 MHz
+		RK3588_PLL_RATE(_rate,		_p, _m, _s, _k)	
+		RK3588_PLL_RATE(702000000, 3, 351, 2, 0 ) */
 	unsigned int p = 3;
 	unsigned int m = 351;
 	unsigned int s = 2;
@@ -74,6 +77,8 @@ static void rk3588_spll_set_rate(void) {
 	/* power down */
 	rk_setreg(base + con_offset + RK3588_PLLCON(1),
 						RK3588_PLLCON1_PWRDOWN);
+
+	/* configure */
 	rk_clrsetreg(base + con_offset,
 							 RK3588_PLLCON0_M_MASK,
 							 (m << RK3588_PLLCON0_M_SHIFT));
@@ -85,11 +90,15 @@ static void rk3588_spll_set_rate(void) {
 	rk_clrreg(base + con_offset + RK3588_PLLCON(1),
 						RK3588_PLLCON1_PWRDOWN);
 
+	putc_ll('2');
 	/* wait for PLL lock */
 	while (!(readl(base + con_offset + RK3588_PLLCON(6)) &
 					 RK3588_PLLCON6_LOCK_STATUS)) {
 		udelay(1);
+		putc_ll('.');
 	}
+	putc_ll('3');
+	putc_ll('>');
 };
 
 ENTRY_FUNCTION(start_rk3588_mnt_reform2, r0, r1, r2)
@@ -97,17 +106,19 @@ ENTRY_FUNCTION(start_rk3588_mnt_reform2, r0, r1, r2)
 	putc_ll('M');
 	putc_ll('N');
 	putc_ll('T');
-	putc_ll('R');
+	putc_ll('>');
+
 	putc_ll('E');
+	putc_ll('L');
+	putc_ll('0'+current_el());
 	putc_ll('>');
 
-	rk3588_spll_set_rate();
-
-	putc_ll('>');
-	if (current_el() == 3)
+	if (current_el() == 3) {
+		rk3588_spll_set_rate();
 		relocate_to_adr_full(RK3588_BAREBOX_LOAD_ADDRESS);
-	else
+	}	else {
 		relocate_to_current_adr();
+	}
 
 	setup_c();
 
