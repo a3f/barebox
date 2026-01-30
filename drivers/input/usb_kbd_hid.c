@@ -175,8 +175,7 @@ static int usb_kbd_probe(struct usb_device *usbdev,
 	struct usb_interface *iface = &usbdev->config.interface[0];
 	struct usb_kbd_pdata *data;
 
-	dev_err(&usbdev->dev, "USB HID keyboard found\n");
-	dev_dbg(&usbdev->dev, "Debug enabled\n");
+	dev_info(&usbdev->dev, "USB HID keyboard found\n");
 	ret = usb_set_protocol(usbdev, iface->desc.bInterfaceNumber, 0);
 	if (ret < 0)
 		return ret;
@@ -211,9 +210,9 @@ static int usb_kbd_probe(struct usb_device *usbdev,
 			free(data);
 			return ret;
 		} else
-			dev_err(&usbdev->dev, "poll keyboard via cont ep\n");
+			dev_info(&usbdev->dev, "poll keyboard via cont ep\n");
 	} else
-		dev_err(&usbdev->dev, "poll keyboard via int ep\n");
+		dev_info(&usbdev->dev, "poll keyboard via int ep\n");
 
 	data->input.parent = &usbdev->dev;
 	ret = input_device_register(&data->input);
@@ -244,14 +243,21 @@ static void usb_kbd_disconnect(struct usb_device *usbdev)
 	free(data);
 }
 
-static struct usb_device_id usb_kbd_usb_ids[] = {
-	{ USB_INTERFACE_INFO(3, 0, 0) }, // usb keyboard
-	{ }
+static const struct usb_device_id products[] = {
+{
+	/* MNT Reform Keyboard V4 */
+	USB_DEVICE(0x1209, 0x6d02),
+}, {
+	/* MNT Pocket Reform Keyboard V1 */
+	USB_DEVICE(0x1209, 0x6d06),
+},
+	/* { USB_INTERFACE_INFO(3, 0, 0) }, // usb HID */
+	{ },
 };
 
 static struct usb_driver usb_kbd_driver = {
 	.name =		"usb-keyboard-hid",
-	.id_table =	usb_kbd_usb_ids,
+	.id_table =	products,
 	.probe =	usb_kbd_probe,
 	.disconnect =	usb_kbd_disconnect,
 };
