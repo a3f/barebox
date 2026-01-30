@@ -71,8 +71,10 @@
 };
 
 &vop {
-	assigned-clocks = <&cru DCLK_VOP2_SRC>;
+	assigned-clocks = <&cru DCLK_VOP2_SRC>, <&cru PLL_GPLL>;
 	assigned-clock-parents = <&cru PLL_V0PLL>;
+	assigned-clock-rates = <1680000000>, <1680000000>;
+
 	status = "okay";
 };
 
