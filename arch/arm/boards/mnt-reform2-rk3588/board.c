@@ -4,11 +4,15 @@
 #include <deep-probe.h>
 #include <init.h>
 #include <mach/rockchip/bbu.h>
+#include <gpio.h>
 
 struct reform2_model {
 	const char *name;
 	const char *shortname;
 };
+
+/* GPIO GPIO4_B3 = E11 = (4*32 + 8 + 3) = 139 */
+#define USB_HUB_RESET 139
 
 static int reform2_rk3588_probe(struct device *dev)
 {
@@ -30,6 +34,12 @@ static int reform2_rk3588_probe(struct device *dev)
 
 	rockchip_bbu_mmc_register("emmc", bbu_flags_emmc, "/dev/mmc0");
 	rockchip_bbu_mmc_register("sd", bbu_flags_sd, "/dev/mmc1");
+
+	printf("[mnt-reform-series-rk3588] setup_usb()\n");
+	gpio_request(USB_HUB_RESET, "usb_hub_rst");
+	gpio_direction_output(USB_HUB_RESET, 0);
+	mdelay(10);
+	gpio_set_value(USB_HUB_RESET, 1);
 
 	return 0;
 }
