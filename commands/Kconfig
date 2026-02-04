@@ -1300,6 +1300,20 @@ config CMD_UNCOMPRESS
 
 	  Usage: uncompress INFILE OUTFILE
 
+config CMD_UNCOMPRESS_MEMORY
+	bool "uncompress command memory support"
+	depends on CMD_UNCOMPRESS
+	select LOADABLE
+	select LOADABLE_DECOMPRESS
+	help
+	  Adds memory range support to the uncompress command, allowing
+	  decompression of data from memory to memory, similar to hashsum.
+
+	  With this option, the uncompress command accepts memory areas
+	  (e.g., 0x10000000+0x100000) in addition to file paths.
+
+	  Usage: uncompress INFILE|SRCAREA OUTFILE|DESTAREA
+
 # end File commands
 endmenu
 
