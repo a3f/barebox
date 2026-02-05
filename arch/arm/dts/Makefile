@@ -266,3 +266,6 @@ obj-$(CONFIG_MACH_WOLFVISION_PF5) += rk3568-wolfvision-pf5-io-expander.dtbo.o \
 				     rk3568-wolfvision-pf5-display-vz.dtbo.o
 clean-files := *.dtb *.dtb.S .*.dtc .*.pre .*.dts *.dtb.z
 clean-files += *.dtbo *.dtbo.S .*.dtso
+
+lwl-$(CONFIG_ARCH_MEDIATEK_V8) += mt8195-cherry-tomato-r3.dtb.o \
+	mt8192-asurada-hayato-r1.dtb.o mt8186-corsola-magneton-sku393218.dtb.o
