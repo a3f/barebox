@@ -74,11 +74,7 @@ class BareboxTestStrategy(Strategy):
             # interrupt barebox
             self.target.activate(self.barebox)
         elif status == Status.shell:
-            # transition to barebox
-            self.transition(Status.barebox)  # pylint: disable=missing-kwoa
-            self.barebox.boot("")
-            self.barebox.await_boot()
-            self.target.activate(self.shell)
+            self._boot_kernel("")
         else:
             raise StrategyError(
                 "no transition found from {} to {}".
@@ -113,18 +109,39 @@ class BareboxTestStrategy(Strategy):
             self.power.cycle()
             self.target.activate(self.barebox)
 
+    def skip_cdrom_installer(self):
+        # Handle both GRUB boot (shows "Install" menu) and direct kernel boot
+        # (goes straight to installer's screen multiplexer showing "shell")
+        index = self.console.expect(["Install", "shell"], timeout=120)
+        if index == 0:
+            # GRUB menu - select Install
+            self.console.sendline("")
+            self.console.expect("3 shell", timeout=300)
+        # Already at installer's screen multiplexer
+        self.console.sendline("\x013\x01:hardstatus ignore")
+
+    def _boot_kernel(self, boottarget=None, bootm=False, skip_cdrom_installer=True):
+        self.transition(Status.barebox)
+
+        if bootm:
+            self.barebox_bootm(boottarget)
+        else:
+            self.barebox.boot(boottarget)
+
+        self.barebox.await_boot()
+
+        if skip_cdrom_installer:
+            self.skip_cdrom_installer()
+
+        self.target.activate(self.shell)
+
     @contextmanager
-    def boot_kernel(self, boottarget=None, bootm=False):
+    def boot_kernel(self, boottarget=None, bootm=False, skip_cdrom_installer=True):
         self.transition(Status.barebox)
 
         try:
-            if bootm:
-                self.barebox_bootm(boottarget)
-            else:
-                self.barebox.boot(boottarget)
-
-            self.barebox.await_boot()
-            self.target.activate(self.shell)
+            self._boot_kernel(boottarget=boottarget, bootm=bootm,
+                              skip_cdrom_installer=skip_cdrom_installer)
             yield self.shell
         finally:
             self.target.deactivate(self.shell)

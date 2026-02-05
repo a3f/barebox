@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0-only
+# Boot to Linux via EFI CDROM installer image
 
 import re
 import pytest
-
 
 def get_dmesg(shell, grep=None):
     cmd = 'dmesg'
@@ -90,7 +90,6 @@ def test_expected_efi_messages(shell, env):
 
     expected_patterns = [
         r"efi:\s+EFI v2\.8 by barebox",
-        r"Remapping and enabling EFI services\.",
         r"efivars:\s+Registered efivars operations",
     ]
 

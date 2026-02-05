@@ -6,6 +6,8 @@ import pytest
 import os
 import re
 import shlex
+import subprocess
+import tempfile
 
 
 def parse_config(lines):

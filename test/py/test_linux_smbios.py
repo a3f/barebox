@@ -2,6 +2,45 @@
 
 import pytest
 
+from .helper import ensure_debian_vfat_image
+
+
+@pytest.fixture(scope="module", autouse=True)
+def debian_vfat_image():
+    yield ensure_debian_vfat_image()
+
+
+@pytest.fixture(scope="function")
+def shell(strategy, barebox):
+    """Boot Linux and provide shell access for SMBIOS tests."""
+    ensure_debian_vfat_image()
+
+    def get_option(opt):
+        config = strategy.target.env.config
+        return config.get_target_option(strategy.target.name, opt)
+
+    root_dev = get_option("root_dev")
+    kernel_path = get_option("bootm.image")
+
+    barebox.run_check("detect -a")
+    barebox.run_check(f"ls /mnt/{root_dev}/")
+    kernel_path = barebox.run_check(f"ls /mnt/{root_dev}/{kernel_path}")[0]
+
+    try:
+        initrd_path = get_option("bootm.initrd")
+        initrd_path = barebox.run_check(f"ls /mnt/{root_dev}/{initrd_path}")[0]
+        barebox.run_check(f"global.bootm.initrd={initrd_path}")
+    except KeyError:
+        pass
+
+    barebox.run_check(f"global.bootm.image={kernel_path}")
+    barebox.run_check(f"global.bootm.root_dev=/dev/{root_dev}")
+    barebox.run_check("global.bootm.appendroot=1")
+    barebox.run_check("global.bootm.efi=required")
+
+    with strategy.boot_kernel(bootm=True) as sh:
+        yield sh
+
 
 @pytest.mark.lg_feature(['bootable', 'smbios'])
 def test_smbios3_tables_present(shell):
