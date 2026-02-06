@@ -7,6 +7,8 @@ unsigned long get_runtime_offset(void);
 
 void relocate_to_current_adr(void);
 void relocate_to_adr(unsigned long target);
+void relocate_relr(unsigned long offset,
+		   const void *start, const void *end);
 
 void setup_c(void);
 

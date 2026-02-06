@@ -66,6 +66,12 @@ SECTIONS
 		__rel_dyn_end = .;
 	} :data
 
+	.relr.dyn : {
+		__relr_dyn_start = .;
+		*(.relr.dyn)
+		__relr_dyn_end = .;
+	} :data
+
 	.dynsym : {
 		__dynsym_start = .;
 		*(.dynsym)

@@ -2,6 +2,8 @@
 #include <asm/sections.h>
 #include <linux/types.h>
 
+char __relr_dyn_start[0] __attribute__((section(".__relr_dyn_start")));
+char __relr_dyn_end[0] __attribute__((section(".__relr_dyn_end")));
 char _text[0] __attribute__((section("._text")));
 char __bss_start[0] __attribute__((section(".__bss_start")));
 char __bss_stop[0] __attribute__((section(".__bss_stop")));
