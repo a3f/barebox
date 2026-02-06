@@ -33,6 +33,8 @@ static inline __prereloc unsigned long global_variable_offset(void)
 void relocate_image(unsigned long offset,
 		    void *dstart, void *dend,
 		    long *dynsym, long *dynend);
+void relocate_relr(unsigned long offset,
+		   const void *start, const void *end);
 void relocate_to_current_adr(void);
 void relocate_to_adr(unsigned long target);
 void relocate_to_adr_full(unsigned long target);

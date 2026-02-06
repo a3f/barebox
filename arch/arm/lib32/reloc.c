@@ -56,20 +56,56 @@ void __prereloc relocate_image(unsigned long offset,
 }
 
 /*
+ * Apply RELR relocations (32-bit version).
+ *
+ * Same compressed format as 64-bit, but with 32-bit entries:
+ * each bitmap entry covers up to 31 subsequent locations.
+ */
+void __prereloc relocate_relr(unsigned long offset,
+			      const void *start, const void *end)
+{
+	const u32 *relr;
+	u32 *place = NULL;
+
+	for (relr = start; relr < (const u32 *)end; relr++) {
+		if ((*relr & 1) == 0) {
+			place = (u32 *)(*relr + offset);
+			*place++ += offset;
+		} else {
+			u32 *p = place;
+			u32 r = *relr >> 1;
+
+			for (; r; p++, r >>= 1)
+				if (r & 1)
+					*p += offset;
+			place += 31;
+		}
+	}
+}
+
+/*
  * Apply ARM32 ELF relocations
  */
 int elf_apply_relocations(struct elf_image *elf, const void *dyn_seg)
 {
-	void *rel_ptr = NULL, *symtab = NULL;
-	u64 relsz;
+	void *rel_ptr = NULL, *relr_ptr = NULL, *symtab = NULL;
+	u64 relsz, relrsz;
 	phys_addr_t base = (phys_addr_t)elf->reloc_offset;
-	int ret;
+	bool have_rel, have_relr;
 
-	ret = elf_parse_dynamic_section_rel(elf, dyn_seg, &rel_ptr, &relsz, &symtab);
-	if (ret)
-		return ret;
+	have_rel = !elf_parse_dynamic_section_rel(elf, dyn_seg,
+						  &rel_ptr, &relsz, &symtab);
+	have_relr = !elf_parse_dynamic_section_relr(elf, dyn_seg,
+						    &relr_ptr, &relrsz);
 
-	relocate_image(base, rel_ptr, rel_ptr + relsz, symtab, NULL);
+	if (!have_rel && !have_relr)
+		return -EINVAL;
+
+	if (have_rel)
+		relocate_image(base, rel_ptr, rel_ptr + relsz, symtab, NULL);
+
+	if (have_relr)
+		relocate_relr(base, relr_ptr, relr_ptr + relrsz);
 
 	return 0;
 }
