@@ -445,6 +445,15 @@ else
 
 		configs+=($i)
 	done
+	if [ ${#pytest_opts[@]} -gt 0 ]; then
+		for i in "${configs[@]}"; do
+			if ! [[ $i =~ .yaml$ ]]; then
+				echo "error: unexpected arguments after defconfig: ${pytest_opts[*]}" >&2
+				echo "hint: place all options before the defconfig argument" >&2
+				exit 1
+			fi
+		done
+	fi
 	for i in "${configs[@]}"; do
 		config=$i
 		if [[ $i =~ ^.*/([^/]+)/([^@]*@|)([^.]+).yaml$ ]]; then
