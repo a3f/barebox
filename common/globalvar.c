@@ -461,6 +461,83 @@ int globalvar_set(const char *name, const char *val)
 	return dev_set_param(&global_device, name, val);
 }
 
+struct globalvar_stashed {
+	const char *key;
+	const char *value;
+	struct list_head list;
+};
+
+static void globalvar_stashed_free(struct globalvar_stashed *elem)
+{
+	list_del(&elem->list);
+	free_const(elem->key);
+	free_const(elem->value);
+	free(elem);
+}
+
+int globalvar_stash_push(struct list_head *stash, ...)
+{
+	struct globalvar_stashed *elem, *safe;
+	const char *name;
+	int ret = -ENOMEM;
+	va_list args;
+	LIST_HEAD(tmp);
+
+	va_start(args, stash);
+
+	while ((name = va_arg(args, const char *))) {
+		const char *value;
+
+		elem = calloc(1, sizeof(*elem));
+		if (!elem)
+			goto out;
+
+		list_add_tail(&elem->list, &tmp);
+
+		elem->key = strdup_const(name);
+		if (!elem->key)
+			goto out;
+
+		value = globalvar_get(name);
+		if (!value) {
+			ret = -EINVAL;
+			goto out;
+		}
+
+		elem->value = strdup_const(value);
+		if (!elem->value)
+			goto out;
+	}
+
+	list_splice_tail(&tmp, stash);
+
+	ret = 0;
+out:
+	va_end(args);
+
+	if (ret) {
+		list_for_each_entry_safe(elem, safe, &tmp, list)
+			globalvar_stashed_free(elem);
+	}
+
+	return ret;
+}
+
+int globalvar_stash_pop(struct list_head *stash)
+{
+	struct globalvar_stashed *elem, *tmp;
+	int err = 0;
+
+	list_for_each_entry_safe(elem, tmp, stash, list) {
+		int ret = globalvar_set(elem->key, elem->value);
+		if (ret)
+			err = ret;
+		globalvar_stashed_free(elem);
+	}
+
+	return err;
+}
+
 static int globalvar_simple_set(struct bobject *bobj, struct param_d *p,
 				const char *val)
 {
