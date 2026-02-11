@@ -456,9 +456,9 @@ void globalvar_set_match(const char *match, const char *val)
 	}
 }
 
-void globalvar_set(const char *name, const char *val)
+int globalvar_set(const char *name, const char *val)
 {
-	dev_set_param(&global_device, name, val);
+	return dev_set_param(&global_device, name, val);
 }
 
 static int globalvar_simple_set(struct bobject *bobj, struct param_d *p,
