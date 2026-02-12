@@ -22,6 +22,8 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/reset.h>
+#include <asm/types.h>
+#include <asm/cache.h>
 
 #include <mci.h>
 
@@ -59,6 +61,8 @@
 #define MSDC_INT_XFER_COMPL		BIT(12)
 #define MSDC_INT_DATTMO			BIT(14)
 #define MSDC_INT_DATCRCERR		BIT(15)
+#define MSDC_INT_BDCSERR		BIT(17)
+#define MSDC_INT_GPDCSERR		BIT(18)
 
 /* MSDC_FIFOCS */
 #define MSDC_FIFOCS_CLR			BIT(31)
@@ -85,6 +89,16 @@
 
 /* SDC_ADV_CFG0 */
 #define SDC_RX_ENHANCE_EN		BIT(20)
+
+/* MSDC_DMA_CTRL */
+#define MSDC_DMA_CTRL_BURSTSZ		GENMASK(14, 12)
+#define MSDC_DMA_CTRL_LASTBUF		BIT(10)
+#define MSDC_DMA_CTRL_MODE		BIT(8)
+#define MSDC_DMA_CTRL_STOP		BIT(1)
+#define MSDC_DMA_CTRL_START		BIT(0)
+
+/* DMA_CFG */
+#define MSDC_DMA_CFG_STS		BIT(0)
 
 /* PATCH_BIT0 */
 #define MSDC_INT_DAT_LATCH_CK_SEL	GENMASK(9, 7)
@@ -198,7 +212,8 @@
 	(MSDC_INT_CMDRDY | MSDC_INT_RSPCRCERR | MSDC_INT_CMDTMO)
 
 #define DATA_INTS_MASK	\
-	(MSDC_INT_XFER_COMPL | MSDC_INT_DATTMO | MSDC_INT_DATCRCERR)
+	(MSDC_INT_XFER_COMPL | MSDC_INT_DATTMO | MSDC_INT_DATCRCERR | \
+	MSDC_INT_BDCSERR | MSDC_INT_GPDCSERR)
 
 /* Register offset */
 struct mtk_sd_regs {
@@ -298,6 +313,7 @@ struct msdc_compatible {
 	bool builtin_pad_ctrl;
 	bool default_pad_dly;
 	bool use_internal_cd;
+	bool use_dma_mode;
 };
 
 struct msdc_delay_phase {
@@ -504,6 +520,9 @@ static int msdc_cmd_done(struct msdc_host *host, int events,
 			ret = -EIO;
 	}
 
+	/* Clear CMD interrupt */
+	writel(events & CMD_INTS_MASK, &host->base->msdc_int);
+
 	return ret;
 }
 
@@ -551,9 +570,8 @@ static int msdc_start_command(struct msdc_host *host, struct mci_cmd *cmd,
 	    FIELD_GET(MSDC_FIFOCS_RXCNT, readl(&host->base->msdc_fifocs))) {
 		pr_err("TX/RX FIFO non-empty before start of IO. Reset\n");
 		msdc_reset_hw(host);
+		msdc_fifo_clr(host);
 	}
-
-	msdc_fifo_clr(host);
 
 	host->last_resp_type = cmd->resp_type;
 	host->last_data_write = 0;
@@ -563,8 +581,6 @@ static int msdc_start_command(struct msdc_host *host, struct mci_cmd *cmd,
 	if (data)
 		blocks = data->blocks;
 
-	writel(CMD_INTS_MASK, &host->base->msdc_int);
-	writel(DATA_INTS_MASK, &host->base->msdc_int);
 	writel(blocks, &host->base->sdc_blk_num);
 	writel(cmd->cmdarg, &host->base->sdc_arg);
 	writel(rawcmd, &host->base->sdc_cmd);
@@ -706,13 +722,10 @@ static int msdc_pio_write(struct msdc_host *host, const u8 *ptr, u32 size)
 	return ret;
 }
 
-static int msdc_start_data(struct msdc_host *host, struct mci_data *data)
+static int msdc_pio_transfer(struct msdc_host *host, struct mci_data *data)
 {
 	u32 size;
 	int ret;
-
-	if (data->flags == MMC_DATA_WRITE)
-		host->last_data_write = 1;
 
 	size = data->blocks * data->blocksize;
 
@@ -720,6 +733,124 @@ static int msdc_start_data(struct msdc_host *host, struct mci_data *data)
 		ret = msdc_pio_write(host, (const u8 *)data->src, size);
 	else
 		ret = msdc_pio_read(host, (u8 *)data->dest, size);
+
+	return ret;
+}
+
+static dma_addr_t msdc_flush_membuf(const void *ptr, size_t size, enum dma_data_direction dir)
+{
+	dma_addr_t addr = (dma_addr_t)ptr;
+
+	if (dir == DMA_FROM_DEVICE)
+		v8_inv_dcache_range(addr, addr + size);
+	else
+		v8_flush_dcache_range(addr, addr + size);
+
+	return addr;
+}
+
+static void msdc_dma_start(struct msdc_host *host, dma_addr_t addr, u32 size)
+{
+	writel((u32)addr, &host->base->dma_sa);
+	clrsetbits_le32(&host->base->dma_ctrl, MSDC_DMA_CTRL_BURSTSZ,
+			FIELD_PREP(MSDC_DMA_CTRL_BURSTSZ, 6));
+
+	/* BASIC_DMA mode */
+	clrbits_le32(&host->base->dma_ctrl, MSDC_DMA_CTRL_MODE);
+
+	/* This is the last buffer */
+	setbits_le32(&host->base->dma_ctrl, MSDC_DMA_CTRL_LASTBUF);
+
+	/* Total transfer size */
+	writel(size, &host->base->dma_length);
+
+	/* Trigger DMA start */
+	setbits_le32(&host->base->dma_ctrl, MSDC_DMA_CTRL_START);
+}
+
+static void msdc_dma_stop(struct msdc_host *host)
+{
+	u32 reg;
+
+	setbits_le32(&host->base->dma_ctrl, MSDC_DMA_CTRL_STOP);
+	readl_poll_timeout(&host->base->dma_cfg, reg,
+			   !(reg & MSDC_DMA_CFG_STS), 1000000);
+}
+
+static int msdc_dma_done(struct msdc_host *host, int events)
+{
+	int ret = 0;
+	u32 rawcmd, arg;
+
+	if (!(events & MSDC_INT_XFER_COMPL)) {
+		rawcmd = readl(&host->base->sdc_cmd);
+		arg = readl(&host->base->sdc_arg);
+
+		if (events & MSDC_INT_DATTMO)
+			ret = -ETIMEDOUT;
+		else if (events & (MSDC_INT_DATCRCERR | MSDC_INT_GPDCSERR | MSDC_INT_BDCSERR))
+			ret = -EIO;
+		else
+			ret = -EBADRQC;
+
+		pr_err("MSDC: start data failure with %d, INT(0x%x), rawcmd=0x%x, arg=0x%x\n",
+		       ret, events, rawcmd, arg);
+	}
+
+	/* Clear DAT interrupt */
+	writel(events & DATA_INTS_MASK, &host->base->msdc_int);
+
+	return ret;
+}
+
+static int msdc_dma_transfer(struct msdc_host *host, struct mci_data *data)
+{
+	u32 size, status;
+	int ret;
+	const void *buf;
+	enum dma_data_direction dir;
+	dma_addr_t dma_addr;
+
+	size = data->blocks * data->blocksize;
+	if (data->flags == MMC_DATA_WRITE) {
+		buf = data->src;
+		dir = DMA_TO_DEVICE;
+	} else {
+		buf = data->dest;
+		dir = DMA_FROM_DEVICE;
+	}
+
+	dma_addr = msdc_flush_membuf(buf, size, dir);
+	msdc_dma_start(host, dma_addr, size);
+
+	ret = readl_poll_timeout(&host->base->msdc_int, status,
+				 status & DATA_INTS_MASK, 5000000);
+	if (ret)
+		status = MSDC_INT_DATTMO;
+
+	msdc_dma_stop(host);
+
+	/*
+	 * Need invalidate the dcache again to avoid any
+	 * cache-refill during the DMA operations (pre-fetching)
+	 */
+	if (data->flags & MMC_DATA_READ)
+		v8_inv_dcache_range(dma_addr, dma_addr + size);
+
+	return msdc_dma_done(host, status);
+}
+
+static int msdc_start_data(struct msdc_host *host, struct mci_data *data)
+{
+	int ret;
+
+	if (data->flags == MMC_DATA_WRITE)
+		host->last_data_write = 1;
+
+	if (host->dev_comp->use_dma_mode)
+		ret = msdc_dma_transfer(host, data);
+	else
+		ret = msdc_pio_transfer(host, data);
 
 	if (ret) {
 		msdc_reset_hw(host);
@@ -1154,12 +1285,14 @@ skip_fall:
 	if (final_maxlen == final_rise_delay.maxlen) {
 		clrbits_le32(&host->base->msdc_iocon, MSDC_IOCON_RSPL);
 		clrsetbits_le32(tune_reg, MSDC_PAD_TUNE_CMDRDLY,
-				FIELD_PREP(MSDC_PAD_TUNE_CMDRDLY, final_rise_delay.final_phase));
+				FIELD_PREP(MSDC_PAD_TUNE_CMDRDLY,
+					   final_rise_delay.final_phase));
 		final_delay = final_rise_delay.final_phase;
 	} else {
 		setbits_le32(&host->base->msdc_iocon, MSDC_IOCON_RSPL);
 		clrsetbits_le32(tune_reg, MSDC_PAD_TUNE_CMDRDLY,
-				FIELD_PREP(MSDC_PAD_TUNE_CMDRDLY, final_fall_delay.final_phase));
+				FIELD_PREP(MSDC_PAD_TUNE_CMDRDLY,
+					   final_fall_delay.final_phase));
 		final_delay = final_fall_delay.final_phase;
 	}
 
@@ -1401,8 +1534,11 @@ static void msdc_init_hw(struct msdc_host *host)
 	/* Configure to MMC/SD mode, clock free running */
 	setbits_le32(&host->base->msdc_cfg, MSDC_CFG_MODE);
 
-	/* Use PIO mode */
-	setbits_le32(&host->base->msdc_cfg, MSDC_CFG_PIO);
+	/* Data transfer mode */
+	if (host->dev_comp->use_dma_mode)
+		clrbits_le32(&host->base->msdc_cfg, MSDC_CFG_PIO);
+	else
+		setbits_le32(&host->base->msdc_cfg, MSDC_CFG_PIO);
 
 	/* Reset */
 	msdc_reset_hw(host);
@@ -1787,6 +1923,8 @@ static const struct msdc_compatible mt8183_compat = {
 	.data_tune = true,
 	.busy_check = true,
 	.stop_clk_fix = true,
+	.enhance_rx = true,
+	.use_dma_mode = true,
 };
 
 static const struct of_device_id msdc_ids[] = {
