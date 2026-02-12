@@ -39,22 +39,60 @@ static unsigned long clk_composite_recalc_rate(struct clk_hw *hw,
 	return parent_rate;
 }
 
-static long clk_composite_round_rate(struct clk_hw *hw, unsigned long rate,
-				  unsigned long *prate)
+static int clk_composite_determine_rate(struct clk_hw *hw,
+					struct clk_rate_request *req)
 {
 	struct clk_composite *composite = to_clk_composite(hw);
 	struct clk_hw *rate_hw = composite->rate_hw;
 	struct clk_hw *mux_hw = composite->mux_hw;
 
-	if (rate_hw)
-		return rate_hw->clk.ops->round_rate(rate_hw, rate, prate);
+	/*
+	 * Delegate directly to sub-clock ops, passing through the same
+	 * req.  This works because composite sub-clocks share the
+	 * composite's parent topology, so req->best_parent_hw/rate
+	 * remain valid for the sub-clock.
+	 *
+	 * Unlike Linux, which jointly optimizes mux parent selection
+	 * and rate division by iterating all mux parents for each
+	 * divider setting, barebox tries the rate clock first, then
+	 * falls back to the mux clock independently.
+	 */
+	if (rate_hw) {
+		if (rate_hw->clk.ops->determine_rate)
+			return rate_hw->clk.ops->determine_rate(rate_hw, req);
 
-	if (!(hw->clk.flags & CLK_SET_RATE_NO_REPARENT) &&
-	    mux_hw &&
-	    mux_hw->clk.ops->round_rate)
-		return mux_hw->clk.ops->round_rate(mux_hw, rate, prate);
+		if (rate_hw->clk.ops->round_rate) {
+			long rate;
 
-	return *prate;
+			rate = rate_hw->clk.ops->round_rate(rate_hw, req->rate,
+							    &req->best_parent_rate);
+			if (rate < 0)
+				return rate;
+
+			req->rate = rate;
+			return 0;
+		}
+	}
+
+	if (!(hw->clk.flags & CLK_SET_RATE_NO_REPARENT) && mux_hw) {
+		if (mux_hw->clk.ops->determine_rate)
+			return mux_hw->clk.ops->determine_rate(mux_hw, req);
+
+		if (mux_hw->clk.ops->round_rate) {
+			long rate;
+
+			rate = mux_hw->clk.ops->round_rate(mux_hw, req->rate,
+							   &req->best_parent_rate);
+			if (rate < 0)
+				return rate;
+
+			req->rate = rate;
+			return 0;
+		}
+	}
+
+	req->rate = req->best_parent_rate;
+	return 0;
 }
 
 static int clk_composite_set_rate(struct clk_hw *hw, unsigned long rate,
@@ -117,7 +155,7 @@ static struct clk_ops clk_composite_ops = {
 	.get_parent = clk_composite_get_parent,
 	.set_parent = clk_composite_set_parent,
 	.recalc_rate = clk_composite_recalc_rate,
-	.round_rate = clk_composite_round_rate,
+	.determine_rate = clk_composite_determine_rate,
 	.set_rate = clk_composite_set_rate,
 	.is_enabled = clk_composite_is_enabled,
 	.enable = clk_composite_enable,
