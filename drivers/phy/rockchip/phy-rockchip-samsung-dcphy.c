@@ -9,24 +9,15 @@
 #include <dt-bindings/phy/phy.h>
 #include <linux/bitfield.h>
 #include <linux/clk.h>
-
-// #include <linux/init.h>
 #include <init.h>
-
 #include <linux/kernel.h>
 
-// #include <linux/mfd/syscon.h>
 #include <mfd/syscon.h>
 
 #include <linux/module.h>
 #include <linux/mod_devicetable.h>
-
-// #include <linux/of.h>
 #include <of.h>
-
 #include <linux/phy/phy.h>
-// #include <linux/platform_device.h>
-// #include <linux/pm_runtime.h>
 #include <linux/regmap.h>
 #include <linux/reset.h>
 
@@ -1107,15 +1098,8 @@ static int samsung_mipi_dcphy_pll_enable(struct samsung_mipi_dcphy *samsung)
 
 	regmap_update_bits(samsung->regmap, PLL_CON0, PLL_EN, PLL_EN);
 
-	// ret = regmap_read_poll_timeout(samsung->regmap, PLL_STAT0,
-	// 			       sts, (sts & PLL_LOCK), 1000, 20000);
-
-    // TODO: Barebox's regmap_read_poll_timeout macro doesn't
-    // have the delay parameter, so let's leave that out for now
-
 	ret = regmap_read_poll_timeout(samsung->regmap, PLL_STAT0,
 				       sts, (sts & PLL_LOCK), 20000);
-
 
 	if (ret < 0)
 		dev_err(samsung->dev, "DC-PHY pll failed to lock\n");
@@ -1362,7 +1346,6 @@ samsung_mipi_dphy_data_lane_timing_init(struct samsung_mipi_dcphy *samsung)
 
 static int samsung_mipi_dphy_power_on(struct samsung_mipi_dcphy *samsung)
 {
-	pr_err("%s start\n", __func__);
 	int ret;
 
 	reset_control_assert(samsung->m_phy_rst);
@@ -1382,10 +1365,8 @@ static int samsung_mipi_dphy_power_on(struct samsung_mipi_dcphy *samsung)
 	/* The TSKEWCAL maximum is 100 µsec
 	 * at initial calibration.
 	 */
-	// usleep_range(100, 110);
     udelay(100);
 
-	pr_err("%s end\n", __func__);
 	return 0;
 }
 
@@ -1516,7 +1497,6 @@ samsung_mipi_dcphy_pll_calc_rate(struct samsung_mipi_dcphy *samsung,
 static int samsung_mipi_dcphy_configure(struct phy *phy,
 					union phy_configure_opts *opts)
 {
-	pr_err("%s start\n", __func__);
 	struct samsung_mipi_dcphy *samsung = phy_get_drvdata(phy);
 	unsigned long long target_rate = opts->mipi_dphy.hs_clk_rate;
 
@@ -1525,31 +1505,13 @@ static int samsung_mipi_dcphy_configure(struct phy *phy,
 	samsung_mipi_dcphy_pll_calc_rate(samsung, target_rate);
 	opts->mipi_dphy.hs_clk_rate = samsung->pll.rate;
 
-	pr_err("%s end\n", __func__);
 	return 0;
 }
-
-// static int samsung_mipi_dcphy_init(struct phy *phy)
-// {
-// 	struct samsung_mipi_dcphy *samsung = phy_get_drvdata(phy);
-
-// 	return pm_runtime_resume_and_get(samsung->dev);
-// }
-
-// static int samsung_mipi_dcphy_exit(struct phy *phy)
-// {
-// 	struct samsung_mipi_dcphy *samsung = phy_get_drvdata(phy);
-
-// 	return pm_runtime_put(samsung->dev);
-// }
 
 static const struct phy_ops samsung_mipi_dcphy_ops = {
 	.configure = samsung_mipi_dcphy_configure,
 	.power_on  = samsung_mipi_dcphy_power_on,
 	.power_off = samsung_mipi_dcphy_power_off,
-	// .init = samsung_mipi_dcphy_init,
-	// .exit = samsung_mipi_dcphy_exit,
-	// .owner	   = THIS_MODULE,
 };
 
 static const struct regmap_config samsung_mipi_dcphy_regmap_config = {
@@ -1563,24 +1525,7 @@ static const struct regmap_config samsung_mipi_dcphy_regmap_config = {
 static struct phy *samsung_mipi_dcphy_xlate(struct device *dev,
 					    const struct of_phandle_args *args)
 {
-
-	if (NULL == dev) {
-		pr_err("DEV IS NULL\n");
-		return ERR_PTR(-ENODEV);
-	}
-
-	if (NULL == args) {
-		pr_err("ARGS IS NULL\n");
-		return ERR_PTR(-ENODEV);
-	}
-
 	struct samsung_mipi_dcphy *samsung = dev_get_drvdata(dev);
-	if (NULL == samsung) {
-		pr_err("NO DRV DATA\n");
-		return ERR_PTR(-ENODEV);
-	}
-
-	pr_err("%s samsung type: %d\n", __func__, samsung->type);
 
 	if (args->args_count != 1) {
 		dev_err(dev, "invalid number of arguments\n");
@@ -1591,8 +1536,6 @@ static struct phy *samsung_mipi_dcphy_xlate(struct device *dev,
 		dev_warn(dev, "phy type select %d overwriting type %d\n",
 			 args->args[0], samsung->type);
 
-	pr_err("%s args type: %d\n", __func__, args->args[0]);
-
 	samsung->type = args->args[0];
 
 	return samsung->phy;
@@ -1600,8 +1543,6 @@ static struct phy *samsung_mipi_dcphy_xlate(struct device *dev,
 
 static int samsung_mipi_dcphy_probe(struct device *dev)
 {
-	pr_err("%s start\n", __func__);
-	// struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
 	struct samsung_mipi_dcphy *samsung;
 	struct phy_provider *phy_provider;
@@ -1609,20 +1550,13 @@ static int samsung_mipi_dcphy_probe(struct device *dev)
 	void __iomem *regs;
 	int ret;
 
-	// samsung = devm_kzalloc(dev, sizeof(*samsung), GFP_KERNEL);
-	// if (!samsung)
-	// 	return -ENOMEM;
     samsung = xzalloc(sizeof(*samsung));
+	if (!samsung)
+		return -ENOMEM;
 
 	samsung->dev = dev;
 	samsung->pdata = device_get_match_data(dev);
-	// platform_set_drvdata(pdev, samsung);
 	dev_set_drvdata(dev, samsung);
-
-	// res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	// regs = devm_ioremap_resource(dev, res);
-	// if (IS_ERR(regs))
-	// 	return PTR_ERR(regs);
 
 	regs = dev_platform_get_and_ioremap_resource(dev, 0, &res);
 	if (IS_ERR(regs))
@@ -1673,20 +1607,13 @@ static int samsung_mipi_dcphy_probe(struct device *dev)
 
 	phy_set_drvdata(samsung->phy, samsung);
 
-	// ret = devm_pm_runtime_enable(dev);
-	// if (ret)
-	// 	return dev_err_probe(dev, ret, "Failed to enable runtime PM\n");
-
 	phy_provider = of_phy_provider_register(dev, samsung_mipi_dcphy_xlate);
-    // phy_provider = of_phy_provider_register(dev, of_phy_simple_xlate);
 	if (IS_ERR(phy_provider))
 		return dev_err_probe(dev, PTR_ERR(phy_provider),
 				     "Failed to register phy provider\n");
 
 	
-	// TODO: In linux the pm resume and suspend
-	// methods get called before any other phy methods
-	// and enables these clocks
+	// In linux the pm resume method enables these clocks
 	// Enable them here instead
 	ret = clk_prepare_enable(samsung->pclk);
 	if (ret) {
@@ -1701,45 +1628,9 @@ static int samsung_mipi_dcphy_probe(struct device *dev)
 		return ret;
 	}
 
-	pr_err("%s end\n", __func__);
 	return 0;
 }
 
-// static __maybe_unused int samsung_mipi_dcphy_runtime_suspend(struct device *dev)
-// {
-// 	struct samsung_mipi_dcphy *samsung = dev_get_drvdata(dev);
-
-// 	clk_disable_unprepare(samsung->ref_clk);
-// 	clk_disable_unprepare(samsung->pclk);
-
-// 	return 0;
-// }
-
-// static __maybe_unused int samsung_mipi_dcphy_runtime_resume(struct device *dev)
-// {
-// 	struct samsung_mipi_dcphy *samsung = dev_get_drvdata(dev);
-// 	int ret;
-
-// 	ret = clk_prepare_enable(samsung->pclk);
-// 	if (ret) {
-// 		dev_err(samsung->dev, "Failed to enable pclk, %d\n", ret);
-// 		return ret;
-// 	}
-
-// 	ret = clk_prepare_enable(samsung->ref_clk);
-// 	if (ret) {
-// 		dev_err(samsung->dev, "Failed to enable reference clock, %d\n", ret);
-// 		clk_disable_unprepare(samsung->pclk);
-// 		return ret;
-// 	}
-
-// 	return 0;
-// }
-
-// static const struct dev_pm_ops samsung_mipi_dcphy_pm_ops = {
-// 	SET_RUNTIME_PM_OPS(samsung_mipi_dcphy_runtime_suspend,
-// 			   samsung_mipi_dcphy_runtime_resume, NULL)
-// };
 
 static const struct hs_drv_res_cfg rk3576_dphy_hs_drv_res_cfg = {
 	.clk_hs_drv_up_ohm = STRENGTH_52_OHM,
@@ -1776,16 +1667,6 @@ static const struct of_device_id samsung_mipi_dcphy_of_match[] = {
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, samsung_mipi_dcphy_of_match);
-
-// static struct platform_driver samsung_mipi_dcphy_driver = {
-// 	.driver = {
-// 		.name = "samsung-mipi-dcphy",
-// 		.of_match_table	= samsung_mipi_dcphy_of_match,
-// 		.pm = &samsung_mipi_dcphy_pm_ops,
-// 	},
-// 	.probe	= samsung_mipi_dcphy_probe,
-// };
-// module_platform_driver(samsung_mipi_dcphy_driver);
 
 static struct driver samsung_mipi_dcphy_driver = {
     .name = "samsung-mipi-dcphy",
