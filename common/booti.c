@@ -14,6 +14,7 @@ static unsigned long get_kernel_address(unsigned long os_address,
 					resource_size_t *end)
 {
 	resource_size_t start;
+	struct resource *sdram, gap;
 	int ret;
 
 	if (!UIMAGE_IS_ADDRESS_VALID(os_address)) {
@@ -23,6 +24,12 @@ static unsigned long get_kernel_address(unsigned long os_address,
 
 		return ALIGN(start, SZ_2M) + text_offset;
 	}
+
+	sdram = memory_bank_lookup_region(os_address, &gap);
+	if (sdram != &gap)
+		return UIMAGE_INVALID_ADDRESS;
+
+	*end = gap.end;
 
 	if (os_address >= text_offset && IS_ALIGNED(os_address - text_offset, SZ_2M))
 		return os_address;
@@ -53,7 +60,8 @@ void *booti_load_image(struct image_data *data, phys_addr_t *oftree)
 
 	kernel = get_kernel_address(data->os_address, text_offset, &end);
 
-	pr_debug("Kernel to be loaded to %lx+%lx\n", kernel, image_size);
+	pr_debug("Kernel (size: %lx) to be loaded into %lx+%llx\n",
+		 image_size, kernel, end);
 
 	if (kernel == UIMAGE_INVALID_ADDRESS)
 		return ERR_PTR(-ENOENT);
