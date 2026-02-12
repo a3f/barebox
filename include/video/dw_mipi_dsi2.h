@@ -10,13 +10,9 @@
 #ifndef __DW_MIPI_DSI2__
 #define __DW_MIPI_DSI2__
 
-// #include <linux/regmap.h>
 #include <linux/types.h>
 
-// #include <drm/drm_atomic.h>
-// #include <drm/drm_bridge.h>
 #include <video/drm/drm_connector.h>
-// #include <drm/drm_crtc.h>
 #include <video/drm/drm_modes.h>
 
 struct drm_display_mode;
@@ -73,14 +69,6 @@ struct dw_mipi_dsi2_plat_data {
 	bool (*mode_fixup)(void *priv_data, const struct drm_display_mode *mode,
 			   struct drm_display_mode *adjusted_mode);
 
-	// u32 *(*get_input_bus_fmts)(void *priv_data,
-	// 			   struct drm_bridge *bridge,
-	// 			   struct drm_bridge_state *bridge_state,
-	// 			   struct drm_crtc_state *crtc_state,
-	// 			   struct drm_connector_state *conn_state,
-	// 			   u32 output_fmt,
-	// 			   unsigned int *num_input_fmts);
-
 	const struct dw_mipi_dsi2_phy_ops *phy_ops;
 	const struct dw_mipi_dsi2_host_ops *host_ops;
 
@@ -89,8 +77,6 @@ struct dw_mipi_dsi2_plat_data {
 
 struct dw_mipi_dsi2 *dw_mipi_dsi2_probe(struct device *dev,
 					const struct dw_mipi_dsi2_plat_data *plat_data);
-// void dw_mipi_dsi2_remove(struct dw_mipi_dsi2 *dsi2);
-// int dw_mipi_dsi2_bind(struct dw_mipi_dsi2 *dsi2, struct drm_encoder *encoder);
 struct dw_mipi_dsi2 *dw_mipi_dsi2_bind(struct device *dev,
 				     const struct dw_mipi_dsi2_plat_data *plat_data);
 void dw_mipi_dsi2_unbind(struct dw_mipi_dsi2 *dsi2);

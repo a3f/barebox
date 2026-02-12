@@ -9,34 +9,19 @@
 
 #include <linux/bitfield.h>
 #include <linux/clk.h>
-// #include <linux/component.h>
-// #include <linux/media-bus-format.h>
 #include <video/media-bus-format.h>
 #include <linux/mod_devicetable.h>
 #include <linux/module.h>
-// #include <linux/of.h>
 #include <of.h>
 #include <of_device.h>
-// #include <linux/pm_runtime.h>
-// #include <linux/platform_device.h>
 #include <linux/device.h>
 #include <linux/regmap.h>
 #include <linux/reset.h>
-// #include <linux/mfd/syscon.h>
 #include <mfd/syscon.h>
 #include <linux/phy/phy.h>
 
-// #include <drm/bridge/dw_mipi_dsi2.h>
-// #include <drm/drm_mipi_dsi.h>
-// #include <drm/drm_of.h>
-// #include <drm/drm_simple_kms_helper.h>
-
 #include <video/mipi_dsi.h> 
 #include <video/dw_mipi_dsi2.h>
-
-// #include <uapi/linux/videodev2.h>
-
-#include "rockchip_drm_drv.h"
 
 #define DRM_DEV_ERROR dev_err
 #define DRM_DEV_DEBUG dev_dbg
@@ -72,7 +57,6 @@ struct rockchip_dw_dsi2_chip_data {
 
 struct dw_mipi_dsi2_rockchip {
 	struct device *dev;
-	// struct rockchip_encoder encoder;
 	struct regmap *regmap;
 
 	unsigned int lane_mbps; /* per lane */
@@ -87,13 +71,6 @@ struct dw_mipi_dsi2_rockchip {
 	const struct rockchip_dw_dsi2_chip_data *cdata;
 };
 
-// static inline struct dw_mipi_dsi2_rockchip *to_dsi2(struct drm_encoder *encoder)
-// {
-// 	struct rockchip_encoder *rkencoder = to_rockchip_encoder(encoder);
-
-// 	return container_of(rkencoder, struct dw_mipi_dsi2_rockchip, encoder);
-// }
-
 static void grf_field_write(struct dw_mipi_dsi2_rockchip *dsi2, enum grf_reg_fields index,
 			    unsigned int val)
 {
@@ -106,6 +83,29 @@ static void grf_field_write(struct dw_mipi_dsi2_rockchip *dsi2, enum grf_reg_fie
 		     (val << field->lsb) | (GENMASK(field->msb, field->lsb) << 16));
 }
 
+static void dw_mipi_dsi2_configure_color_depth(struct dw_mipi_dsi2_rockchip *dsi2) {
+	u32 color_depth;
+
+	switch (dsi2->format) {
+	case MIPI_DSI_FMT_RGB666:
+	case MIPI_DSI_FMT_RGB666_PACKED:
+		color_depth = IPI_DEPTH_6_BITS;
+		break;
+	case MIPI_DSI_FMT_RGB565:
+		color_depth = IPI_DEPTH_5_6_5_BITS;
+		break;
+	case MIPI_DSI_FMT_RGB888:
+		color_depth = IPI_DEPTH_8_BITS;
+		break;
+	default:
+		dev_err(dsi2->dev, "unknown format for dsi2: %d", dsi2->format);
+		return;
+	}
+
+	/* Only used if DSI host is operating in auto mode */
+	grf_field_write(dsi2, IPI_COLOR_DEPTH, color_depth);
+}
+
 static int dw_mipi_dsi2_phy_init(void *priv_data)
 {
 	return 0;
@@ -113,7 +113,6 @@ static int dw_mipi_dsi2_phy_init(void *priv_data)
 
 static void dw_mipi_dsi2_phy_power_on(void *priv_data)
 {
-	pr_err("%s start\n", __func__);
 	struct dw_mipi_dsi2_rockchip *dsi2 = priv_data;
 	int ret;
 
@@ -125,11 +124,17 @@ static void dw_mipi_dsi2_phy_power_on(void *priv_data)
 
 	phy_configure(dsi2->phy, &dsi2->phy_opts);
 	phy_power_on(dsi2->phy);
+
+	/*
+	 * In linux, this is configured in the encoder's atomic_enable
+	 * method, but as we're not using drm_encoder, this can 
+	 * be configured here instead.
+	 */
+	dw_mipi_dsi2_configure_color_depth(dsi2);
 }
 
 static void dw_mipi_dsi2_phy_power_off(void *priv_data)
 {
-	pr_err("%s start\n", __func__);
 	struct dw_mipi_dsi2_rockchip *dsi2 = priv_data;
 
 	phy_power_off(dsi2->phy);
@@ -140,7 +145,6 @@ dw_mipi_dsi2_get_lane_mbps(void *priv_data, const struct drm_display_mode *mode,
 			   unsigned long mode_flags, u32 lanes, u32 format,
 			   unsigned int *lane_mbps)
 {
-	pr_err("%s start\n", __func__);
 	struct dw_mipi_dsi2_rockchip *dsi2 = priv_data;
 	u64 max_lane_rate, target_phyclk;
 	unsigned int lane_rate_kbps;
@@ -185,7 +189,6 @@ dw_mipi_dsi2_get_lane_mbps(void *priv_data, const struct drm_display_mode *mode,
 
 static void dw_mipi_dsi2_phy_get_iface(void *priv_data, struct dw_mipi_dsi2_phy_iface *iface)
 {
-	pr_err("%s start\n", __func__);
 	/* PPI width is fixed to 16 bits in DCPHY */
 	iface->ppi_width = 16;
 	iface->phy_type = DW_MIPI_DSI2_DPHY;
@@ -195,7 +198,6 @@ static int
 dw_mipi_dsi2_phy_get_timing(void *priv_data, unsigned int lane_mbps,
 			    struct dw_mipi_dsi2_phy_timing *timing)
 {
-	pr_err("%s start\n", __func__);
 	struct dw_mipi_dsi2_rockchip *dsi2 = priv_data;
 	struct phy_configure_opts_mipi_dphy *cfg = &dsi2->phy_opts.mipi_dphy;
 	unsigned long long tmp, ui;
@@ -228,174 +230,7 @@ static const struct dw_mipi_dsi2_phy_ops dw_mipi_dsi2_rockchip_phy_ops = {
 	.get_timing = dw_mipi_dsi2_phy_get_timing,
 };
 
-// static void dw_mipi_dsi2_encoder_atomic_enable(struct drm_encoder *encoder,
-// 					       struct drm_atomic_state *state)
-// {
-// 	struct dw_mipi_dsi2_rockchip *dsi2 = to_dsi2(encoder);
-// 	u32 color_depth;
-
-// 	switch (dsi2->format) {
-// 	case MIPI_DSI_FMT_RGB666:
-// 	case MIPI_DSI_FMT_RGB666_PACKED:
-// 		color_depth = IPI_DEPTH_6_BITS;
-// 		break;
-// 	case MIPI_DSI_FMT_RGB565:
-// 		color_depth = IPI_DEPTH_5_6_5_BITS;
-// 		break;
-// 	case MIPI_DSI_FMT_RGB888:
-// 		color_depth = IPI_DEPTH_8_BITS;
-// 		break;
-// 	default:
-// 		/* Should've been caught by atomic_check */
-// 		WARN_ON(1);
-// 		return;
-// 	}
-
-// 	grf_field_write(dsi2, IPI_COLOR_DEPTH, color_depth);
-// }
-
-// static int
-// dw_mipi_dsi2_encoder_atomic_check(struct drm_encoder *encoder,
-// 				  struct drm_crtc_state *crtc_state,
-// 				  struct drm_connector_state *conn_state)
-// {
-// 	struct rockchip_crtc_state *s = to_rockchip_crtc_state(crtc_state);
-// 	struct dw_mipi_dsi2_rockchip *dsi2 = to_dsi2(encoder);
-// 	struct drm_connector *connector = conn_state->connector;
-// 	struct drm_display_info *info = &connector->display_info;
-
-// 	switch (dsi2->format) {
-// 	case MIPI_DSI_FMT_RGB666:
-// 	case MIPI_DSI_FMT_RGB666_PACKED:
-// 		s->output_mode = ROCKCHIP_OUT_MODE_P666;
-// 		break;
-// 	case MIPI_DSI_FMT_RGB565:
-// 		s->output_mode = ROCKCHIP_OUT_MODE_P565;
-// 		break;
-// 	case MIPI_DSI_FMT_RGB888:
-// 		s->output_mode = ROCKCHIP_OUT_MODE_P888;
-// 		break;
-// 	default:
-// 		WARN_ON(1);
-// 		return -EINVAL;
-// 	}
-
-// 	if (info->num_bus_formats)
-// 		s->bus_format = info->bus_formats[0];
-// 	else
-// 		s->bus_format = MEDIA_BUS_FMT_RGB888_1X24;
-
-// 	s->output_type = DRM_MODE_CONNECTOR_DSI;
-// 	s->bus_flags = info->bus_flags;
-// 	s->color_space = V4L2_COLORSPACE_DEFAULT;
-
-// 	return 0;
-// }
-
-// static const struct drm_encoder_helper_funcs
-// dw_mipi_dsi2_encoder_helper_funcs = {
-// 	.atomic_enable = dw_mipi_dsi2_encoder_atomic_enable,
-// 	.atomic_check = dw_mipi_dsi2_encoder_atomic_check,
-// };
-
-// static int rockchip_dsi2_drm_create_encoder(struct dw_mipi_dsi2_rockchip *dsi2,
-// 					    struct drm_device *drm_dev)
-// {
-// 	struct drm_encoder *encoder = &dsi2->encoder.encoder;
-// 	int ret;
-
-// 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm_dev,
-// 							     dsi2->dev->of_node);
-
-// 	ret = drm_simple_encoder_init(drm_dev, encoder, DRM_MODE_ENCODER_DSI);
-// 	if (ret) {
-// 		dev_err(dsi2->dev, "Failed to initialize encoder with drm\n");
-// 		return ret;
-// 	}
-
-// 	// drm_encoder_helper_add(encoder, &dw_mipi_dsi2_encoder_helper_funcs);
-
-// 	return 0;
-// }
-
-
-// static int dw_mipi_dsi2_rockchip_bind(struct device *dev, struct device *master,
-// 				      void *data)
-static int dw_mipi_dsi2_rockchip_bind(struct dw_mipi_dsi2_rockchip *dsi2)
-{
-	pr_err("%s start\n", __func__);
-	// struct dw_mipi_dsi2_rockchip *dsi2 = dev_get_drvdata(dev);
-	// struct drm_device *drm_dev = data;
-	// int ret;
-
-	// ret = rockchip_dsi2_drm_create_encoder(dsi2, drm_dev);
-	// if (ret)
-	// 	return dev_err_probe(dev, ret, "Failed to create drm encoder\n");
-
-	// rockchip_drm_encoder_set_crtc_endpoint_id(&dsi2->encoder,
-	// 					  dev->of_node, 0, 0);
-
-
-	// ret = dw_mipi_dsi2_bind(dsi2->dmd, &dsi2->encoder.encoder);
-	// if (ret)
-	// 	return dev_err_probe(dev, ret, "Failed to bind\n");
-
-	// TODO: This is done in probe instead
-	// dsi2->dmd = dw_mipi_dsi2_bind(dsi2->dev, &dsi2->pdata);
-	// if (IS_ERR(dsi2->dmd)) {
-	// 	dev_err(dsi2->dev, "failed to bind: %pe\n", dsi2->dmd);
-	// 	return PTR_ERR(dsi2->dmd);
-	// }
-
-	return 0;
-}
-
-// static void dw_mipi_dsi2_rockchip_unbind(struct device *dev, struct device *master,
-// 					 void *data)
-// {
-// 	struct dw_mipi_dsi2_rockchip *dsi2 = dev_get_drvdata(dev);
-
-// 	dw_mipi_dsi2_unbind(dsi2->dmd);
-// }
-
-// static const struct component_ops dw_mipi_dsi2_rockchip_ops = {
-// 	.bind	= dw_mipi_dsi2_rockchip_bind,
-// 	.unbind	= dw_mipi_dsi2_rockchip_unbind,
-// };
-
-static int dw_mipi_dsi2_rockchip_host_attach(void *priv_data,
-					     struct mipi_dsi_device *device)
-{
-	pr_err("%s start\n", __func__);
-	struct dw_mipi_dsi2_rockchip *dsi2 = priv_data;
-	int ret;
-
-	ret = dw_mipi_dsi2_rockchip_bind(dsi2);
-	if (ret) {
-		DRM_DEV_ERROR(dsi2->dev, "Failed to register component: %d\n",
-					ret);
-	}
-
-	// ret = component_add(dsi2->dev, &dw_mipi_dsi2_rockchip_ops);
-	// if (ret)
-	// 	return dev_err_probe(dsi2->dev, ret, "Failed to register component\n");
-
-	return 0;
-}
-
-// static int dw_mipi_dsi2_rockchip_host_detach(void *priv_data,
-// 					     struct mipi_dsi_device *device)
-// {
-// 	struct dw_mipi_dsi2_rockchip *dsi2 = priv_data;
-
-// 	component_del(dsi2->dev, &dw_mipi_dsi2_rockchip_ops);
-
-// 	return 0;
-// }
-
 static const struct dw_mipi_dsi2_host_ops dw_mipi_dsi2_rockchip_host_ops = {
-	.attach = dw_mipi_dsi2_rockchip_host_attach,
-	// .detach = dw_mipi_dsi2_rockchip_host_detach,
 };
 
 static const struct regmap_config dw_mipi_dsi2_rockchip_regmap_config = {
@@ -403,13 +238,10 @@ static const struct regmap_config dw_mipi_dsi2_rockchip_regmap_config = {
 	.reg_bits = 32,
 	.val_bits = 32,
 	.reg_stride = 4,
-	// .fast_io = true,
 };
 
 static int dw_mipi_dsi2_rockchip_probe(struct device *dev)
 {
-	pr_err("%s start\n", __func__);
-	// struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
 	const struct rockchip_dw_dsi2_chip_data *cdata =
 						of_device_get_match_data(dev);
@@ -418,14 +250,10 @@ static int dw_mipi_dsi2_rockchip_probe(struct device *dev)
 	void __iomem *base;
 	int i;
 
-	// dsi2 = devm_kzalloc(dev, sizeof(*dsi2), GFP_KERNEL);
 	dsi2 = calloc(sizeof(*dsi2), 1);
 	if (!dsi2)
 		return -ENOMEM;
 
-	// base = devm_platform_get_and_ioremap_resource(pdev, 0, &res);
-	// if (IS_ERR(base))
-	// 	return dev_err_probe(dev, PTR_ERR(base), "Unable to get dsi registers\n");
 	base = dev_platform_get_and_ioremap_resource(dev, 0, &res);
 	if (IS_ERR(base)) {
 		return dev_err_probe(dev, PTR_ERR(base), "unable to get dsi registers\n");
@@ -464,29 +292,12 @@ static int dw_mipi_dsi2_rockchip_probe(struct device *dev)
 	dsi2->pdata.priv_data = dsi2;
 	dev_set_drvdata(dev, dsi2);
 
-	// TODO(ailurux): Linux version writes this in 
-	// encoder atomic enable (called just before the video 
-	// mode switch)
-	pr_err("%s about to grf field write\n", __func__);
- 	grf_field_write(dsi2, IPI_COLOR_DEPTH, IPI_DEPTH_8_BITS);
-	pr_err("%s grf field write done...\n", __func__);
-
-
 	dsi2->dmd = dw_mipi_dsi2_probe(dev, &dsi2->pdata);
 	if (IS_ERR(dsi2->dmd))
 		return dev_err_probe(dev, PTR_ERR(dsi2->dmd), "Failed to probe dw_mipi_dsi2\n");
 
-
-
 	return 0;
 }
-
-// static void dw_mipi_dsi2_rockchip_remove(struct platform_device *pdev)
-// {
-// 	struct dw_mipi_dsi2_rockchip *dsi2 = platform_get_drvdata(pdev);
-
-// 	dw_mipi_dsi2_remove(dsi2->dmd);
-// }
 
 static const struct dsigrf_reg rk3588_dsi0_grf_reg_fields[MAX_FIELDS] = {
 	[TXREQCLKHS_EN]		= { 0x0000, 11, 11 },
@@ -527,15 +338,6 @@ static const struct of_device_id dw_mipi_dsi2_rockchip_dt_ids[] = {
 	{}
 };
 MODULE_DEVICE_TABLE(of, dw_mipi_dsi2_rockchip_dt_ids);
-
-// struct platform_driver dw_mipi_dsi2_rockchip_driver = {
-// 	.probe	= dw_mipi_dsi2_rockchip_probe,
-// 	.remove = dw_mipi_dsi2_rockchip_remove,
-// 	.driver = {
-// 		.of_match_table = dw_mipi_dsi2_rockchip_dt_ids,
-// 		.name = "dw-mipi-dsi2",
-// 	},
-// };
 
 struct driver dw_mipi_dsi2_rockchip_driver = {
 	.probe = dw_mipi_dsi2_rockchip_probe,
