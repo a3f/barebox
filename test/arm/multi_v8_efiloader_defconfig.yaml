@@ -9,8 +9,9 @@ targets:
         kernel: barebox-dt-2nd.img
         display: qemu-default
         extra_args: >
-          -drive if=virtio,snapshot=on,file=debian-13.3.0-arm64-netinst.iso
-          -device virtio-rng
+          -drive if=none,snapshot=on,id=iso,file=debian-13.3.0-arm64-netinst.iso
+          -device virtio-blk-device,drive=iso
+          -device virtio-rng-device
       BareboxDriver:
         prompt: 'barebox@[^:]+:[^ ]+ '
         autoboot: 'stop autoboot'
