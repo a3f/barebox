@@ -9,6 +9,7 @@ set -euo pipefail
 
 declare -A images=(
 	["debian-13.3.0-arm64-netinst.iso"]="https://cloud.debian.org/images/release/current/arm64/iso-cd/debian-13.3.0-arm64-netinst.iso"
+	["debian-13.3.0-armhf-netinst.iso"]="https://cloud.debian.org/images/release/current/armhf/iso-cd/debian-13.3.0-armhf-netinst.iso"
 )
 
 found=0

@@ -1,0 +1,41 @@
+targets:
+  main:
+    drivers:
+      QEMUDriver:
+        qemu_bin: qemu-system-arm
+        machine: virt
+        cpu: cortex-a7
+        memory: 1024M
+        kernel: barebox-dt-2nd.img
+        display: qemu-default
+        extra_args: >
+          -drive if=none,snapshot=on,id=iso,file=debian-13.3.0-armhf-netinst.iso
+          -device virtio-blk-device,drive=iso
+          -device virtio-rng-device
+      BareboxDriver:
+        prompt: 'barebox@[^:]+:[^ ]+ '
+        autoboot: 'stop autoboot'
+        bootstring: 'commandline:|Starting EFI payload at'
+      ShellDriver:
+        prompt: '~ # '
+        login_prompt: ' login: '
+        login_timeout: 300
+        await_login_timeout: 20
+        post_login_settle_time: 3
+        username: 'root'
+      BareboxTestStrategy: {}
+    features:
+      - virtio-mmio
+      - smbios
+      - bootable
+      - efi
+      - testfs
+    options:
+      bootm.image: 'install.ahf/vmlinuz'
+      bootm.initrd: 'install.ahf/initrd.gz'
+
+images:
+  barebox-dt-2nd.img: !template "$LG_BUILDDIR/images/barebox-dt-2nd.img"
+  debian_iso: !template "../../debian-13.3.0-armhf-netinst.iso"
+imports:
+  -  ../strategy.py

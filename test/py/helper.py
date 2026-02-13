@@ -204,9 +204,10 @@ def ensure_debian_iso(env, destdir):
     """
     Extract Debian kernel and initrd from ISO into destdir.
 
-    The debian_iso specified under images in the YAML will be used
-    Files are extracted into destdir/install.a64/{vmlinuz,initrd.gz}
-    and skipped if they already exist.
+    The debian_iso specified under images in the YAML will be used.
+    Extraction paths are derived from the bootm.image and bootm.initrd
+    target options so this works for any architecture (e.g. install.a64
+    for arm64, install.ahf for armhf).
 
     Returns destdir, or None if the ISO doesn't exist.
     """
@@ -214,24 +215,39 @@ def ensure_debian_iso(env, destdir):
     if iso_path is None:
         return None
 
-    outdir = os.path.join(destdir, "install.a64")
-    vmlinuz_path = os.path.join(outdir, "vmlinuz")
-    initrd_path = os.path.join(outdir, "initrd.gz")
+    target = env.get_target()
+    image_opt = env.config.get_target_option(target.name, "bootm.image")
+    initrd_opt = env.config.get_target_option(target.name, "bootm.initrd")
+
+    vmlinuz_path = os.path.join(destdir, image_opt)
+    initrd_path = os.path.join(destdir, initrd_opt)
 
     if os.path.exists(vmlinuz_path) and os.path.exists(initrd_path):
         return destdir
 
-    os.makedirs(outdir, exist_ok=True)
+    os.makedirs(os.path.dirname(vmlinuz_path), exist_ok=True)
+
+    def iso9660_path(rel_path):
+        parts = rel_path.split("/")
+        result = []
+        for i, part in enumerate(parts):
+            upper = part.upper()
+            if i == len(parts) - 1:  # file: append version suffix
+                if "." not in part:
+                    upper += "."
+                upper += ";1"
+            result.append(upper)
+        return "/" + "/".join(result)
 
     with open(vmlinuz_path, "wb") as f:
         subprocess.run(
-            ["isoinfo", "-i", iso_path, "-x", "/INSTALL.A64/VMLINUZ.;1"],
+            ["isoinfo", "-i", iso_path, "-x", iso9660_path(image_opt)],
             stdout=f, check=True,
         )
 
     with open(initrd_path, "wb") as f:
         subprocess.run(
-            ["isoinfo", "-i", iso_path, "-x", "/INSTALL.A64/INITRD.GZ;1"],
+            ["isoinfo", "-i", iso_path, "-x", iso9660_path(initrd_opt)],
             stdout=f, check=True,
         )
 
