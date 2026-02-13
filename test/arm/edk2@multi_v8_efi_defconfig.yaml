@@ -1,0 +1,27 @@
+targets:
+  main:
+    drivers:
+      QEMUDriver:
+        qemu_bin: qemu-system-aarch64
+        machine: virt,highmem=off
+        cpu: cortex-a57
+        memory: 1024M
+        bios: QEMU_EFI.fd
+        kernel: barebox.efi
+        display: qemu-default
+      BareboxDriver:
+        prompt: 'barebox@(\x1b.+)?barebox EFI payload:[^ ]+ '
+        bootstring: 'Starting EFI payload at'
+        autoboot: 'stop autoboot'
+      BareboxTestStrategy: {}
+    features:
+      - virtio-mmio
+    devices:
+      wdog0: 'Parent: efi-wdt'
+      efivarfs0: 'Driver: efivarfs'
+      efifs0: 'Driver: efifs'
+images:
+  QEMU_EFI.fd: /usr/share/qemu-efi-aarch64/QEMU_EFI.fd
+  barebox.efi: !template "$LG_BUILDDIR/barebox.efi"
+imports:
+  -  ../strategy.py
