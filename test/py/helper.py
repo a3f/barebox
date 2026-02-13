@@ -5,6 +5,7 @@ import pytest
 import os
 import re
 import shlex
+import shutil
 import subprocess
 
 
@@ -250,5 +251,28 @@ def ensure_debian_iso(env, destdir):
             ["isoinfo", "-i", iso_path, "-x", iso9660_path(initrd_opt)],
             stdout=f, check=True,
         )
+
+    return destdir
+
+
+def ensure_uefi_shell(destdir):
+    """
+    Copy UEFI Shell binary into destdir for use via 9P.
+
+    Looks for shellaa64.efi in the project root (where fetch-os.sh
+    downloads it). Copies it to destdir/Shell.efi so barebox can
+    access it at /mnt/9p/testfs/Shell.efi.
+
+    Returns destdir on success, or None if the binary isn't found.
+    """
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
+    src = os.path.join(base_dir, "shellaa64.efi")
+    if not os.path.exists(src):
+        return None
+
+    dst = os.path.join(destdir, "Shell.efi")
+    if not os.path.exists(dst):
+        shutil.copy2(src, dst)
 
     return destdir
