@@ -55,7 +55,7 @@ static int do_cat(int argc, char *argv[])
 		return COMMAND_ERROR_USAGE;
 
 	if (outfile) {
-		outfd = open(outfile, oflags);
+		outfd = open(outfile, oflags, 0666);
 		if (outfd < 0) {
 			perror("open");
 			return 1;
