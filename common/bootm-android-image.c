@@ -101,8 +101,8 @@ static int do_bootm_aimage(struct image_data *img_data)
 	if (hdr->kernel.size) {
 		kernel = aimage_copy_component(fd, ofs, hdr->kernel.size);
 		if (IS_ERR(kernel)) {
-			kernel = NULL;
 			ret = PTR_ERR(kernel);
+			kernel = NULL;
 			goto err_close;
 		}
 	}
@@ -112,8 +112,8 @@ static int do_bootm_aimage(struct image_data *img_data)
 	if (hdr->ramdisk.size) {
 		initrd = aimage_copy_component(fd, ofs, hdr->ramdisk.size);
 		if (IS_ERR(initrd)) {
-			initrd = NULL;
 			ret = PTR_ERR(initrd);
+			initrd = NULL;
 			goto err_close;
 		}
 	}
