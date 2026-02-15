@@ -128,9 +128,11 @@ static int do_bootm_aimage(struct image_data *img_data)
 
 	ret = bootm_boot(&bootm_data);
 
+	goto err_unlink;
+
 err_close:
 	close(fd);
-
+err_unlink:
 	if (kernel)
 		unlink(kernel);
 	if (initrd)
