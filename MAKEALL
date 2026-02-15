@@ -332,7 +332,7 @@ case $Option in
 		KCONFIG_ADD="${KCONFIG_ADD} common/boards/configs/devel.config"
 		BUILDDIR="build"
 		if [ "$Option" = D ]; then
-			KCONFIG_ADD="${KCONFIG_ADD} common/boards/configs/sanitizers.config"
+			#KCONFIG_ADD="${KCONFIG_ADD} common/boards/configs/sanitizers.config"
 			export NO_MISSING_FIRMWARE_WARNING=1
 		fi
 		;;
