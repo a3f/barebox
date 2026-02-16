@@ -112,7 +112,11 @@ enum {
 #elif defined(__I386__) || defined(__x86_64__) || defined(__i386__)
 #define IH_ARCH IH_ARCH_I386
 #elif defined(__mips__)
+#if defined(__mips64)
+#define IH_ARCH IH_ARCH_MIPS64
+#else
 #define IH_ARCH IH_ARCH_MIPS
+#endif
 #elif defined(__nios__)
 #define IH_ARCH IH_ARCH_NIOS
 #elif defined(__m68k__)
