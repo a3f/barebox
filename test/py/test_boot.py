@@ -1185,6 +1185,156 @@ global devboot.script=two-initrds
     barebox.run(f"rm {fetchdir}/{user}-devboot-{arch}")
 
 
+@pytest.fixture(scope="module")
+def make_uimage():
+    """Fixture that creates uImage files for testing using mkimage"""
+
+    def _make_uimage(outdir, data, output_name, arch="arm64",
+                     image_type="kernel", compression="none",
+                     load_addr="0x40000000", entry_addr="0x40000000",
+                     name="test", extra_data=None):
+        """Create a uImage file
+
+        Args:
+            outdir: Directory where the uImage should be written
+            data: Bytes to use as image payload
+            output_name: Name for the output file
+            arch: Architecture (default: arm64)
+            image_type: Image type - "kernel" or "multi" (default: kernel)
+            compression: Compression type (default: none)
+            load_addr: Load address (default: 0x40000000)
+            entry_addr: Entry point (default: 0x40000000)
+            name: Image name (default: test)
+            extra_data: For multi images, bytes for the second component
+
+        Returns:
+            Path to the created uImage file
+        """
+        import tempfile
+
+        outdir = Path(outdir)
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            f.write(data)
+            payload_path = f.name
+
+        if extra_data is not None and image_type == "multi":
+            with tempfile.NamedTemporaryFile(delete=False) as f2:
+                f2.write(extra_data)
+                extra_path = f2.name
+            data_arg = f"{payload_path}:{extra_path}"
+        else:
+            data_arg = payload_path
+            extra_path = None
+
+        uimage_file = outdir / output_name
+        try:
+            subprocess.run(
+                ["mkimage", "-A", arch, "-O", "linux", "-T", image_type,
+                 "-C", compression, "-a", load_addr, "-e", entry_addr,
+                 "-n", name, "-d", data_arg, str(uimage_file)],
+                check=True,
+                capture_output=True,
+            )
+        except FileNotFoundError:
+            pytest.skip("mkimage not found")
+        except subprocess.CalledProcessError as e:
+            pytest.skip(f"mkimage failed: {e.stderr.decode()}")
+        finally:
+            os.unlink(payload_path)
+            if extra_path:
+                os.unlink(extra_path)
+
+        return uimage_file
+
+    return _make_uimage
+
+
+# uImage boot tests
+
+
+def test_bootm_uimage(barebox, barebox_config, boot_testdata, make_uimage, testfs):  # noqa: ARG001
+    """Test mock booting a uImage kernel"""
+
+    skip_disabled(barebox_config, "CONFIG_BOOTM_UIMAGE")
+
+    outdir = Path(testfs)
+    image_data = boot_testdata["image_data"]
+    [arch] = barebox.run_check("echo $global.arch")
+    make_uimage(outdir, image_data, "test-kernel.uImage", arch=arch,
+                name="test-kernel")
+    uimage_path = f"{fetchdir}/test-kernel.uImage"
+
+    manifest = mock_boot_check(barebox, f"bootm {uimage_path}")
+
+    assert manifest["os"]["file"] == uimage_path
+    assert manifest["os"]["image-type"] == "U-Boot uImage"
+    verify_mock_boot_files(barebox, manifest)
+
+    # Verify the loaded image content matches the original payload
+    assert hashsum(barebox, image_path) == hashsum(barebox, "/tmp/lastboot/image")
+
+    barebox.run(f"rm {uimage_path}")
+
+
+def test_bootm_uimage_with_initrd(barebox, barebox_config, boot_testdata, make_uimage, testfs):  # noqa: ARG001
+    """Test mock booting a uImage kernel with a separate uImage initrd"""
+
+    skip_disabled(barebox_config, "CONFIG_BOOTM_UIMAGE")
+    skip_disabled(barebox_config, "CONFIG_BOOTM_INITRD")
+
+    outdir = Path(testfs)
+    image_data = boot_testdata["image_data"]
+    initrd_data = boot_testdata["initrd_data"]
+    [arch] = barebox.run_check("echo $global.arch")
+
+    make_uimage(outdir, image_data, "test-kernel2.uImage", arch=arch,
+                name="test-kernel2")
+    make_uimage(outdir, initrd_data, "test-initrd.uImage", arch=arch,
+                image_type="ramdisk", name="test-initrd")
+    uimage_path = f"{fetchdir}/test-kernel2.uImage"
+    initrd_uimage_path = f"{fetchdir}/test-initrd.uImage"
+
+    manifest = mock_boot_check(barebox,
+                               f"bootm -r {initrd_uimage_path} {uimage_path}")
+
+    assert manifest["os"]["file"] == uimage_path
+    assert manifest["os"]["image-type"] == "U-Boot uImage"
+    assert manifest["initrd"] is not None
+    assert len(manifest["initrd"]["loadables"]) == 1
+    verify_mock_boot_files(barebox, manifest)
+
+    barebox.run(f"rm {uimage_path}")
+    barebox.run(f"rm {initrd_uimage_path}")
+
+
+def test_bootm_uimage_multi(barebox, barebox_config, boot_testdata, make_uimage, testfs):  # noqa: ARG001
+    """Test mock booting a multi-component uImage (kernel + initrd in one file)"""
+
+    skip_disabled(barebox_config, "CONFIG_BOOTM_UIMAGE")
+    skip_disabled(barebox_config, "CONFIG_BOOTM_INITRD")
+
+    outdir = Path(testfs)
+    image_data = boot_testdata["image_data"]
+    initrd_data = boot_testdata["initrd_data"]
+    [arch] = barebox.run_check("echo $global.arch")
+
+    make_uimage(outdir, image_data, "test-multi.uImage", arch=arch,
+                image_type="multi", extra_data=initrd_data,
+                name="test-multi")
+    uimage_path = f"{fetchdir}/test-multi.uImage"
+
+    manifest = mock_boot_check(barebox, f"bootm -r {uimage_path} {uimage_path}")
+
+    assert manifest["os"]["file"] == uimage_path
+    assert manifest["os"]["image-type"] == "U-Boot uImage"
+    assert manifest["initrd"] is not None
+    assert len(manifest["initrd"]["loadables"]) == 1
+    verify_mock_boot_files(barebox, manifest)
+
+    barebox.run(f"rm {uimage_path}")
+
+
 def test_devboot_fit_override_with_at_and_two_initrds(barebox, barebox_config, boot_testdata, fit_images_for_override, testfs):  # noqa: ARG001
     """Test devboot overriding FIT image with another FIT and original initrd plus two initrd files (all three concatenated)"""
 
