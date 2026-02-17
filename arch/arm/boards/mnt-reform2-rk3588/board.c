@@ -49,10 +49,37 @@ static const struct reform2_model reform2_rk3588 = {
 	.shortname = "reform2_rk3588",
 };
 
+static const struct reform2_model reform2_dsi_rk3588 = {
+	.name = "MNT Reform 2 with RCORE-DSI RK3588 Module",
+	.shortname = "reform2_dsi_rk3588",
+};
+
+static const struct reform2_model pocket_reform_rk3588 = {
+	.name = "MNT Pocket Reform with RCORE RK3588 Module",
+	.shortname = "pocket_reform_rk3588",
+};
+
+static const struct reform2_model reform_next_rk3588 = {
+	.name = "MNT Reform Next with RCORE RK3588 Module",
+	.shortname = "reform_next_rk3588",
+};
+
 static const struct of_device_id reform2_rk3588_of_match[] = {
 	{
 		.compatible = "mntre,reform2-rcore",
 		.data = &reform2_rk3588,
+	},
+	{
+		.compatible = "mntre,reform2-rcore-dsi",
+		.data = &reform2_dsi_rk3588,
+	},
+	{
+		.compatible = "mntre,pocket-reform-rcore",
+		.data = &pocket_reform_rk3588,
+	},
+	{
+		.compatible = "mntre,reform-next-rcore",
+		.data = &reform_next_rk3588,
 	},
 	{ /* sentinel */ },
 };

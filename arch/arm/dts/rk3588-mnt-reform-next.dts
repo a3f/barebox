@@ -15,8 +15,8 @@
 #include "arm64/rockchip/rk3588.dtsi"
 
 / {
-	model = "MNT Reform 2 with RCORE RK3588 Module";
-	compatible = "mntre,reform2-rcore", "firefly,icore3588q", "rockchip,rk3588";
+	model = "MNT Reform Next with RCORE RK3588 Module";
+	compatible = "mntre,reform-next-rcore", "firefly,icore3588q", "rockchip,rk3588";
 
 	aliases {
 		ethernet0 = &gmac0;
@@ -31,36 +31,21 @@
 
 	analog-sound {
 		compatible = "audio-graph-card";
-		label = "rk3588-wm8960";
+		label = "rk3588-tlv320aic3100";
 
 		widgets =
 			"Headphone", "Headphone Jack",
-			"Microphone", "Mic Jack",
-			"Speaker", "Ext Spk";
+			"Microphone", "Microphone Jack",
+			"Speaker", "Speaker";
 
 		routing =
-			"Headphone Jack", "HP_L",
-			"Headphone Jack", "HP_R",
-			"Ext Spk", "SPK_LP",
-			"Ext Spk", "SPK_LN",
-			"Ext Spk", "SPK_RP",
-			"Ext Spk", "SPK_RN",
-			"LINPUT1", "Mic Jack",
-			"Mic Jack", "MICB";
+		"MIC1RP", "MICBIAS",
+		"MIC1RP", "Microphone Jack",
+		"Headphone Jack", "HPR",
+		"Speaker", "SPK";
 
 		dais = <&i2s0_8ch_p0>;
 	};
-
-	/*gpio-keys {
-		compatible = "gpio-keys";
-
-		wake {
-			label = "LPC GPIO Wakeup";
-			linux,code = <57>;
-			gpios = <&gpio4 RK_PB2 GPIO_ACTIVE_HIGH>;
-			wakeup-source;
-		};
-	};*/
 
 	backlight: backlight {
 		compatible = "pwm-backlight";
@@ -71,6 +56,17 @@
 		num-interpolated-steps = <100>;
 		pinctrl-0 = <&backlight_enable>;
 		pinctrl-names = "default";
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		wake {
+			label = "LPC GPIO Wakeup";
+			linux,code = <57>;
+			gpios = <&gpio4 RK_PB2 GPIO_ACTIVE_HIGH>;
+			wakeup-source;
+		};
 	};
 
 	pcie30_avdd1v8: pcie30-avdd1v8 {
@@ -253,8 +249,6 @@
 	status = "okay";
 };
 
-/* internal HDMI */
-/* TODO: disable when HPD pulldown not fitted */
 &hdmi0 {
 	enable-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
 	status = "okay";
@@ -271,7 +265,6 @@
 };
 
 &hdmi1 {
-	/* external HDMI */
 	enable-gpios = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 
@@ -373,30 +366,27 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c6m0_xfer>;
 
-	edp_bridge: bridge@2c {
-		compatible = "ti,sn65dsi86";
-		reg = <0x2c>;
-		/* not actually connected on RCORE R1, will be fixed in RCORE R2. */
-		/* for RCORE R1, remove resistor R82 from MREF motherboard (it pulls down the reset). */
-		enable-gpios = <&gpio0 RK_PC0 GPIO_ACTIVE_LOW>;
-		vccio-supply = <&vcc_1v8_s3>;
-		vpll-supply = <&vcc_1v8_s3>;
-		vcca-supply = <&avdd_1v2_s0>;
-		vcc-supply = <&avdd_1v2_s0>;
-		status = "disabled";
-	};
-
-	wm8960: codec@1a {
-		compatible = "wlf,wm8960";
-		reg = <0x1a>;
-		clocks = <&cru I2S0_8CH_MCLKOUT>;
-		clock-names = "mclk";
+	tlv320aic3100: codec@18 {
+		compatible = "ti,tlv320aic3100";
+		reg = <0x18>;
 		assigned-clocks = <&cru I2S0_8CH_MCLKOUT>;
 		assigned-clock-rates = <12288000>;
+		clocks = <&cru I2S0_8CH_MCLKOUT>;
+		clock-names = "mclk";
+		ai31xx-micbias-vg = <2>;
 		#sound-dai-cells = <0>;
 
+		HPVDD-supply = <&vcc_3v3_s3>;
+		SPRVDD-supply = <&vcc5v0_host>;
+		SPLVDD-supply = <&vcc5v0_host>;
+		AVDD-supply = <&vcc_3v3_s3>;
+		IOVDD-supply = <&vcc_3v3_s3>;
+		DVDD-supply = <&vcc_1v8_s3>;
+
+		status = "okay";
+
 		port {
-			wm8960_p0: endpoint {
+			tlv320aic3100_p0: endpoint {
 				remote-endpoint = <&i2s0_8ch_p0_0>;
 			};
 		};
@@ -420,25 +410,24 @@
 	i2s0_8ch_p0: port {
 		i2s0_8ch_p0_0: endpoint {
 			dai-format = "i2s";
-			mclk-fs = <256>;
-			remote-endpoint = <&wm8960_p0>;
+			remote-endpoint = <&tlv320aic3100_p0>;
 		};
 	};
 };
 
 &pcie2x1l2 {
-	reset-gpios = <&gpio3 RK_PD1 GPIO_ACTIVE_HIGH>;
+	reset-gpios = <&gpio3 RK_PD1 GPIO_ACTIVE_HIGH>; // checked
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie2_0_rst>;
 	status = "okay";
 };
 
-/*&pcie2x1l1 {
-	reset-gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_LOW>;
+&pcie2x1l1 {
+	reset-gpios = <&gpio3 RK_PA0 GPIO_ACTIVE_HIGH>; // checked
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie2_1_rst>;
 	status = "okay";
-};*/
+};
 
 &pcie30phy {
 	status = "okay";
@@ -447,8 +436,8 @@
 &pcie3x4 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie3_reset>;
-	reset-gpios = <&gpio1 RK_PB4 GPIO_ACTIVE_HIGH>;
-	num-lanes = <1>;
+	reset-gpios = <&gpio1 RK_PB4 GPIO_ACTIVE_HIGH>; // checked
+	num-lanes = <4>;
 	vpcie3v3-supply = <&vcc3v3_pcie30>;
 	status = "okay";
 };
@@ -484,6 +473,7 @@
 
 &sdmmc {
 	bus-width = <4>;
+	//max-frequency = <48000000>;
 	max-frequency = <40000000>;
 	no-sdio;
 	no-mmc;
@@ -492,7 +482,6 @@
 	vqmmc-supply = <&vcc3v3_pcie30>;
 	vmmc-supply = <&vcc3v3_pcie30>;
 	cd-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_LOW>;
-	// FIXME pinctrl?
 	disable-wp;
 	status = "okay";
 };
@@ -916,6 +905,12 @@
 		};
 	};
 
+	pcie2_1 {
+		pcie2_1_rst: pcie2-1-reset {
+			rockchip,pins = <3 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	pcie3 {
 		pcie3_reset: pcie3-reset {
 			rockchip,pins = <1 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -926,6 +921,22 @@
 		eth_phy_reset: eth-phy-reset {
 			rockchip,pins = <3 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
+	};
+};
+
+&gpio3 {
+	internal-hdmi-hog {
+		gpios = <RK_PB3 GPIO_ACTIVE_HIGH>;
+		output-low;
+		line-name = "Internal HDMI DDC/eDP AUX select";
+		gpio-hog;
+	};
+
+	r2-wifi-enable {
+		gpios = <RK_PA3 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "PCIe WiFi/BT PWR_EN";
+		gpio-hog;
 	};
 };
 

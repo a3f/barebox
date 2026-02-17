@@ -15,8 +15,8 @@
 #include "arm64/rockchip/rk3588.dtsi"
 
 / {
-	model = "MNT Reform 2 with RCORE RK3588 Module";
-	compatible = "mntre,reform2-rcore", "firefly,icore3588q", "rockchip,rk3588";
+	model = "MNT Reform 2 with RCORE-DSI RK3588 Module";
+	compatible = "mntre,reform2-rcore-dsi", "firefly,icore3588q", "rockchip,rk3588";
 
 	aliases {
 		ethernet0 = &gmac0;
@@ -51,6 +51,17 @@
 		dais = <&i2s0_8ch_p0>;
 	};
 
+	backlight: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm8 0 50000 0>;
+		enable-gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_HIGH>;
+		brightness-levels = <0 1000>;
+		default-brightness-level = <50>;
+		num-interpolated-steps = <100>;
+		pinctrl-0 = <&backlight_enable>;
+		pinctrl-names = "default";
+	};
+
 	/*gpio-keys {
 		compatible = "gpio-keys";
 
@@ -61,17 +72,6 @@
 			wakeup-source;
 		};
 	};*/
-
-	backlight: backlight {
-		compatible = "pwm-backlight";
-		pwms = <&pwm8 0 10000 0>;
-		enable-gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_HIGH>;
-		brightness-levels = <0 1000>;
-		default-brightness-level = <50>;
-		num-interpolated-steps = <100>;
-		pinctrl-0 = <&backlight_enable>;
-		pinctrl-names = "default";
-	};
 
 	pcie30_avdd1v8: pcie30-avdd1v8 {
 		compatible = "regulator-fixed";
@@ -257,7 +257,7 @@
 /* TODO: disable when HPD pulldown not fitted */
 &hdmi0 {
 	enable-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
-	status = "okay";
+	status = "disabled";
 };
 
 &hdmi0_in {
@@ -378,12 +378,48 @@
 		reg = <0x2c>;
 		/* not actually connected on RCORE R1, will be fixed in RCORE R2. */
 		/* for RCORE R1, remove resistor R82 from MREF motherboard (it pulls down the reset). */
-		enable-gpios = <&gpio0 RK_PC0 GPIO_ACTIVE_LOW>;
+		enable-gpios = <&gpio0 RK_PC0 GPIO_ACTIVE_HIGH>;
 		vccio-supply = <&vcc_1v8_s3>;
 		vpll-supply = <&vcc_1v8_s3>;
 		vcca-supply = <&avdd_1v2_s0>;
 		vcc-supply = <&avdd_1v2_s0>;
-		status = "disabled";
+		status = "okay";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				edp_bridge_in: endpoint {
+					remote-endpoint = <&dsi1_out_bridge>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				edp_bridge_out: endpoint {
+					remote-endpoint = <&panel_in>;
+				};
+			};
+		};
+
+		aux-bus {
+			panel: panel {
+				compatible = "innolux,n125hce-gn1";
+				power-supply = <&vcc3v3_pcie30>;
+				backlight = <&backlight>;
+				no-hpd;
+
+				port {
+					panel_in: endpoint {
+						remote-endpoint = <&edp_bridge_out>;
+					};
+				};
+			};
+		};
 	};
 
 	wm8960: codec@1a {
@@ -433,12 +469,13 @@
 	status = "okay";
 };
 
-/*&pcie2x1l1 {
-	reset-gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_LOW>;
+/* only for wifi/bt connector on RCORE R-2 */
+&pcie2x1l1 {
+	reset-gpios = <&gpio3 RK_PA0 GPIO_ACTIVE_HIGH>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie2_1_rst>;
 	status = "okay";
-};*/
+};
 
 &pcie30phy {
 	status = "okay";
@@ -448,7 +485,8 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie3_reset>;
 	reset-gpios = <&gpio1 RK_PB4 GPIO_ACTIVE_HIGH>;
-	num-lanes = <1>;
+	/* fixme only for mb3.0 */
+	num-lanes = <4>;
 	vpcie3v3-supply = <&vcc3v3_pcie30>;
 	status = "okay";
 };
@@ -916,6 +954,12 @@
 		};
 	};
 
+	pcie2_1 {
+		pcie2_1_rst: pcie2-1-reset {
+			rockchip,pins = <3 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
 	pcie3 {
 		pcie3_reset: pcie3-reset {
 			rockchip,pins = <1 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -1045,5 +1089,33 @@
 	vp2_out_hdmi0: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
 		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
 		remote-endpoint = <&hdmi0_in_vp2>;
+	};
+};
+
+&dsi1 {
+	rockchip,lane-rate = <936000>;
+	status = "okay";
+};
+
+&dsi1_in {
+	dsi1_in_vp: endpoint {
+		remote-endpoint = <&vp_out_dsi1>;
+	};
+};
+
+&dsi1_out {
+	dsi1_out_bridge: endpoint {
+		remote-endpoint = <&edp_bridge_in>;
+	};
+};
+
+&mipidcphy1 {
+	status = "okay";
+};
+
+&vp3 {
+	vp_out_dsi1: endpoint@ROCKCHIP_VOP2_EP_MIPI1 {
+		reg = <ROCKCHIP_VOP2_EP_MIPI1>;
+		remote-endpoint = <&dsi1_in_vp>;
 	};
 };

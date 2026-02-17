@@ -8,8 +8,6 @@
 #include <debug_ll.h>
 #include <mach/rockchip/rockchip.h>
 
-extern char __dtb_rk3588_mnt_reform2_start[];
-
 /*
   Adapted from U-Boot:
 
@@ -101,7 +99,7 @@ static void rk3588_spll_set_rate(void) {
 	putc_ll('>');
 };
 
-ENTRY_FUNCTION(start_rk3588_mnt_reform2, r0, r1, r2)
+static void __noreturn start_rk3588_mnt_reform_common(void *fdt)
 {
 	putc_ll('M');
 	putc_ll('N');
@@ -122,5 +120,33 @@ ENTRY_FUNCTION(start_rk3588_mnt_reform2, r0, r1, r2)
 
 	setup_c();
 
-	rk3588_barebox_entry(__dtb_rk3588_mnt_reform2_start);
+	rk3588_barebox_entry(fdt);
 }
+
+
+extern char __dtb_rk3588_mnt_reform2_start[];
+extern char __dtb_rk3588_mnt_reform2_dsi_start[];
+extern char __dtb_rk3588_mnt_pocket_reform_start[];
+extern char __dtb_rk3588_mnt_reform_next_start[];
+
+ENTRY_FUNCTION(start_rk3588_mnt_reform2, r0, r1, r2)
+{
+	start_rk3588_mnt_reform_common(__dtb_rk3588_mnt_reform2_start);
+}
+
+ENTRY_FUNCTION(start_rk3588_mnt_reform2_dsi, r0, r1, r2)
+{
+	start_rk3588_mnt_reform_common(__dtb_rk3588_mnt_reform2_dsi_start);
+}
+
+ENTRY_FUNCTION(start_rk3588_mnt_pocket_reform, r0, r1, r2)
+{
+	start_rk3588_mnt_reform_common(__dtb_rk3588_mnt_pocket_reform_start);
+}
+
+ENTRY_FUNCTION(start_rk3588_mnt_reform_next, r0, r1, r2)
+{
+	start_rk3588_mnt_reform_common(__dtb_rk3588_mnt_reform_next_start);
+}
+
+

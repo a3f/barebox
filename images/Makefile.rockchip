@@ -55,3 +55,6 @@ $(call build_rockchip_image, CONFIG_MACH_RADXA_CM3, start_radxa_cm3_io, radxa-cm
 $(call build_rockchip_image, CONFIG_MACH_WOLFVISION_PF5, start_rk3568_wolfvision_pf5, wolfvision-pf5/sdram-init.bin, rk3568-wolfvision-pf5)
 $(call build_rockchip_image, CONFIG_MACH_XUNLONG_ORANGEPI_5_PLUS, start_orangepi_5_plus, xunlong-orangepi-5-plus/sdram-init.bin, orangepi_5_plus)
 $(call build_rockchip_image, CONFIG_MACH_MNT_REFORM2_RK3588, start_rk3588_mnt_reform2, mnt-reform2-rk3588/sdram-init.bin, mnt-reform2-rk3588)
+$(call build_rockchip_image, CONFIG_MACH_MNT_REFORM2_RK3588, start_rk3588_mnt_reform2_dsi, mnt-reform2-rk3588/sdram-init.bin, mnt-reform2-dsi-rk3588)
+$(call build_rockchip_image, CONFIG_MACH_MNT_REFORM2_RK3588, start_rk3588_mnt_pocket_reform, mnt-reform2-rk3588/sdram-init.bin, mnt-pocket-reform-rk3588)
+$(call build_rockchip_image, CONFIG_MACH_MNT_REFORM2_RK3588, start_rk3588_mnt_reform_next, mnt-reform2-rk3588/sdram-init.bin, mnt-reform-next-rk3588)
