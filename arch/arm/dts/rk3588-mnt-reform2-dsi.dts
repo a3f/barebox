@@ -13,6 +13,7 @@
 #include <dt-bindings/usb/pd.h>
 #include <dt-bindings/soc/rockchip,vop2.h>
 #include "arm64/rockchip/rk3588.dtsi"
+#include "rk3588.dtsi"
 
 / {
 	model = "MNT Reform 2 with RCORE-DSI RK3588 Module";
