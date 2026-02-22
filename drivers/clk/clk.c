@@ -237,13 +237,12 @@ void clk_hw_forward_rate_request(const struct clk_hw *hw,
 	req->max_rate = old_req->max_rate;
 }
 
-/*
- * CLK_MUX_ROUND_CLOSEST is not implemented in barebox; for now we
- * always pick the highest rate that does not exceed the target.
- */
 static bool mux_is_better_rate(unsigned long rate, unsigned long now,
-			       unsigned long best)
+			       unsigned long best, unsigned long flags)
 {
+	if (flags & CLK_MUX_ROUND_CLOSEST)
+		return abs(now - rate) < abs(best - rate);
+
 	return now <= rate && now > best;
 }
 
@@ -339,7 +338,7 @@ int clk_mux_determine_rate_flags(struct clk_hw *hw,
 			parent_rate = clk_hw_get_rate(parent);
 		}
 
-		if (mux_is_better_rate(req->rate, parent_rate, best)) {
+		if (mux_is_better_rate(req->rate, parent_rate, best, flags)) {
 			best_parent = parent;
 			best = parent_rate;
 		}
@@ -362,6 +361,13 @@ int __clk_mux_determine_rate(struct clk_hw *hw,
 	return clk_mux_determine_rate_flags(hw, req, 0);
 }
 EXPORT_SYMBOL_GPL(__clk_mux_determine_rate);
+
+int __clk_mux_determine_rate_closest(struct clk_hw *hw,
+				     struct clk_rate_request *req)
+{
+	return clk_mux_determine_rate_flags(hw, req, CLK_MUX_ROUND_CLOSEST);
+}
+EXPORT_SYMBOL_GPL(__clk_mux_determine_rate_closest);
 
 static long clk_determine_round(struct clk *clk, unsigned long rate)
 {
