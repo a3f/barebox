@@ -322,12 +322,19 @@ static int pcf85063_clkout_is_prepared(struct clk_hw *hw)
 	return (buf & PCF85063_REG_CLKO_F_MASK) != PCF85063_REG_CLKO_F_OFF;
 }
 
+static int pcf85063_clkout_determine_rate(struct clk_hw *hw,
+					  struct clk_rate_request *req)
+{
+	return clk_determine_rate_using_round_rate(hw, req,
+						   pcf85063_clkout_round_rate);
+}
+
 static const struct clk_ops pcf85063_clkout_ops = {
 	.enable = pcf85063_clkout_prepare,
 	.disable = pcf85063_clkout_unprepare,
 	.is_enabled = pcf85063_clkout_is_prepared,
 	.recalc_rate = pcf85063_clkout_recalc_rate,
-	.round_rate = pcf85063_clkout_round_rate,
+	.determine_rate = pcf85063_clkout_determine_rate,
 	.set_rate = pcf85063_clkout_set_rate,
 };
 

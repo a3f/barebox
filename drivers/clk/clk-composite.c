@@ -57,39 +57,12 @@ static int clk_composite_determine_rate(struct clk_hw *hw,
 	 * divider setting, barebox tries the rate clock first, then
 	 * falls back to the mux clock independently.
 	 */
-	if (rate_hw) {
-		if (rate_hw->clk.ops->determine_rate)
-			return rate_hw->clk.ops->determine_rate(rate_hw, req);
+	if (rate_hw && rate_hw->clk.ops->determine_rate)
+		return rate_hw->clk.ops->determine_rate(rate_hw, req);
 
-		if (rate_hw->clk.ops->round_rate) {
-			long rate;
-
-			rate = rate_hw->clk.ops->round_rate(rate_hw, req->rate,
-							    &req->best_parent_rate);
-			if (rate < 0)
-				return rate;
-
-			req->rate = rate;
-			return 0;
-		}
-	}
-
-	if (!(hw->clk.flags & CLK_SET_RATE_NO_REPARENT) && mux_hw) {
-		if (mux_hw->clk.ops->determine_rate)
-			return mux_hw->clk.ops->determine_rate(mux_hw, req);
-
-		if (mux_hw->clk.ops->round_rate) {
-			long rate;
-
-			rate = mux_hw->clk.ops->round_rate(mux_hw, req->rate,
-							   &req->best_parent_rate);
-			if (rate < 0)
-				return rate;
-
-			req->rate = rate;
-			return 0;
-		}
-	}
+	if (!(hw->clk.flags & CLK_SET_RATE_NO_REPARENT) && mux_hw &&
+	    mux_hw->clk.ops->determine_rate)
+		return mux_hw->clk.ops->determine_rate(mux_hw, req);
 
 	req->rate = req->best_parent_rate;
 	return 0;

@@ -67,14 +67,6 @@ static unsigned long clk_pll_out_recalc_rate(struct clk_hw *hw,
 	return pll_out->div->ops->recalc_rate(clk_to_clk_hw(pll_out->div), parent_rate);
 }
 
-static long clk_pll_out_round_rate(struct clk_hw *hw, unsigned long rate,
-				   unsigned long *prate)
-{
-	struct tegra_clk_pll_out *pll_out = to_clk_pll_out(hw);
-
-	return pll_out->div->ops->round_rate(clk_to_clk_hw(pll_out->div), rate, prate);
-}
-
 static int clk_pll_out_determine_rate(struct clk_hw *hw,
 				      struct clk_rate_request *req)
 {
@@ -97,7 +89,6 @@ const struct clk_ops tegra_clk_pll_out_ops = {
 	.enable = clk_pll_out_enable,
 	.disable = clk_pll_out_disable,
 	.recalc_rate = clk_pll_out_recalc_rate,
-	.round_rate = clk_pll_out_round_rate,
 	.determine_rate = clk_pll_out_determine_rate,
 	.set_rate = clk_pll_out_set_rate,
 };

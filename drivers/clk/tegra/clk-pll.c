@@ -436,7 +436,6 @@ const struct clk_ops tegra_clk_pll_ops = {
 	.enable = clk_pll_enable,
 	.disable = clk_pll_disable,
 	.recalc_rate = clk_pll_recalc_rate,
-	.round_rate = clk_pll_round_rate,
 	.determine_rate = clk_pll_determine_rate,
 	.set_rate = clk_pll_set_rate,
 };

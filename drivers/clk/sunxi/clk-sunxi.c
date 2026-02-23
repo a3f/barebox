@@ -4,6 +4,7 @@
 #include <io.h>
 #include <malloc.h>
 #include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/err.h>
 #include "clk-sunxi.h"
 
@@ -255,6 +256,13 @@ static long ccu_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 	return ccu_clk_find_best_div(clk, rate, *prate, NULL);
 }
 
+static int ccu_clk_determine_rate(struct clk_hw *hw,
+				  struct clk_rate_request *req)
+{
+	return clk_determine_rate_using_round_rate(hw, req,
+						   ccu_clk_round_rate);
+}
+
 static unsigned long ccu_clk_recalc_rate(struct clk_hw *hw,
 					unsigned long prate)
 {
@@ -284,7 +292,7 @@ const struct clk_ops ccu_clk_ops = {
 	.get_parent	= ccu_clk_get_parent,
 	.set_parent	= ccu_clk_set_parent,
 	/* rate */
-	.round_rate     = ccu_clk_round_rate,
+	.determine_rate = ccu_clk_determine_rate,
 	.set_rate       = ccu_clk_set_rate,
 	.recalc_rate    = ccu_clk_recalc_rate,
 };

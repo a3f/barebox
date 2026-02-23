@@ -6,6 +6,7 @@
 #include <common.h>
 #include <linux/err.h>
 #include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/math64.h>
 #include <malloc.h>
 
@@ -247,8 +248,15 @@ static int clk_di_set_parent(struct clk_hw *hw, u8 index)
 	return 0;
 }
 
+static int clk_di_determine_rate(struct clk_hw *hw,
+				 struct clk_rate_request *req)
+{
+	return clk_determine_rate_using_round_rate(hw, req,
+						   clk_di_round_rate);
+}
+
 static struct clk_ops clk_di_ops = {
-	.round_rate = clk_di_round_rate,
+	.determine_rate = clk_di_determine_rate,
 	.set_rate = clk_di_set_rate,
 	.recalc_rate = clk_di_recalc_rate,
 	.set_parent = clk_di_set_parent,

@@ -36,6 +36,7 @@
 #include <io.h>
 #include <platform_data/macb.h>
 #include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/err.h>
 #include <linux/phy.h>
 #include <of_net.h>
@@ -734,9 +735,16 @@ static int fu540_macb_tx_set_rate(struct clk_hw *hw, unsigned long rate,
 	return 0;
 }
 
+static int fu540_macb_tx_determine_rate(struct clk_hw *hw,
+					struct clk_rate_request *req)
+{
+	return clk_determine_rate_using_round_rate(hw, req,
+						   fu540_macb_tx_round_rate);
+}
+
 static const struct clk_ops fu540_c000_ops = {
 	.recalc_rate = fu540_macb_tx_recalc_rate,
-	.round_rate = fu540_macb_tx_round_rate,
+	.determine_rate = fu540_macb_tx_determine_rate,
 	.set_rate = fu540_macb_tx_set_rate,
 };
 
