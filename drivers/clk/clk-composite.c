@@ -73,28 +73,9 @@ static int clk_composite_set_rate(struct clk_hw *hw, unsigned long rate,
 {
 	struct clk_composite *composite = to_clk_composite(hw);
 	struct clk_hw *rate_hw = composite->rate_hw;
-	struct clk_hw *mux_hw = composite->mux_hw;
 
-	/*
-	 * When the rate clock is present use that to set the rate,
-	 * otherwise try the mux clock. We currently do not support
-	 * to find the best rate using a combination of both.
-	 */
 	if (rate_hw)
 		return rate_hw->clk.ops->set_rate(rate_hw, rate, parent_rate);
-
-	if (!(hw->clk.flags & CLK_SET_RATE_NO_REPARENT) &&
-	    mux_hw &&
-	    mux_hw->clk.ops->set_rate) {
-		/*
-		 * We'll call set_rate on the mux clk which in turn results
-		 * in reparenting the mux clk. Make sure the enable count
-		 * (which is stored in the composite clk, not the mux clk)
-		 * is transferred correctly.
-		 */
-		mux_hw->clk.enable_count = hw->clk.enable_count;
-		return mux_hw->clk.ops->set_rate(mux_hw, rate, parent_rate);
-	}
 
 	return 0;
 }
