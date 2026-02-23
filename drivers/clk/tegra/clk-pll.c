@@ -11,6 +11,7 @@
 #include <malloc.h>
 #include <linux/math64.h>
 #include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/err.h>
 
 #include <mach/tegra/iomap.h>
@@ -423,12 +424,20 @@ static int clk_pll_set_rate(struct clk_hw *hw, unsigned long rate,
 	return _program_pll(hw, &cfg, rate);
 }
 
+static int clk_pll_determine_rate(struct clk_hw *hw,
+				  struct clk_rate_request *req)
+{
+	return clk_determine_rate_using_round_rate(hw, req,
+						   clk_pll_round_rate);
+}
+
 const struct clk_ops tegra_clk_pll_ops = {
 	.is_enabled = clk_pll_is_enabled,
 	.enable = clk_pll_enable,
 	.disable = clk_pll_disable,
 	.recalc_rate = clk_pll_recalc_rate,
 	.round_rate = clk_pll_round_rate,
+	.determine_rate = clk_pll_determine_rate,
 	.set_rate = clk_pll_set_rate,
 };
 

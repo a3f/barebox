@@ -10,6 +10,7 @@
 #include <malloc.h>
 #include <linux/math64.h>
 #include <linux/clk.h>
+#include <linux/clk-provider.h>
 #include <linux/err.h>
 
 #include "clk.h"
@@ -130,10 +131,18 @@ static int clk_frac_div_set_rate(struct clk_hw *hw, unsigned long rate,
 	return 0;
 }
 
+static int clk_frac_div_determine_rate(struct clk_hw *hw,
+				       struct clk_rate_request *req)
+{
+	return clk_determine_rate_using_round_rate(hw, req,
+						   clk_frac_div_round_rate);
+}
+
 const struct clk_ops tegra_clk_frac_div_ops = {
 	.recalc_rate = clk_frac_div_recalc_rate,
 	.set_rate = clk_frac_div_set_rate,
 	.round_rate = clk_frac_div_round_rate,
+	.determine_rate = clk_frac_div_determine_rate,
 };
 
 struct clk *tegra_clk_divider_alloc(const char *name, const char *parent_name,

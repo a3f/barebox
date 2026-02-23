@@ -90,6 +90,12 @@ int clk_mux_determine_rate_flags(struct clk_hw *hw,
 				 struct clk_rate_request *req,
 				 unsigned long flags);
 
+int clk_determine_rate_using_round_rate(struct clk_hw *hw,
+					struct clk_rate_request *req,
+					long (*round_rate)(struct clk_hw *,
+							   unsigned long,
+							   unsigned long *));
+
 int divider_determine_rate(struct clk_hw *hw, struct clk_rate_request *req,
 			   const struct clk_div_table *table, u8 width,
 			   unsigned long flags);

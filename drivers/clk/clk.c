@@ -419,6 +419,35 @@ unsigned long clk_hw_round_rate(struct clk_hw *hw, unsigned long rate)
 	return ret;
 }
 
+/**
+ * clk_determine_rate_using_round_rate - bridge a round_rate callback into
+ * determine_rate
+ * @hw: the clk_hw for the clock
+ * @req: the rate request to be filled in
+ * @round_rate: the round_rate callback to delegate to
+ *
+ * This helper allows drivers that still have a round_rate implementation
+ * to provide a determine_rate callback without rewriting their rate
+ * rounding logic.  The round_rate function is called with the requested
+ * rate and parent rate from @req, and its return value is stored back
+ * into @req->rate.
+ */
+int clk_determine_rate_using_round_rate(struct clk_hw *hw,
+					struct clk_rate_request *req,
+					long (*round_rate)(struct clk_hw *,
+							   unsigned long,
+							   unsigned long *))
+{
+	long rate;
+
+	rate = round_rate(hw, req->rate, &req->best_parent_rate);
+	if (rate < 0)
+		return rate;
+
+	req->rate = rate;
+	return 0;
+}
+
 int clk_set_rate(struct clk *clk, unsigned long rate)
 {
 	struct clk_hw *hw;
