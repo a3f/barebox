@@ -391,14 +391,31 @@ static int clk_divider_set_rate(struct clk_hw *hw, unsigned long rate,
 	return 0;
 }
 
+static long clk_divider_round_rate(struct clk_hw *hw, unsigned long rate,
+				   unsigned long *prate)
+{
+	struct clk_rate_request req;
+
+	clk_hw_init_rate_request(hw, &req, rate);
+
+	if (clk_divider_determine_rate(hw, &req))
+		return clk_hw_get_rate(hw);
+
+	*prate = req.best_parent_rate;
+
+	return req.rate;
+}
+
 const struct clk_ops clk_divider_ops = {
 	.set_rate = clk_divider_set_rate,
 	.recalc_rate = clk_divider_recalc_rate,
+	.round_rate = clk_divider_round_rate,
 	.determine_rate = clk_divider_determine_rate,
 };
 
 const struct clk_ops clk_divider_ro_ops = {
 	.recalc_rate = clk_divider_recalc_rate,
+	.round_rate = clk_divider_round_rate,
 	.determine_rate = clk_divider_determine_rate,
 };
 
