@@ -47,6 +47,8 @@
 #define HIWORD_UPDATE(val, mask)	((val) | (mask) << 16)
 #define HOTPLUG_DEBOUNCE_MS		150
 
+#define MAX_HDMI_PORT_NUM		2
+
 struct rockchip_hdmi_qp {
 	struct device *dev;
 	struct regmap *regmap;
@@ -129,9 +131,24 @@ static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
 	.setup_hpd	= dw_hdmi_qp_rk3588_setup_hpd,
 };
 
+struct rockchip_hdmi_qp_cfg {
+	unsigned int num_ports;
+	unsigned int port_ids[MAX_HDMI_PORT_NUM];
+	const struct dw_hdmi_qp_phy_ops *phy_ops;
+};
+
+static const struct rockchip_hdmi_qp_cfg rk3588_hdmi_cfg = {
+	.num_ports = 2,
+	.port_ids = {
+		0xfde80000,
+		0xfdea0000,
+	},
+	.phy_ops = &rk3588_hdmi_phy_ops,
+};
+
 static const struct of_device_id dw_hdmi_qp_rockchip_dt_ids[] = {
 	{ .compatible = "rockchip,rk3588-dw-hdmi-qp",
-	  .data = &rk3588_hdmi_phy_ops },
+	  .data = &rk3588_hdmi_cfg },
 	{},
 };
 MODULE_DEVICE_TABLE(of, dw_hdmi_qp_rockchip_dt_ids);
@@ -145,6 +162,8 @@ static int dw_hdmi_qp_rockchip_probe(struct device *dev)
 	struct dw_hdmi_qp_plat_data plat_data;
 	struct rockchip_hdmi_qp *hdmi;
 	struct clk *clk;
+	const struct rockchip_hdmi_qp_cfg *cfg;
+	struct resource *res;
 	int ret, i;
 	u32 val;
 
@@ -153,15 +172,34 @@ static int dw_hdmi_qp_rockchip_probe(struct device *dev)
 
 	hdmi = xzalloc(sizeof(*hdmi));
 
-	plat_data.phy_ops = device_get_match_data(dev);
-	if (!plat_data.phy_ops)
+	res = dev_get_resource(dev, IORESOURCE_MEM, 0);
+	if (!res)
+		return -ENODEV;
+
+	cfg = device_get_match_data(dev);
+	if (!cfg)
 		return dev_err_probe(dev, -EINVAL, "No match data\n");
+
+	plat_data.phy_ops = cfg->phy_ops;
+	if (!plat_data.phy_ops)
+		return dev_err_probe(dev, -EINVAL, "No phy ops\n");
 
 	plat_data.phy_data = hdmi;
 	hdmi->dev = dev;
 
-  // FIXME check address!
-  hdmi->port_id = 1;
+	hdmi->port_id = -ENODEV;
+
+	/* Identify port ID by matching base IO address */
+	for (i = 0; i < cfg->num_ports; i++) {
+		if (res->start == cfg->port_ids[i]) {
+			hdmi->port_id = i;
+			break;
+		}
+	}
+	if (hdmi->port_id < 0) {
+		dev_err(hdmi->dev, "Failed to match HDMI port ID\n");
+		return hdmi->port_id;
+	}
 
 	hdmi->regmap = syscon_regmap_lookup_by_phandle(dev->of_node,
 						       "rockchip,grf");
