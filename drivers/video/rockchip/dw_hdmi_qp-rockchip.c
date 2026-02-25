@@ -255,21 +255,21 @@ static int dw_hdmi_qp_rockchip_probe(struct device *dev)
 			    RK3588_SET_HPD_PATH_MASK);
 	regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON7, val);
 
-  if (hdmi->port_id) {
-    val = HIWORD_UPDATE(RK3588_HDMI0_GRANT_SEL,
-                        RK3588_HDMI0_GRANT_SEL);
-    regmap_write(hdmi->vo_regmap, RK3588_GRF_VO1_CON9, val);
+	if (hdmi->port_id) {
+		val = HIWORD_UPDATE(RK3588_HDMI0_GRANT_SEL,
+							RK3588_HDMI0_GRANT_SEL);
+		regmap_write(hdmi->vo_regmap, RK3588_GRF_VO1_CON9, val);
 
-    val = HIWORD_UPDATE(RK3588_HDMI0_HPD_INT_MSK, RK3588_HDMI0_HPD_INT_MSK);
-    regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON2, val);
-  } else {
-    val = HIWORD_UPDATE(RK3588_HDMI1_GRANT_SEL,
-                        RK3588_HDMI1_GRANT_SEL);
-    regmap_write(hdmi->vo_regmap, RK3588_GRF_VO1_CON9, val);
+		val = HIWORD_UPDATE(RK3588_HDMI0_HPD_INT_MSK, RK3588_HDMI0_HPD_INT_MSK);
+		regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON2, val);
+	} else {
+		val = HIWORD_UPDATE(RK3588_HDMI1_GRANT_SEL,
+							RK3588_HDMI1_GRANT_SEL);
+		regmap_write(hdmi->vo_regmap, RK3588_GRF_VO1_CON9, val);
 
-    val = HIWORD_UPDATE(RK3588_HDMI1_HPD_INT_MSK, RK3588_HDMI1_HPD_INT_MSK);
-    regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON2, val);
-  }
+		val = HIWORD_UPDATE(RK3588_HDMI1_HPD_INT_MSK, RK3588_HDMI1_HPD_INT_MSK);
+		regmap_write(hdmi->regmap, RK3588_GRF_SOC_CON2, val);
+	}
   
 	hdmi->hdmi = dw_hdmi_qp_bind(dev, &plat_data);
 	if (IS_ERR(hdmi->hdmi)) {

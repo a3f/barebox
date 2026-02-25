@@ -279,7 +279,6 @@ struct rk_hdptx_phy_cfg {
 	unsigned int phy_ids[MAX_HDPTX_PHY_NUM];
 };
 
-
 struct rk_hdptx_phy {
 	struct device *dev;
 	struct regmap *regmap;
@@ -607,8 +606,6 @@ static int rk_hdptx_post_enable_lane(struct rk_hdptx_phy *hdptx)
 {
 	u32 val;
 	int ret;
-  
-	dev_info(hdptx->dev, "rk_hdptx_post_enable_lane...\n");
 
 	reset_control_deassert(hdptx->rsts[RST_LANE].rstc);
 
@@ -625,7 +622,7 @@ static int rk_hdptx_post_enable_lane(struct rk_hdptx_phy *hdptx)
 		return ret;
 	}
 
-	dev_info(hdptx->dev, "PHY lane locked\n");
+	dev_dbg(hdptx->dev, "PHY lane locked\n");
 
 	return 0;
 }
@@ -634,8 +631,6 @@ static int rk_hdptx_post_enable_pll(struct rk_hdptx_phy *hdptx)
 {
 	u32 val;
 	int ret;
-  
-	dev_info(hdptx->dev, "rk_hdptx_post_enable_pll...\n");
 
 	val = (HDPTX_I_BIAS_EN | HDPTX_I_BGR_EN) << 16 |
 	       HDPTX_I_BIAS_EN | HDPTX_I_BGR_EN;
@@ -658,7 +653,7 @@ static int rk_hdptx_post_enable_pll(struct rk_hdptx_phy *hdptx)
 		return ret;
 	}
 
-	dev_info(hdptx->dev, "PHY clk ready\n");
+	dev_dbg(hdptx->dev, "PHY clk ready\n");
 
 	return 0;
 }
@@ -776,7 +771,7 @@ static int rk_hdptx_ropll_tmds_cmn_config(struct rk_hdptx_phy *hdptx,
 			cfg = &ropll_tmds_cfg[i];
 			break;
 		}
-  printk("%s: RATE: %d\n", __func__, rate);
+
 	if (!cfg) {
 		if (rk_hdptx_phy_clk_pll_calc(rate, &rc)) {
 			cfg = &rc;
@@ -786,7 +781,7 @@ static int rk_hdptx_ropll_tmds_cmn_config(struct rk_hdptx_phy *hdptx,
 		}
 	}
 
-	dev_info(hdptx->dev, "mdiv=%u, sdiv=%u, sdm_en=%u, k_sign=%u, k=%u, lc=%u\n",
+	dev_dbg(hdptx->dev, "mdiv=%u, sdiv=%u, sdm_en=%u, k_sign=%u, k=%u, lc=%u\n",
 		cfg->pms_mdiv, cfg->pms_sdiv + 1, cfg->sdm_en,
 		cfg->sdm_num_sign, cfg->sdm_num, cfg->sdm_deno);
 
@@ -940,10 +935,7 @@ static int rk_hdptx_phy_power_on(struct phy *phy)
 	 */
 	unsigned int rate = bus_width & 0xfffffff;
 
-//   // FIXME fallback
-//   if (rate == 0) rate = 1485000;
-
-	dev_err(hdptx->dev, "%s bus_width=%x rate=%u\n",
+	dev_dbg(hdptx->dev, "%s bus_width=%x rate=%u\n",
 		__func__, bus_width, rate);
 
 	ret = rk_hdptx_phy_consumer_get(hdptx, rate);
@@ -1002,7 +994,6 @@ static unsigned long rk_hdptx_phy_clk_recalc_rate(struct clk_hw *hw,
 static long rk_hdptx_phy_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 					unsigned long *parent_rate)
 {
-	pr_err("%s called with rate %lu\n", __func__, rate);
 	u32 bit_rate = rate / 100;
 	int i;
 
@@ -1023,10 +1014,7 @@ static long rk_hdptx_phy_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 static int rk_hdptx_phy_clk_set_rate(struct clk_hw *hw, unsigned long rate,
 				     unsigned long parent_rate)
 {
-	pr_err("%s called with rate %lu\n", __func__, rate);
 	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
-
-	dev_err(hdptx->dev, "clk_set_rate rate=%lu\n", rate);
 
 	return rk_hdptx_ropll_tmds_cmn_config(hdptx, rate / 100);
 }
@@ -1076,7 +1064,6 @@ static int rk_hdptx_phy_probe(struct device *dev)
 	struct rk_hdptx_phy *hdptx;
 	struct resource *iores;
 	struct resource *res;
-
 
 	void __iomem *regs;
 	int ret, id;
@@ -1172,8 +1159,6 @@ static const struct rk_hdptx_phy_cfg rk3588_hdptx_phy_cfgs = {
 	},
 };
 
-
-
 static const struct of_device_id rk_hdptx_phy_of_match[] = {
 	{
 		.compatible = "rockchip,rk3588-hdptx-phy",
@@ -1183,9 +1168,9 @@ static const struct of_device_id rk_hdptx_phy_of_match[] = {
 };
 
 static struct driver rockchip_usb2phy_driver = {
-        .probe          = rk_hdptx_phy_probe,
-        .name   = "rockchip-hdptx-phy",
-        .of_compatible = rk_hdptx_phy_of_match,
+	.probe = rk_hdptx_phy_probe,
+	.name = "rockchip-hdptx-phy",
+	.of_compatible = rk_hdptx_phy_of_match,
 };
 coredevice_platform_driver(rockchip_usb2phy_driver);
 

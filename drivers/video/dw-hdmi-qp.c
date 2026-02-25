@@ -332,19 +332,6 @@ static void dw_hdmi_qp_init_hw(struct dw_hdmi_qp *hdmi)
 		hdmi->phy.ops->setup_hpd(hdmi, hdmi->phy.data);
 }
 
-static const struct drm_display_mode fallback_1920x1080_50hz = {
-	.clock = 148500,
-	.hdisplay = 1920,
-	.hsync_start = 2008,
-	.hsync_end = 2052,
-	.htotal = 2200,
-	.vdisplay = 1080,
-	.vsync_start = 1084,
-	.vsync_end = 1089,
-	.vtotal = 1125,
-	.flags = DRM_MODE_FLAG_PHSYNC | DRM_MODE_FLAG_PVSYNC,
-};
-
 static int dw_hdmi_qp_get_modes(struct dw_hdmi_qp *hdmi, struct display_timings *timings)
 {
 	struct fb_videomode *modes;
@@ -352,15 +339,13 @@ static int dw_hdmi_qp_get_modes(struct dw_hdmi_qp *hdmi, struct display_timings 
 	int i, j = 0;
 	unsigned int native_mode = 0;
 
-  dev_err(hdmi->dev, "DEBUG dw_hdmi_qp_get_modes\n");
-
-  timings->edid = edid_read_i2c(&hdmi->i2c->adap);
-  if (!timings->edid)
+	timings->edid = edid_read_i2c(&hdmi->i2c->adap);
+	if (!timings->edid)
 		return -EINVAL;
 
-  ret = edid_to_display_timings(timings, timings->edid);
-  if (ret)
-    return ret;
+	ret = edid_to_display_timings(timings, timings->edid);
+	if (ret)
+	return ret;
 
 	modes = xzalloc(sizeof(*modes) * timings->num_modes);
 
