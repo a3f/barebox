@@ -1063,7 +1063,6 @@ static int rk_hdptx_phy_probe(struct device *dev)
 	struct phy_provider *phy_provider;
 	struct rk_hdptx_phy *hdptx;
 	struct resource *iores;
-	struct resource *res;
 
 	void __iomem *regs;
 	int ret, id;
