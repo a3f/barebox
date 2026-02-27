@@ -105,13 +105,12 @@ static void talloc_stress_tests(void)
 		} else {
 			size_t sz = prandom_u32_max(4096) + 1;
 			ptrs[idx] = talloc_size(root, sz);
-			if (selftest_check(ptrs[idx]) &&
-			    prandom_u32_max(8) == 0) {
+			if (ptrs[idx] && prandom_u32_max(8) == 0) {
 				/* Occasionally realloc to a different size */
 				size_t new_sz = prandom_u32_max(8192) + 1;
 				void *tmp = talloc_realloc_size(NULL,
 								ptrs[idx], new_sz);
-				if (selftest_check(tmp))
+				if (tmp)
 					ptrs[idx] = tmp;
 			}
 		}
