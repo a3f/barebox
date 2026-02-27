@@ -33,6 +33,10 @@ jobs:
             lgargs: --runxfail
 
           - ARCH: arm
+            lgenv: 'test/arm/*@imx_v8_defconfig.yaml'
+            defconfig: imx_v8_defconfig
+
+          - ARCH: arm
             lgenv: test/arm/multi_v8_efiloader_defconfig.yaml
             defconfig: multi_v8_efiloader_defconfig
             osimg: debian-13.3.0-arm64-netinst.iso
