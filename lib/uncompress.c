@@ -217,3 +217,20 @@ close_fd:
 
 	return ret ?: size;
 }
+
+#include <fuzz.h>
+
+static long fuzz_uncompress_flush(void *buf, unsigned long len)
+{
+	return len;
+}
+
+static void fuzz_uncompress_error(char *x) {}
+
+static int fuzz_uncompress(const u8 *data, size_t size)
+{
+	uncompress((void *)data, size, NULL, fuzz_uncompress_flush,
+		   NULL, NULL, fuzz_uncompress_error);
+	return 0;
+}
+fuzz_test("uncompress", fuzz_uncompress);
