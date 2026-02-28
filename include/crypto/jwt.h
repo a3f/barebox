@@ -5,6 +5,8 @@
 #include <linux/types.h>
 #include <jsmn.h>
 
+struct public_key;
+
 enum jwt_alg {
 	JWT_ALG_NONE,
 	JWT_ALG_HS256,
@@ -13,9 +15,9 @@ enum jwt_alg {
 	JWT_ALG_PS256,
 	JWT_ALG_PS384,
 	JWT_ALG_PS512,
-	JWT_ALG_RS256, /* supported */
-	JWT_ALG_RS384, /* supported */
-	JWT_ALG_RS512, /* supported */
+	JWT_ALG_RS256,
+	JWT_ALG_RS384,
+	JWT_ALG_RS512,
 	JWT_ALG_ES256,
 	JWT_ALG_ES256K,
 	JWT_ALG_ES384,
@@ -25,9 +27,7 @@ enum jwt_alg {
 
 struct jwt_key {
 	enum jwt_alg alg;
-	union {
-		const struct rsa_public_key *rsa_pub;
-	} material;
+	const struct public_key *pub;
 };
 
 struct jwt_part {

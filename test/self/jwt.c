@@ -3,7 +3,7 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <common.h>
-#include <crypto/rsa.h>
+#include <crypto/public_key.h>
 #include <bselftest.h>
 #include <crypto/jwt.h>
 #include <console.h>
@@ -69,14 +69,18 @@ static const char jwt_rs256[] =
 
 static void test_jwt(void)
 {
+	extern const struct rsa_public_key __key_development_rsa2048;
+	static const struct public_key rsa_dev_pub = {
+		.type = PUBLIC_KEY_TYPE_RSA,
+		.rsa = &__key_development_rsa2048,
+	};
 	char *jwt_rs256_mangled, *ch;
 	struct jwt_key jwt_key;
 	struct jwt *jwt;
-	extern const struct rsa_public_key __key_development_rsa2048;
 	int old_loglevel;
 
 	jwt_key.alg = JWT_ALG_RS256;
-	jwt_key.material.rsa_pub = &__key_development_rsa2048;
+	jwt_key.pub = &rsa_dev_pub;
 	total_tests++;
 
 	jwt = jwt_decode(jwt_rs256, &jwt_key);

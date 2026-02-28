@@ -3,7 +3,7 @@
 #define pr_fmt(fmt) "jwt: " fmt
 
 #include <crypto/jwt.h>
-#include <crypto/rsa.h>
+#include <crypto/public_key.h>
 #include <errno.h>
 #include <linux/printk.h>
 #include <base64.h>
@@ -16,14 +16,17 @@
 static enum hash_algo digest_algo_by_jwt_alg(enum jwt_alg alg)
 {
 	switch (alg) {
-		case JWT_ALG_RS256:
-			return HASH_ALGO_SHA256;
-		case JWT_ALG_RS384:
-			return HASH_ALGO_SHA384;
-		case JWT_ALG_RS512:
-			return HASH_ALGO_SHA512;
-		default:
-			BUG();
+	case JWT_ALG_RS256:
+	case JWT_ALG_ES256:
+		return HASH_ALGO_SHA256;
+	case JWT_ALG_RS384:
+	case JWT_ALG_ES384:
+		return HASH_ALGO_SHA384;
+	case JWT_ALG_RS512:
+	case JWT_ALG_ES512:
+		return HASH_ALGO_SHA512;
+	default:
+		BUG();
 	}
 }
 
@@ -174,6 +177,9 @@ struct jwt *jwt_decode(const char *token, const struct jwt_key *key)
 	case JWT_ALG_RS256:
 	case JWT_ALG_RS384:
 	case JWT_ALG_RS512:
+	case JWT_ALG_ES256:
+	case JWT_ALG_ES384:
+	case JWT_ALG_ES512:
 		if (sig_len == 0)
 			return ERR_PTR(-EILSEQ);
 
@@ -187,8 +193,8 @@ struct jwt *jwt_decode(const char *token, const struct jwt_key *key)
 			return ERR_CAST(hash);
 		}
 
-		ret = rsa_verify(key->material.rsa_pub, sigbin, sigbin_len, hash,
-				 hash_algo);
+		ret = public_key_verify(key->pub, sigbin, sigbin_len, hash,
+					hash_algo);
 		free(hash);
 		free(sigbin);
 		if (ret < 0) {
@@ -228,12 +234,16 @@ err:
 
 static int fuzz_jwt(char *data, size_t size)
 {
+	extern const struct rsa_public_key __key_development_rsa2048;
+	static const struct public_key rsa_dev_pub = {
+		.type = PUBLIC_KEY_TYPE_RSA,
+		.rsa = &__key_development_rsa2048,
+	};
 	struct jwt_key jwt_key;
 	struct jwt *jwt;
-	extern const struct rsa_public_key __key_development_rsa2048;
 
 	jwt_key.alg = JWT_ALG_RS256;
-	jwt_key.material.rsa_pub = &__key_development_rsa2048;
+	jwt_key.pub = &rsa_dev_pub;
 
 	jwt = jwt_decode(data, &jwt_key);
 	if (!IS_ERR(jwt))
