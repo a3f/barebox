@@ -44,6 +44,19 @@ config CMD_FUZZ
 	    -f FILE   use FILE as fuzz input
 	    -s SIZE   read only SIZE bytes from file
 
+config CRYPTO_DUMMY_VERIFY
+	bool "Skip cryptographic verification in fuzz tests"
+	depends on FUZZ
+	help
+	  Always return success from digest_verify() and
+	  public_key_verify(). This allows fuzz tests to exercise
+	  code paths after successful hash and signature verification,
+	  including JWT decoding (via public_key_verify) and FIT
+	  image parsing.
+
+	  This option is inherently insecure and must only be used
+	  for fuzzing.
+
 endif
 
 config TEST_KEY_RSA2048

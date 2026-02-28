@@ -50,6 +50,9 @@ int digest_generic_verify(struct digest *d, const unsigned char *md)
 		ret = -EINVAL;
 	else
 		ret = 0;
+
+	if (IS_ENABLED(CONFIG_CRYPTO_DUMMY_VERIFY))
+		ret = 0;
 end:
 	free(tmp);
 	return ret;

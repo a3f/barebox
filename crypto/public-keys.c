@@ -40,6 +40,9 @@ int public_key_verify(const struct public_key *key, const uint8_t *sig,
 		      const uint32_t sig_len, const uint8_t *hash,
 		      enum hash_algo algo)
 {
+	if (IS_ENABLED(CONFIG_CRYPTO_DUMMY_VERIFY))
+		return 0;
+
 	switch (key->type) {
 	case PUBLIC_KEY_TYPE_RSA:
 		return rsa_verify(key->rsa, sig, sig_len, hash, algo);
