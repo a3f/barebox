@@ -1,0 +1,86 @@
+name: run fuzz tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/barebox/barebox/barebox-ci:latest
+      options: --user=root --privileged -v /dev:/dev
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build
+      run: |
+        LLVM=1 ./MAKEALL -O build-fuzz -a sandbox -l "" -v 0 \
+                libfuzzer_defconfig
+
+    - name: Upload build
+      uses: actions/upload-artifact@v4
+      with:
+        name: fuzz-build
+        path: build-fuzz/barebox
+
+  fuzz:
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/barebox/barebox/barebox-ci:latest
+      options: --user=root --privileged -v /dev:/dev
+
+    strategy:
+      fail-fast: false
+      matrix:
+        fuzzer:
+          - filetype
+          - fit
+          - jwt
+          - dtb
+          - fdt-compatible
+          - partitions
+          - dtb-overlay
+          - uncompress
+          - tlv
+
+    steps:
+    - name: Download build
+      uses: actions/download-artifact@v4
+      with:
+        name: fuzz-build
+
+    - name: Fetch corpus
+      uses: actions/checkout@v4
+      with:
+        repository: barebox/barebox-fuzz-corpora
+        path: corpora
+
+    - name: Run fuzzer
+      shell: bash
+      run: |
+        chmod +x barebox
+        set -o pipefail
+        LSAN_OPTIONS=exitcode=23 ./barebox --fuzz=${{ matrix.fuzzer }} \
+          -max_total_time=60 \
+          -timeout=10 \
+          -detect_leaks=1 \
+          -print_final_stats=1 \
+          corpora/${{ matrix.fuzzer }}/ \
+          2>&1 | tee fuzz-${{ matrix.fuzzer }}.log
+
+    - name: Print fuzzer output
+      if: always()
+      run: cat fuzz-${{ matrix.fuzzer }}.log
+
+    - name: Upload crashes and OOMs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: fuzz-${{ matrix.fuzzer }}-findings
+        path: |
+          crash-*
+          oom-*
+          timeout-*
+          slow-unit-*
