@@ -1553,6 +1553,16 @@ PHONY += coverage-html
 coverage-html: barebox.coverage_html
 	@echo "HTML coverage generated to $(objtree)/$<"
 
+PHONY += coverage-check
+coverage-check: default.profdata
+	$(PYTHON3) $(srctree)/scripts/check-coverage.py \
+		--llvm-cov "$(COV)" \
+		--profdata $< \
+		--binary $(objtree)/barebox \
+		--srctree $(srctree) \
+		--sources $(COVERAGE_SOURCES) \
+		$(if $(COVERAGE_FUNCTIONS),--functions "$(COVERAGE_FUNCTIONS)")
+
 # Generate tags for editors
 # ---------------------------------------------------------------------------
 quiet_cmd_tags = GEN     $@
