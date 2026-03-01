@@ -1122,6 +1122,13 @@ static int bootm_fit_register(void)
 }
 late_initcall(bootm_fit_register);
 
+static const enum bootm_verify fuzz_verify_modes[] = {
+	BOOTM_VERIFY_NONE,
+	BOOTM_VERIFY_HASH,
+	BOOTM_VERIFY_SIGNATURE,
+	BOOTM_VERIFY_AVAILABLE,
+};
+
 static int fuzz_fit(const u8 *data, size_t size)
 {
 	const char *unit, *imgname = "kernel";
@@ -1130,13 +1137,48 @@ static int fuzz_fit(const u8 *data, size_t size)
 	unsigned long outsize, addr;
 	int ret;
 	void *config;
+	u8 ctrl = 0;
+	struct public_key *saved_key = NULL;
+	int saved_key_id = -1;
+
+	if (size < sizeof(struct fdt_header))
+		return 0;
+
+	/*
+	 * If the buffer is larger than the FDT's totalsize, use the
+	 * first trailing byte as a control byte to vary fuzzer behavior.
+	 * Existing corpus entries where totalsize == buffersize get ctrl=0.
+	 */
+	if (fdt_magic(data) == FDT_MAGIC) {
+		uint32_t fdt_size = fdt_totalsize(data);
+
+		if (fdt_size >= sizeof(struct fdt_header) && fdt_size < size) {
+			ctrl = data[fdt_size];
+			size = fdt_size;
+		}
+	}
 
 	handle.verbose = false;
-	handle.verify = BOOTM_VERIFY_AVAILABLE;
+	handle.verify = fuzz_verify_modes[ctrl & 0x3];
 
 	handle.size = size;
 	handle.fit = data;
 	handle.fit_alloc = NULL;
+
+	/* Temporarily remove fit keys if bit 2 is set */
+	if (ctrl & 0x4) {
+		struct public_key *key;
+		int id;
+
+		idr_for_each_entry(&public_keys, key, id) {
+			if (key->keyring && !strcmp(key->keyring, "fit")) {
+				saved_key = key;
+				saved_key_id = id;
+				idr_remove(&public_keys, id);
+				break;
+			}
+		}
+	}
 
 	refcount_set(&handle.users, 1);
 
@@ -1166,6 +1208,11 @@ static int fuzz_fit(const u8 *data, size_t size)
 	ret = fit_open_image(&handle, NULL, imgname, 0, &outdata, &outsize);
 out:
 	__fit_close(&handle);
+
+	/* Restore removed key */
+	if (saved_key_id >= 0)
+		idr_alloc(&public_keys, saved_key, saved_key_id,
+			   saved_key_id + 1, GFP_NOWAIT);
 
 	return 0;
 }
