@@ -1110,7 +1110,7 @@ vmbarebox: barebox FORCE
 	$(call if_changed,objcopy)
 
 quiet_cmd_barebox_proper__ = CC      $@
-      cmd_barebox_proper__ = $(CC) -r -o $@ -Wl,--whole-archive $(BAREBOX_OBJS)
+      cmd_barebox_proper__ = $(CC) $(BAREBOX_RELOC_LDFLAGS) -r -o $@ -Wl,--whole-archive $(BAREBOX_OBJS)
 
 .tmp_barebox.o: $(BAREBOX_OBJS) $(kallsyms.o) FORCE
 	$(if $(CONFIG_KALLSYMS),,+$(call cmd,barebox_version))
