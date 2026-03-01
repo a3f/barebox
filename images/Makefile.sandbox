@@ -11,6 +11,7 @@ fuzzer-$(CONFIG_OFTREE)		+= fdt-compatible
 fuzzer-$(CONFIG_PARTITION)	+= partitions
 fuzzer-$(CONFIG_OF_OVERLAY)	+= dtb-overlay
 fuzzer-$(CONFIG_UNCOMPRESS)	+= uncompress
+fuzzer-$(CONFIG_TLV)		+= tlv
 
 ifeq ($(CONFIG_SANDBOX),y)
 

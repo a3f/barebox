@@ -315,3 +315,47 @@ struct tlv *tlv_next(const struct tlv_header *header,
 
 	return (void *)tlv;
 }
+
+#include <fuzz.h>
+
+static int fuzz_tlv(const u8 *data, size_t size)
+{
+	struct tlv_header *header;
+	struct tlv_device *tlvdev;
+	size_t total_len;
+	u16 sig_len;
+	u32 crc;
+
+	if (size < sizeof(struct tlv_header) + sizeof(__be32))
+		return 0;
+
+	header = xmemdup(data, size);
+
+	/* Force magic so the barebox_tlv_v1 decoder matches */
+	header->magic = cpu_to_be32(TLV_MAGIC_BAREBOX_V1);
+
+	/* Ensure length fields are consistent with buffer size */
+	sig_len = get_unaligned_be16(&header->length_sig);
+	if (sig_len + sizeof(*header) + sizeof(__be32) > size)
+		sig_len = 0;
+
+	put_unaligned_be16(sig_len, &header->length_sig);
+	put_unaligned_be32(size - sizeof(*header) - sig_len - sizeof(__be32),
+			   &header->length_tlv);
+
+	/* Fix up CRC so tlv_parse() reaches the TLV iteration loop */
+	total_len = tlv_total_len(header);
+	crc = crc32_be(~0, header, total_len - sizeof(__be32));
+	put_unaligned_be32(crc, (void *)header + total_len - sizeof(__be32));
+
+	tlvdev = tlv_register_device(header, NULL);
+	if (IS_ERR(tlvdev)) {
+		free(header);
+		return 0;
+	}
+
+	tlv_free_device(tlvdev);
+
+	return 0;
+}
+fuzz_test("tlv", fuzz_tlv);
