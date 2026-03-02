@@ -28,7 +28,7 @@ jobs:
             defconfig: modules32_defconfig
 
           - ARCH: arm
-            lgenv: test/arm/multi_v8_defconfig.yaml
+            lgenv: 'test/arm/*@multi_v8_defconfig.yaml'
             defconfig: multi_v8_defconfig
             lgargs: --runxfail
 
