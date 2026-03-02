@@ -30,7 +30,6 @@ jobs:
           - ARCH: arm
             lgenv: 'test/arm/*@multi_v8_defconfig.yaml'
             defconfig: multi_v8_defconfig
-            lgargs: --runxfail
 
           - ARCH: arm
             lgenv: 'test/arm/*@imx_v8_defconfig.yaml'
