@@ -43,7 +43,7 @@ int arch_remap_range(void *virt_addr, phys_addr_t phys_addr, size_t size, maptyp
 
 	while (ptr < (start + size)) {
 		esel = e500_find_tlb_idx((void *)ptr, 1);
-		if (esel == -1)
+		if (esel != -1)
 			break;
 		e500_read_tlbcam_entry(esel, &valid, &tsize, &epn,
 				&rpn);
