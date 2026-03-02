@@ -568,7 +568,7 @@ static inline size_t str_has_prefix(const char *str, const char *prefix)
 	return strncmp(str, prefix, len) == 0 ? len : 0;
 }
 
-static char *realpath_alloc(char *path)
+static char *selfpath_alloc(void)
 {
 	char *real;
 
@@ -578,8 +578,8 @@ static char *realpath_alloc(char *path)
 		exit(3);
 	}
 
-	if (!realpath(path, real)) {
-		perror("realpath");
+	if (selfpath(real, PATH_MAX) < 0) {
+		perror("readlink /proc/self/exe");
 		exit(EXIT_FAILURE);
 	}
 
@@ -589,17 +589,12 @@ static char *realpath_alloc(char *path)
 static void setup_external_fuzz_with_args(const char *fuzz, int *pargc, char **pargv[])
 {
 	char **argv = *pargv;
-	char *rlpath;
 	int ret;
-
-	rlpath = realpath_alloc(argv[0]);
-
-	asprintf(&argv[optind - 1], "%s/fuzz-%s", dirname(rlpath), fuzz);
-
-	free(rlpath);
 
 	*pargc -= optind - 1;
 	*pargv += optind - 1;
+
+	*pargv[0] = selfpath_alloc();
 
 	ret = setup_external_fuzz(fuzz, pargc, pargv);
 	if (ret) {
@@ -785,7 +780,6 @@ ENTRY_FUNCTION(sandbox_main, argc, argv)
 	char **args;
 	char *argv0;
 	size_t fuzz_off;
-	char *rlpath;
 
 	tcgetattr(0, &term_orig);
 
@@ -796,11 +790,7 @@ ENTRY_FUNCTION(sandbox_main, argc, argv)
 		if (!args)
 			exit(3);
 
-		rlpath = realpath_alloc(argv[0]);
-		asprintf(&args[0], "%s/barebox", dirname(rlpath));
-
-		free(rlpath);
-
+		args[0] = selfpath_alloc();
 		args[1] = "--fuzz";
 		args[2] = argv0 + fuzz_off;
 
