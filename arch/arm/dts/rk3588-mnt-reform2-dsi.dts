@@ -63,16 +63,18 @@
 		pinctrl-names = "default";
 	};
 
-	/*gpio-keys {
+	gpio-keys {
 		compatible = "gpio-keys";
+		pinctrl-0 = <&lpc_wakeup>;
+		pinctrl-names = "default";
 
-		wake {
+		key-wakeup {
 			label = "LPC GPIO Wakeup";
-			linux,code = <57>;
+			linux,code = <KEY_WAKEUP>;
 			gpios = <&gpio4 RK_PB2 GPIO_ACTIVE_HIGH>;
 			wakeup-source;
 		};
-	};*/
+	};
 
 	pcie30_avdd1v8: pcie30-avdd1v8 {
 		compatible = "regulator-fixed";
@@ -257,7 +259,10 @@
 /* internal HDMI */
 /* TODO: disable when HPD pulldown not fitted */
 &hdmi0 {
-	enable-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
+	/* for 6.17 */
+	tmds-enable-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
+	/* for 6.18 */
+	frl-enable-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
 	status = "disabled";
 };
 
@@ -273,7 +278,10 @@
 
 &hdmi1 {
 	/* external HDMI */
-	enable-gpios = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
+	/* for 6.17 */
+	tmds-enable-gpios = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
+	/* for 6.18 */
+	frl-enable-gpios = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 
 	pinctrl-names = "default";
@@ -946,6 +954,12 @@
 	backlight {
 		backlight_enable: backlight-enable {
 			rockchip,pins = <2 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	keys {
+		lpc_wakeup: lpc-wakeup {
+			rockchip,pins = <4 RK_PB2 RK_FUNC_GPIO &pcfg_pull_down>;
 		};
 	};
 
