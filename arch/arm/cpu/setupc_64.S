@@ -27,6 +27,7 @@ ENTRY(setup_c)
 ENDPROC(setup_c)
 
 .section .data.bss_cleared
+.balign 4
 bss_cleared:
 	.word 	0
 
