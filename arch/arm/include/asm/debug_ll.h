@@ -7,6 +7,10 @@
 #include <mach/imx/debug_ll.h>
 #endif
 
+#ifdef CONFIG_DEBUG_MESON_UART
+#include <mach/meson/debug_ll.h>
+#endif
+
 #ifdef CONFIG_DEBUG_ROCKCHIP_UART
 #include <mach/rockchip/debug_ll.h>
 #endif

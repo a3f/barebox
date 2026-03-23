@@ -389,6 +389,7 @@ struct clk_init_data {
 
 struct clk {
 	const struct clk_ops *ops;
+	struct device *dev;
 	int enable_count;
 	struct list_head list;
 	const char *name;
@@ -470,6 +471,10 @@ struct clk_divider {
 #define CLK_DIVIDER_HIWORD_MASK		(1 << 3)
 #define CLK_DIVIDER_READ_ONLY		(1 << 5)
 
+#define PRE_RATE_CHANGE			BIT(0)
+#define POST_RATE_CHANGE		BIT(1)
+#define CLK_DIVIDER_ROUND_CLOSEST	BIT(4)
+#define CLK_MUX_ROUND_CLOSEST		BIT(4)
 #define CLK_MUX_HIWORD_MASK		(1 << 2)
 #define CLK_MUX_READ_ONLY		(1 << 3) /* mux can't be changed */
 #define CLK_MUX_ROUND_CLOSEST		(1 << 4)

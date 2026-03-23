@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
+config AUXILIARY_BUS
+	bool
+
 config DEEP_PROBE_DEFAULT
 	bool "Probe devices recursively on-demand"
 	help

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# barebox image generation Makefile for Meson Amlogic images
+#
+
+pblb-$(CONFIG_MACH_AML_S905D3_CC) += start_aml_s905d3_cc
+FILE_barebox-aml-s905d3-cc.img = start_aml_s905d3_cc.pblb
+image-$(CONFIG_MACH_AML_S905D3_CC) += barebox-aml-s905d3-cc.img
+

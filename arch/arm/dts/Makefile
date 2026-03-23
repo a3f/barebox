@@ -138,6 +138,7 @@ lwl-$(CONFIG_MACH_RADXA_ROCK5) += \
 	rk3588-rock-5b.dtb.o \
 	rk3588-rock-5t.dtb.o
 lwl-$(CONFIG_MACH_RADXA_CM3) += rk3566-cm3-io.dtb.o
+lwl-$(CONFIG_MACH_AML_S905D3_CC) += aml-s905d3-cc.dtb.o
 lwl-$(CONFIG_MACH_PHYTEC_SOM_RK3288) += rk3288-phycore-som.dtb.o
 lwl-$(CONFIG_MACH_REALQ7) += imx6q-dmo-edmqmx6.dtb.o
 lwl-$(CONFIG_MACH_RK3562_EVB2) += rk3562-evb2-v10.dtb.o

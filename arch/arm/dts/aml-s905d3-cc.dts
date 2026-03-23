@@ -1,0 +1,8 @@
+/dts-v1/;
+
+#include <arm64/amlogic/meson-sm1-s905d3-libretech-cc.dts>
+#include "meson.dtsi"
+
+/ {
+
+};

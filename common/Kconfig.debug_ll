@@ -22,6 +22,9 @@ config DEBUG_LL
 config DEBUG_IMX_UART
 	bool
 
+config DEBUG_MESON_UART
+	bool
+
 config DEBUG_ROCKCHIP_UART
 	bool
 
@@ -82,6 +85,14 @@ config DEBUG_IMX35_UART
 	help
 	  Say Y here if you want kernel low-level debugging support
 	  on i.MX35.
+
+config DEBUG_MESON_UART
+	bool "Meson Amlogic Debug UART"
+	depends on ARCH_MESON
+#select DEBUG_MESON_UART
+	help
+	  Say Y here if you want kernel low-level debugging support
+	  on meson.
 
 config DEBUG_IMX50_UART
 	bool "i.MX50 Debug UART"
@@ -425,6 +436,13 @@ config DEBUG_K3_UART_PORT
 	  Choose UART port on which kernel low-level debug messages
 	  should be output. Possible values are:
 	  AM62x: 0 - 6
+
+config DEBUG_MESON_UART_PORT
+	int "MESON Debug UART Port Selection" if DEBUG_MESON_UART
+	default 0
+	depends on ARCH_MESON
+	help
+	  FIXMEEEEEEEEEEEEEEE
 
 config DEBUG_OMAP_UART_PORT
 	int "OMAP Debug UART Port Selection" if DEBUG_OMAP3_UART || \

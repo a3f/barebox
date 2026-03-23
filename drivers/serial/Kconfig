@@ -42,6 +42,12 @@ config DRIVER_SERIAL_STM32
 	depends on ARCH_STM32
 	bool "stm32 serial driver"
 
+config DRIVER_SERIAL_MESON
+	depends on ARCH_MESON
+	depends on CPU_V8
+	default y
+	bool "meson serial driver"
+
 config DRIVER_SERIAL_STM378X
 	depends on ARCH_MXS
 	default y

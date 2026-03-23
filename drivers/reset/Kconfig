@@ -63,4 +63,6 @@ config RESET_SOCFPGA32
 	help
 	  This enables the reset controller driver for 32-bit SoCFPGA platforms.
 
+source "drivers/reset/amlogic/Kconfig"
+
 endif

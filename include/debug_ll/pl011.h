@@ -22,16 +22,16 @@ static inline void debug_ll_pl011_putc(void __iomem *base, int c)
 #error DEBUG_LL_UART_ADDR is undefined!
 #endif
 
-static inline void PUTC_LL(char c)
-{
-	void __iomem *base = IOMEM(DEBUG_LL_UART_ADDR);
-
-	debug_ll_pl011_putc(base, c);
-
-	/* Wait to make sure it hits the line, in case we die too soon. */
-	while (readl(base + UART01x_FR) & UART01x_FR_TXFF)
-		;
-}
+//static inline void PUTC_LL(char c)
+//{
+//	void __iomem *base = IOMEM(DEBUG_LL_UART_ADDR);
+//
+//	debug_ll_pl011_putc(base, c);
+//
+//	/* Wait to make sure it hits the line, in case we die too soon. */
+//	while (readl(base + UART01x_FR) & UART01x_FR_TXFF)
+//		;
+//}
 
 #endif
 

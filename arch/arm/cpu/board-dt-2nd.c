@@ -19,6 +19,8 @@ void dt_2nd_aarch64(void *fdt)
 {
 	unsigned long membase, memsize;
 
+	//writel(0, 0x500000001);
+	putc_ll('>');
 	putc_ll('>');
 
 	/* entry point already set up stack */

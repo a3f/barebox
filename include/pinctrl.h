@@ -22,6 +22,9 @@ struct pinctrl_device {
 	unsigned int base, npins;
 };
 
+/* Convenience macro to define a single named or anonymous pin descriptor */
+#define PINCTRL_PIN(a, b) { .number = a, .name = b }
+
 int pinctrl_register(struct pinctrl_device *pdev);
 void pinctrl_unregister(struct pinctrl_device *pdev);
 

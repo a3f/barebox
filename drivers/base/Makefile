@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-only
 obj-y	+= bus.o
+obj-$(CONFIG_AUXILIARY_BUS)	+= auxiliary.o
 obj-y	+= driver.o
 obj-y	+= platform.o
 obj-y	+= resource.o

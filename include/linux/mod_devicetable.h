@@ -37,4 +37,11 @@ struct tee_client_device_id {
 	uuid_t uuid;
 };
 
+#define AUXILIARY_NAME_SIZE 32
+
+struct auxiliary_device_id {
+	char name[AUXILIARY_NAME_SIZE];
+	unsigned long driver_data;
+};
+
 #endif /* LINUX_MOD_DEVICETABLE_H */

@@ -67,7 +67,7 @@ int clk_enable(struct clk *clk)
 		if (ret)
 			return ret;
 
-		if (clk->ops->enable) {
+		if (clk->ops && clk->ops->enable) {
 			ret = clk->ops->enable(hw);
 			if (ret) {
 				clk_parent_disable(clk);
@@ -853,6 +853,7 @@ struct clk *clk_register(struct device *dev, struct clk_hw *hw)
 	clk->name = xstrdup(init->name);
 	clk->ops = init->ops;
 	clk->num_parents = init->num_parents;
+	clk->dev = dev;
 
 	clk->parents = xzalloc(sizeof(struct clk *) * clk->num_parents);
 
@@ -874,7 +875,7 @@ struct clk *clk_register(struct device *dev, struct clk_hw *hw)
 				ret = clk_cpy_name(&parent_names[i],
 						   init->parent_data[i].name,
 						   true);
-				if (ret) {
+				if (ret && init->parent_data[i].hw) {
 					ret = clk_cpy_name(&parent_names[i],
 							   init->parent_data[i].hw->clk.name,
 							   false);
