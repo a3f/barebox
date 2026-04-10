@@ -1,0 +1,20 @@
+/include/ "../../../dts/src/arm/xilinx/zynq-zturn-v5.dts"
+#include "zynq-7000.dtsi"
+
+/ {
+	barebox,disable-deep-probe;
+
+	chosen {
+		stdout-path = &uart1;
+
+		environment-sd {
+			compatible = "barebox,environment";
+			device-path = &sdhci0, "partname:0";
+			file-path = "barebox.env";
+		};
+	};
+};
+
+&sdhci0 {
+	bus-width = <4>;
+};

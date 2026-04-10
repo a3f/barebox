@@ -1,0 +1,4 @@
+#include <zynq/zynq7000-header-regs.h>
+
+/* stop */
+wm 32 0xFFFFFFFF			0x00000000

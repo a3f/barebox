@@ -164,6 +164,7 @@ obj-$(CONFIG_MACH_USI_TOPKICK)			+= usi-topkick/
 obj-$(CONFIG_MACH_VERSATILEPB)			+= versatile/
 obj-$(CONFIG_MACH_VEXPRESS)			+= vexpress/
 obj-$(CONFIG_MACH_ZEDBOARD)			+= avnet-zedboard/
+obj-$(CONFIG_MACH_MYIRTECH_ZTURN)		+= myirtech-zturn/
 obj-$(CONFIG_MACH_VARISCITE_MX6)		+= variscite-mx6/
 obj-$(CONFIG_MACH_VARISCITE_SOM_MX7)		+= variscite-som-mx7/
 obj-$(CONFIG_MACH_VSCOM_BALTOS)			+= vscom-baltos/

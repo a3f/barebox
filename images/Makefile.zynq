@@ -22,3 +22,5 @@ $(obj)/%.zynqimg: $(obj)/% FORCE
 CFG_start_avnet_zedboard.pblb.zynqimg = $(board)/avnet-zedboard/zedboard.zynqcfg
 FILE_barebox-avnet-zedboard.img = start_avnet_zedboard.pblb.zynqimg
 image-$(CONFIG_MACH_ZEDBOARD) += barebox-avnet-zedboard.img
+
+image-$(CONFIG_MACH_MYIRTECH_ZTURN) += start_myir_zturn.elf

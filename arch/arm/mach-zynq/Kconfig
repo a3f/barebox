@@ -4,7 +4,7 @@ if ARCH_ZYNQ
 
 config ZYNQ_DEBUG_LL_UART_BASE
 	hex
-	default 0xe0001000 if MACH_ZEDBOARD
+	default 0xe0001000 if MACH_ZEDBOARD || MACH_MYIRTECH_ZTURN
 
 config ARCH_ZYNQ7000
 	bool
@@ -20,6 +20,10 @@ menu "select Zynq boards to be built"
 
 config MACH_ZEDBOARD
 	bool "Avnet Zynq-7000 ZedBoard"
+	select ARCH_ZYNQ7000
+
+config MACH_MYIRTECH_ZTURN
+	bool "Myirtech Zynq-7000 Zturn"
 	select ARCH_ZYNQ7000
 
 endmenu
