@@ -51,9 +51,12 @@ quiet_cmd_objcopy_bin = OBJCOPYB $@
 		$(objtree)/scripts/fix_size -i -f $@
 
 pbl-lds := $(obj)/pbl.lds
-extra-y += $(pbl-lds)
+elfexe-lds := $(obj)/elf_exec.lds
+extra-y += $(pbl-lds) $(elfexe-lds)
 
 $(pbl-lds): $(obj)/../arch/$(SRCARCH)/lib/pbl.lds.S FORCE
+	$(call if_changed_dep,cpp_lds_S)
+$(elfexe-lds): $(obj)/elf_exec.lds.S FORCE
 	$(call if_changed_dep,cpp_lds_S)
 
 ifeq ($(CONFIG_PBL_IMAGE_NO_PIGGY),)
@@ -69,6 +72,10 @@ quiet_cmd_elf__ ?= LD      $@
 		-T $(pbl-lds)						\
 		--whole-archive $(BAREBOX_PBL_OBJS) $(BAREBOX_PIGGY_OBJS) \
 
+quiet_cmd_elf_exe__ ?= LD      $@
+      cmd_elf_exe__ ?= $(LD) -b binary -o $@ -T $(elfexe-lds) \
+		       $(LDFLAGS_elf) -z stack-size=0 $(LDFLAGS_$(@F)) $<
+
 PBL_CPPFLAGS	+= -fdata-sections -ffunction-sections
 
 define rule_elf
@@ -78,6 +85,9 @@ endef
 
 $(obj)/%.pbl: $(pbl-lds) $(BAREBOX_PBL_OBJS) $(BAREBOX_PIGGY_OBJS) FORCE
 	$(call if_changed_rule,elf)
+
+$(obj)/%.elf.exe: $(obj)/%.img $(elfexe-lds) FORCE
+	$(call cmd,elf_exe__)
 
 $(obj)/%.elf: $(pbl-lds) $(BAREBOX_PBL_OBJS) $(BAREBOX_PIGGY_OBJS) FORCE
 	$(call if_changed_rule,elf)

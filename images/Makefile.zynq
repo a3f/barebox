@@ -23,4 +23,6 @@ CFG_start_avnet_zedboard.pblb.zynqimg = $(board)/avnet-zedboard/zedboard.zynqcfg
 FILE_barebox-avnet-zedboard.img = start_avnet_zedboard.pblb.zynqimg
 image-$(CONFIG_MACH_ZEDBOARD) += barebox-avnet-zedboard.img
 
-image-$(CONFIG_MACH_MYIRTECH_ZTURN) += start_myir_zturn.elf
+FILE_barebox-myir-zturn.img = start_myir_zturn.pblb
+LDFLAGS_barebox-myir-zturn.elf.exe = --defsym BAREBOX_ELF_LOADADDR=0x04000000
+image-$(CONFIG_MACH_MYIRTECH_ZTURN) += barebox-myir-zturn.elf.exe
