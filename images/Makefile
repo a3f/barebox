@@ -74,7 +74,7 @@ quiet_cmd_elf__ ?= LD      $@
 
 quiet_cmd_elf_exe__ ?= LD      $@
       cmd_elf_exe__ ?= $(LD) -b binary -o $@ -T $(elfexe-lds) \
-		       $(LDFLAGS_elf) -z stack-size=0 $(LDFLAGS_$(@F)) $<
+		       $(LDFLAGS_pbl) -z stack-size=0 $(LDFLAGS_$(@F)) $<
 
 PBL_CPPFLAGS	+= -fdata-sections -ffunction-sections
 
