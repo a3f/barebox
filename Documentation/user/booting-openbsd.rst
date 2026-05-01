@@ -3,7 +3,7 @@
 Booting OpenBSD
 ===============
 
-barebox can boot OpenBSD on EFI-capable ARM64 systems.  It acts as an EFI
+barebox can boot OpenBSD for EFI-capable ARM64 systems.  It acts as an EFI
 loader, exposing EFI protocols (block devices, GOP framebuffer, RNG, …) to
 subsequently loaded EFI binaries before handing off to the OS.
 
@@ -27,7 +27,6 @@ or to persist:
 
 .. code-block:: sh
 
-  #!/bin/sh
   nv boot.default=virtioblk0
 
 Framebuffer console
