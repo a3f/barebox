@@ -238,7 +238,7 @@ static int __nvvar_add(const char *name, const char *value)
 	}
 
 	/* Create corresponding globalvar if it doesn't exist yet */
-	ret = globalvar_add_simple(name, value);
+	ret = globalvar_add_simple(name, NULL);
 	if (ret && ret != -EEXIST)
 		return ret;
 
