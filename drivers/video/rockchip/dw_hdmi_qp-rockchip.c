@@ -64,8 +64,6 @@ static int dw_hdmi_qp_rk3588_mode_set(struct dw_hdmi_qp *dw_hdmi, void *data,
 {
 	struct rockchip_hdmi_qp *hdmi = data;
 
-	dev_err(hdmi->dev, "dw_hdmi_qp_rk3588_mode_set mode->clock: %d\n", mode->clock);
-
 	/* Unconditionally switch to TMDS as FRL is not yet supported */
 	gpiod_set_value(hdmi->enable_gpio, 1);
 
