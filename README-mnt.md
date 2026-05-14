@@ -22,9 +22,52 @@ make -j8
 
 ## Install
 
-sudo dd if=images/barebox-mnt-reform2-rk3588.img of=/dev/sdX seek=64
+Create a bootable microSD card by copying the barebox image for your hardware:
+
+`sudo dd if=images/barebox-mnt-reform2-rk3588.img of=/dev/sdX seek=64`
+
+(Note the seek to make sure that the partitioning doesn't conflict with the area barebox is written to).
 
 ## Note: Erase eMMC u-boot first stage to be able to test microSD boot
 
-dd if=/dev/zero bs=512 seek=64 of=/dev/mmcblk0 count=2
+`sudo dd if=/dev/zero bs=512 seek=64 of=/dev/mmcblk0 count=2`
 
+## Flashing to eMMC
+
+**WARNING:**
+It is highly recommended to test the barebox image by booting it off microSD first before flashing to emmc. If there is an issue with the barebox image, or a bad flash, the system may no longer be able to boot and will likely require specific hardware to recover.
+
+### From within linux:
+
+After testing the barebox microSD image, the same image can be written to emmc by copying the microSD card contents to emmc:
+
+```bash
+# Recommended: Create a backup first
+sudo dd if=/dev/mmcblk0 bs=1M count=10 of=emmc-backup.bin
+# Copy the contents of the microSD card to emmc
+sudo dd if=/dev/sdX of=/dev/mmcblk0 bs=1M count=10
+```
+
+or by writing the barebox image to emmc directly similarly to how the bootable microSD card was created:
+
+`sudo dd if=/path/to/barebox.img of=/dev/mmcblk0 seek=64`
+
+### From within barebox
+
+Barebox can flash a barebox image to emmc and if it's able to will do so in a fail safe way. To do this, put the barebox image on an external USB storage device, plug it into the reform and then boot barebox. You may need to run `usb` for the external drive to be detected if barebox was booted first. The device file should appear as /dev/diskX, and should automount when /mnt/diskX.Y is accessed, but you may need mount it manually if this doesn't happen. Once the external drive with the barebox image is mounted and accessible within barebox, run the following command to flash barebox to emmc:
+
+`barebox_update -d /dev/mmc0 /path/to/barebox.img`
+
+The same process can be used to update barebox.
+
+## Uninstall
+
+To revert back to u-boot, boot the Reform system image from microSD and run 
+
+`reform-flash-bootloader emmc`
+
+If this fails with a message that existing partitions would be overidden by the bootloader, you may need to delete or move partitions.
+
+If for some reason barebox cannot boot the system image from microSD, you can use barebox's erase command to wipe the emmc so that microSD will be booted from instead:
+
+`erase /dev/mmc0 0x8000+0x10M`
