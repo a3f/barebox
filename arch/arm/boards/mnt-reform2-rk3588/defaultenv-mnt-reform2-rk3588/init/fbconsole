@@ -13,6 +13,7 @@ clk_set_parent lpll pll_lpll
 
 
 fb0.enable=1
+fb0.register_simplefb=stdout-path
 msleep 200
 fbconsole0.active=oe
 fbconsole0.rotation=270
