@@ -2,6 +2,7 @@
 #include <bootsource.h>
 #include <common.h>
 #include <deep-probe.h>
+#include <envfs.h>
 #include <init.h>
 #include <mach/rockchip/bbu.h>
 #include <gpio.h>
@@ -40,6 +41,8 @@ static int reform2_rk3588_probe(struct device *dev)
 	gpio_direction_output(USB_HUB_RESET, 0);
 	mdelay(10);
 	gpio_set_value(USB_HUB_RESET, 1);
+
+	defaultenv_append_directory(defaultenv_mnt_reform2_rk3588);
 
 	return 0;
 }

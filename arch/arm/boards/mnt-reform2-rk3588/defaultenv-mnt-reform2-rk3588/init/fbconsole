@@ -11,11 +11,17 @@ clk_set_parent b0pll pll_b0pll
 clk_set_parent b1pll pll_b1pll
 clk_set_parent lpll pll_lpll
 
+
 fb0.enable=1
 msleep 200
 fbconsole0.active=oe
 fbconsole0.rotation=270
 fbconsole0.font=TER16x32
 
-usb
+# Wait 3 seconds before scanning for USB devices
+echo -n "Hit any key to abort scanning for USB devices: "
+timeout -a 3
+if [ $? == 0 ]; then
+    usb
+fi
 
