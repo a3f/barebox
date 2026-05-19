@@ -58,6 +58,8 @@ Barebox can flash a barebox image to emmc and if it's able to will do so in a fa
 
 `barebox_update -d /dev/mmc0 /path/to/barebox.img`
 
+Note: Sometimes this command can fail the first time with an IO error. If this happens, try re-running the command. 
+
 The same process can be used to update barebox.
 
 ## Uninstall
