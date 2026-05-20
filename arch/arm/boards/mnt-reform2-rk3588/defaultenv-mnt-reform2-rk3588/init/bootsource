@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ -n "$nv.boot.default" ]; then
+	exit
+fi
+
+# Same as default, without "net"
+global.boot.default="efibootmgr bootsource storage.builtin.nonbootsource storage.removable.nonbootsource"
