@@ -75,7 +75,7 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 
 	handoff_data = (void *)barebox_base + ALIGN(uncompressed_len, 8) + MAX_BSS_SIZE;
 
-	pbl_malloc_init(barebox_base - PBL_MALLOC_SIZE, PBL_MALLOC_SIZE);
+	pbl_malloc_init(barebox_malloc_base(membase, memsize), PBL_MALLOC_SIZE);
 
 #ifdef DEBUG
 	print_pbl_mem_layout(membase, endmem, barebox_base);

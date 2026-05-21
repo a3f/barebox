@@ -95,10 +95,12 @@ void *barebox_arm_boot_dtb(void);
  *                       + BSS) rounded to SZ_1M
  *                                   ↓
  *  ---------------------- arm_mem_barebox_image() ---------------------
+ *                                   ↕
+ *  ----------------------- pbl_malloc area end ------------------------
  *                                   ↑
- *                                SZ_128K
+ *                            PBL_MALLOC_SIZE
  *                                   ↓
- *  ------------------------ arm_mem_early_malloc ----------------------
+ *  ----------------------- pbl_malloc area start ----------------------
  */
 void print_pbl_mem_layout(ulong membase, ulong endmem, ulong barebox_base);
 
