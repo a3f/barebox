@@ -156,19 +156,7 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 		armv7r_mpu_init_coherent(malloc_end, REGION_8MB);
 	}
 
-	/*
-	 * Maximum malloc space is the Kconfig value if given
-	 * or 1GB.
-	 */
-	if (MALLOC_SIZE > 0) {
-		malloc_start = malloc_end - MALLOC_SIZE;
-		if (malloc_start < membase)
-			malloc_start = membase;
-	} else {
-		malloc_start = malloc_end - (malloc_end - membase) / 2;
-		if (malloc_end - malloc_start > SZ_1G)
-			malloc_start = malloc_end - SZ_1G;
-	}
+	malloc_start = barebox_malloc_base(membase, memsize);
 
 	pr_debug("initializing malloc pool at 0x%08lx (size 0x%08lx)\n",
 			malloc_start, malloc_end - malloc_start);
