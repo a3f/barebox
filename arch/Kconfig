@@ -98,6 +98,20 @@ config ARCH_HAS_MALLOC_SIZE
 	  This is selected by architectures, where CONFIG_MALLOC_SIZE
 	  can be used to specify an exact size of the malloc area.
 
+	  Eventually, this should only be selected by sandbox, with
+	  everyone else switched over to ARCH_HAS_MALLOC_OFFSET.
+
+config ARCH_HAS_MALLOC_OFFSET
+	bool
+	help
+	  This is selected by architectures, where CONFIG_MALLOC_OFFSET
+	  can be used to specify the start offset of the malloc region
+	  with respect to the end of the initial memory.
+
+	  As this offset contains also the region reserved for barebox,
+	  it greatly simplifies memory layout calculation and allows
+	  to reserve the malloc region very early on.
+
 config HAVE_EFFICIENT_UNALIGNED_ACCESS
 	bool
 

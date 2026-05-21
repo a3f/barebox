@@ -33,11 +33,31 @@
 #define STACK_SIZE  CONFIG_STACK_SIZE
 #define SCRATCH_SIZE	CONFIG_SCRATCH_SIZE
 
+#ifndef __ASSEMBLY__
+
+#include <linux/minmax.h>
+#include <linux/sizes.h>
+
 /*
  * This generates a useless load from the specified symbol
  * to ensure linker garbage collection doesn't delete it
  */
 #define __keep_symbolref(sym)	\
 	__asm__ __volatile__("": :"r"(&sym) :)
+
+#ifdef CONFIG_MALLOC_OFFSET
+static inline unsigned long barebox_malloc_base(unsigned long membase,
+						unsigned long memsize)
+ {
+	 unsigned long offset = CONFIG_MALLOC_OFFSET;
+
+	 if (!offset)
+		 offset = min_t(unsigned long, memsize / 2, SZ_1G);
+
+	 return max_t(unsigned long, membase + memsize - offset, membase);
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
 
 #endif /* __ASM_GENERIC_MEMORY_LAYOUT_H */

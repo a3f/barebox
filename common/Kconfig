@@ -295,6 +295,42 @@ config MALLOC_SIZE
 	default 0
 	prompt "malloc area size" if ARCH_HAS_MALLOC_SIZE
 
+config MALLOC_OFFSET
+	hex
+	default 0
+	prompt "relative malloc base offset (optional)"
+	depends on ARCH_HAS_MALLOC_OFFSET
+	help
+	  Most boards should just leave this at the default zero and barebox
+	  will dynamically determine the start of its eventual malloc area.
+	  The currently employed heuristic is:
+
+	    - if the prebootloader reports 2GiB of initial memory or more,
+	      start the malloc area at offset 1GiB from initial memory end.
+
+	    - otherwise, start the malloc area at middle of initial memory
+
+	  The malloc area is used for dynamic allocations by barebox, e.g.
+	  to uncompress a kernel. The placement of final boot artifacts happens
+	  outside of the malloc area and is not restricted to the initial
+	  memory reported by the prebootloader.
+
+	  As this heuristic may not be suitable for devices with tight memory
+	  constraints, setting a non-zero value here allows customizing the
+	  offset used to start the malloc area.
+
+	  The MALLOC_OFFSET is calculated from end of initial memory to start
+	  of the malloc area and as such, it also contains the region allocated
+	  for barebox itself. This inclusion of the barebox area differentiates
+	  this option from non-zero CONFIG_MALLOC_SIZE, but in return allows
+	  barebox to compute the start of the malloc area very early before it
+	  can know how much space barebox proper will eventually occupy.
+
+	  The iomem command can be used to determine at runtime how much space
+	  barebox requires for itself.
+
+	  If unsure, keep the default of 0x0.
+
 config SCRATCH_SIZE
 	hex
 	default 0x8000
