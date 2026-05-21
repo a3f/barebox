@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: GPL-2.0-only
 menu "Clocksource"
 
+config CLOCKSOURCE_RUNTIME_SELECT
+	bool
+
 config ARCH_HAS_IMX_GPT
        bool
 

@@ -23,6 +23,9 @@ struct clocksource {
 	uint64_t	mask;
 	int		priority;
 	int		(*init)(struct clocksource*);
+#ifdef CONFIG_CLOCKSOURCE_RUNTIME_SELECT
+	struct list_head list;
+#endif
 };
 
 static inline uint64_t cyc2ns(struct clocksource *cs, uint64_t cycles)
@@ -86,5 +89,10 @@ extern uint64_t time_beginning;
 	}							\
 	__ret;							\
 })
+
+#ifdef CONFIG_CLOCKSOURCE_RUNTIME_SELECT
+extern struct list_head clocksource_list;
+extern struct clocksource *current_clock;
+#endif
 
 #endif /* CLOCK_H */

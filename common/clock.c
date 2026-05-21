@@ -16,6 +16,15 @@
 #include <sched.h>
 #include <stdlib.h>
 
+LIST_HEAD(clocksource_list);
+
+static void clocksource_add(struct clocksource *cs)
+{
+#ifdef CONFIG_CLOCKSOURCE_RUNTIME_SELECT
+	list_add_tail(&cs->list, &clocksource_list);
+#endif
+}
+
 static uint64_t time_ns;
 
 static uint64_t dummy_read(void)
@@ -35,7 +44,7 @@ static struct clocksource dummy_cs = {
 	.priority = -1,
 };
 
-static struct clocksource *current_clock = IN_PROPER ? &dummy_cs : NULL;
+struct clocksource *current_clock = IN_PROPER ? &dummy_cs : NULL;
 
 static int dummy_csrc_warn(void)
 {
@@ -217,7 +226,7 @@ void clocksource_srand(void)
 int init_clock(struct clocksource *cs)
 {
 	if (current_clock && cs->priority <= current_clock->priority)
-		return 0;
+		goto out;
 
 	if (cs->init) {
 		int ret;
@@ -237,5 +246,7 @@ int init_clock(struct clocksource *cs)
 
 	srand_xor(cs->cycle_last);
 
+out:
+	clocksource_add(cs);
 	return 0;
 }

@@ -264,6 +264,14 @@ config CMD_BLKSTATS
 	  development. Saying y here will start to collect these statistics
 	  and enable a command for querying them.
 
+config CMD_CLOCKSOURCE
+	bool
+	prompt "clocksource command"
+	select CLOCKSOURCE_RUNTIME_SELECT
+	help
+	  The clocksource command lists the currently registered clocksources and
+	  allows switching between them.
+
 config CMD_REGULATOR
 	bool
 	depends on REGULATOR
