@@ -987,7 +987,7 @@
 };
 
 &usbdp_phy0 {
-	status = "okay";
+	status = "disabled";
 };
 
 /*&usbdp_phy0_dp {
@@ -999,7 +999,7 @@
 };*/
 
 &usbdp_phy1 {
-	status = "okay";
+	status = "disabled";
 };
 
 /*&usbdp_phy1_u3 {
