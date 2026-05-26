@@ -1019,11 +1019,16 @@ static int set_margin(struct param_d *p, void *vpriv)
 static int set_rotation(struct param_d *p, void *vpriv)
 {
 	struct fbc_priv *priv = vpriv;
+	struct console_device *cdev = &priv->cdev;
 
-	cls(priv);
+	if (cdev->f_active & (CONSOLE_STDOUT | CONSOLE_STDERR)) {
+		cls(priv);
+	}
 	priv->cur.x = priv->cur.y = 0;
 	priv->saved.x = priv->saved.y = 0;
-	setup_font(priv);
+	if (cdev->f_active & (CONSOLE_STDOUT | CONSOLE_STDERR)) {
+		setup_font(priv);
+	}
 
 	return 0;
 }
