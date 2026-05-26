@@ -1085,3 +1085,17 @@
 &mipidcphy1 {
 	status = "okay";
 };
+
+// Used to set the rate of scmi_spll, the rest should match rk5388.dtsi
+&scmi_clk {
+	assigned-clocks =
+		<&scmi_clk SCMI_CLK_CPUL>,
+		<&scmi_clk SCMI_CLK_CPUB01>,
+		<&scmi_clk SCMI_CLK_CPUB23>,
+		<&scmi_clk SCMI_SPLL>;
+	assigned-clock-rates =
+		<1200000000>,
+		<1200000000>,
+		<1200000000>,
+		<702000000>;
+};

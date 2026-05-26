@@ -1,7 +1,6 @@
 #!/bin/sh
 
 # FIXME: can it be done in DTS?
-clk_set_rate scmi_spll 702000000
 clk_set_parent v0pll pll_v0pll
 clk_set_rate pll_v0pll 1680000000
 clk_set_parent dclk_vop2_src v0pll
