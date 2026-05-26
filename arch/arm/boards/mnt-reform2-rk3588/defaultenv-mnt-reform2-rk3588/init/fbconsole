@@ -13,10 +13,5 @@ fbconsole0.rotation=270
 fbconsole0.font=TER16x32
 fbconsole0.active=oe
 
-# Wait 3 seconds before scanning for USB devices
-echo -n "Hit any key to abort scanning for USB devices: "
-timeout -a 3
-if [ $? == 0 ]; then
-    usb
-fi
-
+# Scan for USB devices
+usb
