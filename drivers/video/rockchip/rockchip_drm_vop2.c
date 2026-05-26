@@ -1132,7 +1132,7 @@ static void vop2_crtc_atomic_enable(struct vop2_video_port *vp,
 	if (vp->id == 2) {
 		vp->dclk_src = clk_get_parent(vp->dclk);
 		if (vp->dclk_src) {
-			pr_err("%s setting rate on %s, rate: %lu\n", __func__, vp->dclk_src->name, clock);
+			pr_debug("%s setting rate on %s, rate: %lu\n", __func__, vp->dclk_src->name, clock);
 			clk_set_rate(vp->dclk_src, clock);
 		}
 	}
