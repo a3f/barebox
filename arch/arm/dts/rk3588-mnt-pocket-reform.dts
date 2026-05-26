@@ -1061,8 +1061,8 @@
 };
 
 &dsi1_in {
-	dsi1_in_vp2: endpoint {
-		remote-endpoint = <&vp2_out_dsi1>;
+	dsi1_in_vp3: endpoint {
+		remote-endpoint = <&vp3_out_dsi1>;
 	};
 };
 
@@ -1072,13 +1072,10 @@
 	};
 };
 
-&vp2 {
-	assigned-clocks = <&cru DCLK_VOP2_SRC>;
-	assigned-clock-parents = <&cru PLL_V0PLL>;
-
-	vp2_out_dsi1: endpoint@ROCKCHIP_VOP2_EP_MIPI1 {
+&vp3 {
+	vp3_out_dsi1: endpoint@ROCKCHIP_VOP2_EP_MIPI1 {
 		reg = <ROCKCHIP_VOP2_EP_MIPI1>;
-		remote-endpoint = <&dsi1_in_vp2>;
+		remote-endpoint = <&dsi1_in_vp3>;
 	};
 };
 
