@@ -10,6 +10,7 @@
 #include <menu.h>
 #include <malloc.h>
 #include <slice.h>
+#include <string.h>
 #include <xfuncs.h>
 #include <errno.h>
 #include <readkey.h>
@@ -140,16 +141,24 @@ void menu_entry_free(struct menu_entry *me)
 }
 EXPORT_SYMBOL(menu_entry_free);
 
-static void __print_entry(const char *str)
+static void __print_entry_truncated(const char *str, int truncate)
 {
 	static char outstr[256];
-
 	if (IS_ENABLED(CONFIG_SHELL_HUSH)) {
 		process_escape_sequence(str, outstr, 256);
-		puts(outstr);
 	} else {
-		puts(str);
+		strncpy(outstr, str, 256);
 	}
+	if (truncate > 0 && truncate < 255)
+		outstr[truncate] = 0;
+
+	puts(outstr);
+}
+
+static void __print_entry(const char *str)
+{
+	__print_entry_truncated(str, 0);
+	
 }
 
 static void print_menu_entry(struct menu *m, struct menu_entry *me,
@@ -170,10 +179,29 @@ static void print_menu_entry(struct menu *m, struct menu_entry *me,
 	if (selected)
 		puts("\e[7m");
 
-	__print_entry(me->display);
+	if (m->truncate > 0) {
+		__print_entry_truncated(me->display, m->truncate);
+	} else {
+		__print_entry(me->display);
+	}
 
 	if (selected)
 		puts("\e[0m");
+}
+
+static void print_selected_full_text(struct menu *m, struct menu_entry *me)
+{
+	// Clear as much space as we need here
+	gotoXY(0, m->display_lines + m->nb_entries + 2);
+	printf("%*c", 32, ' ');
+	gotoXY(0, m->display_lines + m->nb_entries + 3);
+	printf("%*c", 256, ' ');
+	// Move the cursor back and then print the info
+	gotoXY(0, m->display_lines + m->nb_entries + 2);
+	puts("\e[7m");
+	printf(" Selected #%d \n", me->num);
+	puts("\e[0m");
+	__print_entry(me->display);
 }
 
 int menu_set_selected_entry(struct menu *m, struct menu_entry* me)
@@ -285,6 +313,9 @@ int menu_show(struct menu *m)
 	gotoXY(3, m->nb_entries + m->display_lines + 1);
 	printf("%*c", auto_display_len + 4, ' ');
 
+	if (m->truncate)
+		print_selected_full_text(m, m->selected);
+
 	gotoXY(3, m->selected->num + m->display_lines);
 
 	do {
@@ -376,6 +407,9 @@ int menu_show(struct menu *m)
 			break;
 		}
 
+		if (m->truncate)
+			print_selected_full_text(m, m->selected);
+
 		if (repaint) {
 			print_menu_entry(m, old_selected, 0);
 			print_menu_entry(m, m->selected, 1);
@@ -405,6 +439,7 @@ static void menu_action_show(struct menu *m, struct menu_entry *me)
 		return;
 
 	sm = menu_get_by_name(s->submenu);
+	sm->truncate = m->truncate;
 	if (sm)
 		menu_show(sm);
 	else

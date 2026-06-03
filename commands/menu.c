@@ -25,6 +25,7 @@ struct cmd_menu {
 	menu_action	action;
 	char		*description;
 	int		auto_select;
+	int 	truncate;
 #if defined(CONFIG_CMD_MENU_MANAGEMENT)
 	int		entry;
 	int		re_entrant;
@@ -37,10 +38,10 @@ struct cmd_menu {
 };
 
 #if defined(CONFIG_CMD_MENU_MANAGEMENT)
-#define OPTS		"m:earlc:d:RsSn:u:A:b:B:"
+#define OPTS		"m:earlc:d:RsSn:u:A:b:B:t:"
 #define	is_entry(x)	((x)->entry)
 #else
-#define OPTS		"m:lsA:d:"
+#define OPTS		"m:lsA:d:t:"
 #define	is_entry(x)	(0)
 #endif
 
@@ -221,6 +222,8 @@ static int do_menu_show(struct cmd_menu *cm)
 		m->auto_display = strdup_const(cm->description);
 	}
 
+	m->truncate = cm->truncate;
+
 	return menu_show(m);
 }
 
@@ -317,6 +320,7 @@ static int do_menu(int argc, char *argv[])
 	cm.auto_select = -EINVAL;
 #endif
 
+	cm.truncate = 0;
 	cm.action = action_show;
 
 	while((opt = getopt(argc, argv, OPTS)) > 0) {
@@ -335,6 +339,9 @@ static int do_menu(int argc, char *argv[])
 			break;
 		case 'd':
 			cm.description = optarg;
+			break;
+		case 't':
+			cm.truncate = simple_strtoul(optarg, NULL, 10);
 			break;
 #if defined(CONFIG_CMD_MENU_MANAGEMENT)
 		case 'e':

@@ -42,6 +42,8 @@ struct menu {
 	int auto_select;
 	const char *auto_display;
 
+	int truncate;
+
 	struct list_head list;
 	struct list_head entries;
 
@@ -63,6 +65,7 @@ static inline struct menu* menu_alloc(void)
 		INIT_LIST_HEAD(&m->entries);
 		m->nb_entries = 0;
 		m->auto_select = -1;
+		m->truncate = 0;
 	}
 	return m;
 }
