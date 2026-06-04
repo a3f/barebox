@@ -132,6 +132,22 @@ unsigned console_get_active(struct console_device *cdev)
 	return cdev->f_active;
 }
 
+unsigned console_get_width(struct console_device *cdev)
+{
+	int rows = 0, cols = 0;
+	/* Parameter will just report 0x0 on errors) */
+	(void)term_cdev_get_size(cdev, &cols, &rows);
+	return cols;
+}
+
+unsigned console_get_height(struct console_device *cdev)
+{
+	int rows = 0, cols = 0;
+	/* Parameter will just report 0x0 on errors) */
+	(void)term_cdev_get_size(cdev, &cols, &rows);
+	return rows;
+}
+
 static int console_active_set(struct param_d *param, void *priv)
 {
 	struct console_device *cdev = priv;

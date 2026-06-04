@@ -3,6 +3,7 @@
  * (C) Copyright 2009-2010 Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
  */
 
+#include "console.h"
 #include <common.h>
 #include <command.h>
 #include <environment.h>
@@ -164,7 +165,8 @@ static void __print_entry(const char *str)
 static void print_menu_entry(struct menu *m, struct menu_entry *me,
 			     int selected)
 {
-	gotoXY(3, me->num + m->display_lines);
+	int x_offset = 3;
+	gotoXY(x_offset, me->num + m->display_lines);
 
 	if (me->type == MENU_ENTRY_BOX) {
 		if (me->box_state)
@@ -174,13 +176,15 @@ static void print_menu_entry(struct menu *m, struct menu_entry *me,
 	} else {
 		puts("   ");
 	}
+	x_offset += 3;
 
 	printf(" %2d: ", me->num);
+	x_offset += 4;
 	if (selected)
 		puts("\e[7m");
 
-	if (m->truncate > 0) {
-		__print_entry_truncated(me->display, m->truncate);
+	if (m->truncate > x_offset) {
+		__print_entry_truncated(me->display, m->truncate - x_offset);
 	} else {
 		__print_entry(me->display);
 	}
@@ -278,9 +282,30 @@ int menu_show(struct menu *m)
 	int countdown;
 	int auto_display_len = 16;
 	uint64_t start, second;
+	int min_console_width = 255;
 
 	if(!m || list_empty(&m->entries))
 		return -EINVAL;
+
+	// Find the smallest console and truncate to that
+	for_each_console(cdev) {
+		const unsigned char active = CONSOLE_STDOUT;
+		int console_width;
+		if ((cdev->f_active & active) == active) {
+			console_width = console_get_width(cdev);
+			if (console_width > 0 && console_width < min_console_width) {
+				min_console_width = console_width;
+			}
+		}
+	}
+	// TODO(ailurux): Put this behind a config option?
+	// m->auto_truncate?
+	// If not explicitly truncated, auto truncate
+	// based on smallest available console
+	if (m->truncate <= 0) {
+		m->truncate = min_console_width;
+	}
+	
 
 	print_menu(m);
 

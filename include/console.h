@@ -114,6 +114,8 @@ int console_open(struct console_device *cdev, unsigned activate);
 int console_close(struct console_device *cdev);
 int console_set_active(struct console_device *cdev, unsigned active);
 unsigned console_get_active(struct console_device *cdev);
+unsigned console_get_width(struct console_device *cdev);
+unsigned console_get_height(struct console_device *cdev);
 int console_set_baudrate(struct console_device *cdev, unsigned baudrate);
 unsigned console_get_baudrate(struct console_device *cdev);
 void console_set_stdoutpath(struct console_device *cdev, unsigned baudrate);
