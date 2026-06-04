@@ -195,11 +195,9 @@ static void print_menu_entry(struct menu *m, struct menu_entry *me,
 
 static void print_selected_full_text(struct menu *m, struct menu_entry *me)
 {
-	// Clear as much space as we need here
+	// Clear the space underneath the menu 
 	gotoXY(0, m->display_lines + m->nb_entries + 2);
-	printf("%*c", 32, ' ');
-	gotoXY(0, m->display_lines + m->nb_entries + 3);
-	printf("%*c", 256, ' ');
+	puts("\e[J");
 	// Move the cursor back and then print the info
 	gotoXY(0, m->display_lines + m->nb_entries + 2);
 	puts("\e[7m");
