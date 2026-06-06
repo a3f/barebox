@@ -17,3 +17,4 @@ obj-$(CONFIG_PINCTRL_STM32) += pinctrl-stm32.o
 
 obj-$(CONFIG_ARCH_MVEBU) += mvebu/
 obj-$(CONFIG_ARCH_SUNXI) += sunxi/
+obj-y += mediatek/

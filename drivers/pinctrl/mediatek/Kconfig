@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: GPL-2.0-only
+menu "MediaTek pinctrl drivers"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+
+config PINCTRL_MTK_V2
+	tristate
+
+config PINCTRL_MTK_PARIS
+	tristate
+	depends on OF
+	select PINMUX
+	select GENERIC_PINCONF
+	select GPIOLIB
+	select PINCTRL_MTK_V2
+
+config PINCTRL_MT8186
+	bool "MediaTek MT8186 pin control"
+	depends on OF
+	depends on ARM64 || COMPILE_TEST
+	default ARM64 && ARCH_MEDIATEK
+	select PINCTRL_MTK_PARIS
+
+endmenu
