@@ -781,15 +781,15 @@ static int msdc_ops_send_cmd(struct mci_host *mci, struct mci_cmd *cmd)
 	struct msdc_host *host = to_msdc(mci);
 	int cmd_ret, data_ret;
 
-	cmd_ret = msdc_start_command(host, cmd, data);
+	cmd_ret = msdc_start_command(host, cmd, cmd->data);
 	if (cmd_ret &&
 	    !(cmd_ret == -EIO &&
 	    (cmd->cmdidx == MMC_SEND_TUNING_BLOCK ||
 	    cmd->cmdidx == MMC_SEND_TUNING_BLOCK_HS200)))
 		return cmd_ret;
 
-	if (data) {
-		data_ret = msdc_start_data(host, data);
+	if (cmd->data) {
+		data_ret = msdc_start_data(host, cmd->data);
 		if (cmd_ret)
 			return cmd_ret;
 		else
