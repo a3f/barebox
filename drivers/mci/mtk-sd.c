@@ -776,8 +776,7 @@ static int msdc_start_data(struct msdc_host *host, struct mci_data *data)
 	return ret;
 }
 
-static int msdc_ops_send_cmd(struct mci_host *mci, struct mci_cmd *cmd,
-			     struct mci_data *data)
+static int msdc_ops_send_cmd(struct mci_host *mci, struct mci_cmd *cmd)
 {
 	struct msdc_host *host = to_msdc(mci);
 	int cmd_ret, data_ret;
