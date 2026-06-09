@@ -1,16 +1,21 @@
 #!/bin/sh
 
-
 # FIXME: investigate why these are not parented by default
 clk_set_parent b0pll pll_b0pll
 clk_set_parent b1pll pll_b1pll
 clk_set_parent lpll pll_lpll
+
+splash=/env/logo.png
+
+splash -x 0 -y 0 ${splash}
 
 fb0.enable=1
 fb0.register_simplefb=stdout-path
 msleep 200
 fbconsole0.rotation=270
 fbconsole0.font=TER16x32
+# Leave space for the splash image
+fbconsole0.margin.top=128
 fbconsole0.active=oe
 
 # Scan for USB devices

@@ -1253,8 +1253,10 @@ CONFIG_LIBFDT=y
 CONFIG_IMAGE_RENDERER=y
 CONFIG_2D_PRIMITIVES=y
 # CONFIG_BMP is not set
-# CONFIG_PNG is not set
+CONFIG_PNG=y
 # CONFIG_QOI is not set
+CONFIG_LODEPNG=y
+# CONFIG_PICOPNG is not set
 # end of Library gui routines
 
 CONFIG_FONTS=y
