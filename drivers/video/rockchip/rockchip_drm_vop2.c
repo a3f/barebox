@@ -1656,12 +1656,9 @@ static int vop2_register_plane(struct vop2_video_port *vp, struct vop2_win *win)
 	info->dev.parent = vop2->dev;
 
 	if (win->type == DRM_PLANE_TYPE_PRIMARY) {
-    
-    dev_err(vop2->dev, "vpl_ioctl to vp.vpl->node: %p vp_id: %d\n", &vp->vpl.node, vp->id);
-  
 		ret = vpl_ioctl(&vp->vpl, vp->id, VPL_GET_VIDEOMODES, &info->modes);
 		if (ret) {
-			dev_err(vop2->dev, "failed to get modes: %pe\n", ERR_PTR(ret));
+			dev_dbg(vop2->dev, "failed to get modes: %pe\n", ERR_PTR(ret));
 			return ret;
 		}
 

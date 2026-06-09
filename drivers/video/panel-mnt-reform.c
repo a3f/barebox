@@ -614,13 +614,11 @@ static int jdi_panel_add(struct jdi_panel *jdi)
 
 	jdi->reset_gpio = gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
 	if (IS_ERR(jdi->reset_gpio))
-		dev_err_probe(dev, PTR_ERR(jdi->reset_gpio),
-			      "cannot get reset-gpios %d\n", ret);
+		dev_dbg(dev,"cannot get reset-gpios %d\n", ret);
 
 	jdi->dcdc_en_gpio = gpiod_get(dev, "dcdc-en", GPIOD_OUT_LOW);
 	if (IS_ERR(jdi->dcdc_en_gpio))
-		dev_err_probe(dev, PTR_ERR(jdi->dcdc_en_gpio),
-			      "cannot get dcdc-en-gpio %d\n", ret);
+		dev_dbg(dev, "cannot get dcdc-en-gpio %d\n", ret);
 
 	return 0;
 }
@@ -670,11 +668,11 @@ static int jdi_panel_probe(struct mipi_dsi_device *dsi)
 	// // on a311d it works only without burst, but imx8mplus needs burst mode
 	if (of_property_present(dsi->dev.of_node, "burst-mode")) {
 		dsi->mode_flags |= MIPI_DSI_MODE_VIDEO_BURST;
-		dev_warn(&dsi->dev, "DSI burst mode enabled via device tree\n");
+		dev_info(&dsi->dev, "DSI burst mode enabled via device tree\n");
 	}
 	if (of_property_present(dsi->dev.of_node, "no-eot-hfp-hbp-hsa")) {
 		dsi->mode_flags |= MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_MODE_VIDEO_HFP | MIPI_DSI_MODE_VIDEO_HBP | MIPI_DSI_MODE_VIDEO_HSA;
-		dev_warn(&dsi->dev, "DSI eot/hfp/hbp/hsa disabled via device tree\n");
+		dev_info(&dsi->dev, "DSI eot/hfp/hbp/hsa disabled via device tree\n");
 	}
 
 	jdi = devm_kzalloc(&dsi->dev, sizeof(*jdi), GFP_KERNEL);
