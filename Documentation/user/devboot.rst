@@ -200,6 +200,23 @@ script is loaded. Make them persistent with:
 ``global.hostname`` is typically derived from the device tree, but can be
 overridden.
 
+devboot boot target
+^^^^^^^^^^^^^^^^^^^
+
+``devboot`` is available as boot entry as well, so it can be used
+wherever a boot target is expected. The boot target to hand the
+overrides to is appended after an ``@``:
+
+.. code-block:: sh
+
+   boot devboot@system0
+
+This is most useful to boot with the overrides by default:
+
+.. code-block:: sh
+
+   nv boot.default=devboot@system0
+
 Forwarding a remote build directory over the internet
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
