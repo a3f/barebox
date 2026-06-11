@@ -73,3 +73,44 @@ If this fails with a message that existing partitions would be overidden by the 
 If for some reason barebox cannot boot the system image from microSD, you can use barebox's erase command to wipe the emmc so that microSD will be booted from instead:
 
 `erase /dev/mmc0 0x8000+0x10M`
+
+## Booting OpenBSD
+
+Note: OpenBSD is configured to use the framebuffer console by default. To use the serial console instead, run the following from Barebox before booting OpenBSD:
+```
+fb0.register_simplefb=enabled
+```
+
+There are a couple of device drivers that are known to cause OpenBSD to hang when booting. These drivers can be disabled by entering `boot -c` at OpenBSD's `boot>` prompt, then enter the following at the `UKC>` prompt:
+```
+UKC> disable rkusbdpphy*
+UKC> disable rkdrm*
+UKC> quit
+```
+
+Keyboard input may not be functional at this stage however. In this case, you can disable these devices from Barebox using [of_property](https://www.barebox.org/doc/latest/commands/misc/of_property.html#command-of-property) before booting OpenBSD:
+
+```
+of_property -s -f /phy@fed80000/ status disabled
+of_property -s -f /phy@fed90000/ status disabled
+of_property -s -f /display-subsystem/ status disabled
+boot
+```
+
+It is recommended to create a new kernel configuration disabling these drivers using the [config](https://man.openbsd.org/config.8) tool to avoid needing to do this on every boot.  Once booted into OpenBSD create `/etc/bsd.re-config` with the following contents:
+```
+disable rkusbdpphy*
+disable rkdrm*
+```
+Then run:
+```
+# Back up the existing kernel
+cp /bsd /bsd.bak
+
+# Overwrite the kernel with the new config
+config -e -c /etc/bsd.re-config -f /bsd
+```
+
+See also: https://man.openbsd.org/boot_config.8
+
+
