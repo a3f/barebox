@@ -5,6 +5,7 @@
 #include <linux/types.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/pinctrl/pinconf-generic.h>
+#include <linux/pinctrl/pinmux.h>
 
 struct pinctrl_device;
 struct pinconf_param;
@@ -45,6 +46,7 @@ struct pinctrl_ops {
 struct pinctrl_device {
 	struct device *dev;
 	const struct pinctrl_ops *ops;
+	const struct pinmux_ops *pmxops;
 	const struct pinconf_ops *confops;
 	struct list_head list;
 	struct device_node *node;

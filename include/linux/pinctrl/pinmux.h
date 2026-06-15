@@ -14,7 +14,7 @@
 
 #include <linux/types.h>
 
-struct pinctrl_dev;
+struct pinctrl_device;
 
 /**
  * struct pinmux_ops - pinmux operations, to be implemented by pin controller
@@ -35,17 +35,26 @@ struct pinctrl_dev;
  *	are handled by the pinmux subsystem. The @func_selector selects a
  *	certain function whereas @group_selector selects a certain set of pins
  *	to be used. On simple controllers the latter argument may be ignored
+ * @dt_pinmux_to_group: barebox-specific helper to decode one packed vendor
+ *	pinmux property cell into function and group selectors for @set_mux.
+ *	Linux drivers normally do this in @dt_node_to_map; barebox applies
+ *	pinctrl DT nodes directly at set_state time and does not keep maps.
  */
 struct pinmux_ops {
-	int (*get_functions_count) (struct pinctrl_dev *pctldev);
-	const char *(*get_function_name) (struct pinctrl_dev *pctldev,
+	int (*get_functions_count)(struct pinctrl_device *pctldev);
+	const char *(*get_function_name)(struct pinctrl_device *pctldev,
 					  unsigned int selector);
-	int (*get_function_groups) (struct pinctrl_dev *pctldev,
+	int (*get_function_groups)(struct pinctrl_device *pctldev,
 				    unsigned int selector,
 				    const char * const **groups,
 				    unsigned int *num_groups);
-	int (*set_mux) (struct pinctrl_dev *pctldev, unsigned int func_selector,
-			unsigned int group_selector);
+	int (*set_mux)(struct pinctrl_device *pctldev,
+		       unsigned int func_selector,
+		       unsigned int group_selector);
+	int (*dt_pinmux_to_group)(struct pinctrl_device *pctldev,
+				  u32 pinmux,
+				  unsigned int *func_selector,
+				  unsigned int *group_selector);
 };
 
 #endif /* __LINUX_PINCTRL_PINMUX_H */
