@@ -1217,12 +1217,181 @@ static const char * const mt8186_pinctrl_register_base_names[] = {
 	"iocfg_rb", "iocfg_rt",
 };
 
+/*
+ * Groups below mirror the multi-pin states used by MT8186 device trees.
+ * The existing pinmux property path remains supported for per-pin states.
+ */
+static const unsigned int mt8186_i2c0_pins[] = { 128, 127 };
+static int mt8186_i2c0_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2c1_pins[] = { 130, 129 };
+static int mt8186_i2c1_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2c2_pins[] = { 132, 131 };
+static int mt8186_i2c2_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2c3_pins[] = { 134, 133 };
+static int mt8186_i2c3_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2c4_pins[] = { 136, 135 };
+static int mt8186_i2c4_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2c5_pins[] = { 138, 137 };
+static int mt8186_i2c5_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2c6_pins[] = { 140, 139 };
+static int mt8186_i2c6_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2c7_pins[] = { 142, 141 };
+static int mt8186_i2c7_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2c8_pins[] = { 144, 143 };
+static int mt8186_i2c8_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2c9_pins[] = { 146, 145 };
+static int mt8186_i2c9_funcs[] = { 1, 1 };
+
+static const unsigned int mt8186_msdc0_clk_pins[] = { 68 };
+static int mt8186_msdc0_clk_funcs[] = { 1 };
+static const unsigned int mt8186_msdc0_cmd_dat_pins[] = {
+	71, 72, 73, 74, 75, 76, 77, 78, 69,
+};
+static int mt8186_msdc0_cmd_dat_funcs[] = {
+	1, 1, 1, 1, 1, 1, 1, 1, 1,
+};
+static const unsigned int mt8186_msdc0_rst_pins[] = { 70 };
+static int mt8186_msdc0_rst_funcs[] = { 1 };
+static const unsigned int mt8186_msdc0_ds_pins[] = { 67 };
+static int mt8186_msdc0_ds_funcs[] = { 1 };
+
+static const unsigned int mt8186_msdc1_clk_pins[] = { 84 };
+static int mt8186_msdc1_clk_funcs[] = { 1 };
+static const unsigned int mt8186_msdc1_cmd_dat_pins[] = {
+	86, 87, 88, 89, 85,
+};
+static int mt8186_msdc1_cmd_dat_funcs[] = { 1, 1, 1, 1, 1 };
+
+static const unsigned int mt8186_spinor_clk_dat_pins[] = { 63, 61, 64 };
+static int mt8186_spinor_clk_dat_funcs[] = { 1, 1, 1 };
+static const unsigned int mt8186_spinor_cs_dat_pins[] = { 62, 65, 66 };
+static int mt8186_spinor_cs_dat_funcs[] = { 1, 1, 1 };
+static const unsigned int mt8186_spi1_pins[] = { 40, 41, 42, 43 };
+static int mt8186_spi1_funcs[] = { 1, 1, 1, 1 };
+static const unsigned int mt8186_spi2_pins[] = { 44, 45, 46, 47 };
+static int mt8186_spi2_funcs[] = { 1, 0, 1, 1 };
+static const unsigned int mt8186_spmi_pins[] = { 183, 184 };
+static int mt8186_spmi_funcs[] = { 1, 1 };
+
+static const unsigned int mt8186_scp_uart_pins[] = { 48, 49 };
+static int mt8186_scp_uart_funcs[] = { 1, 1 };
+static const unsigned int mt8186_disp_pwm_pins[] = { 97 };
+static int mt8186_disp_pwm_funcs[] = { 1 };
+
+static const unsigned int mt8186_dpi_pins[] = {
+	103, 104, 105, 106, 107, 108, 109, 110,
+	111, 112, 113, 114, 101, 100, 102, 99,
+};
+static int mt8186_dpi_funcs[] = {
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+};
+
+static const unsigned int mt8186_aud_clk_mosi_pins[] = { 166, 167 };
+static int mt8186_aud_clk_mosi_funcs[] = { 1, 1 };
+static const unsigned int mt8186_aud_clk_miso_pins[] = { 170, 171 };
+static int mt8186_aud_clk_miso_funcs[] = { 1, 1 };
+static const unsigned int mt8186_aud_dat_mosi_pins[] = { 168, 169 };
+static int mt8186_aud_dat_mosi_funcs[] = { 1, 1 };
+static const unsigned int mt8186_aud_dat_miso_pins[] = { 172, 173 };
+static int mt8186_aud_dat_miso_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2s0_pins[] = { 3 };
+static int mt8186_i2s0_funcs[] = { 1 };
+static const unsigned int mt8186_i2s1_pins[] = { 56, 57, 58, 59 };
+static int mt8186_i2s1_funcs[] = { 1, 1, 1, 1 };
+static const unsigned int mt8186_i2s2_pins[] = { 26, 27 };
+static int mt8186_i2s2_funcs[] = { 1, 1 };
+static const unsigned int mt8186_i2s3_pins[] = { 4 };
+static int mt8186_i2s3_funcs[] = { 1 };
+static const unsigned int mt8186_pcm_pins[] = { 115, 116, 117, 118 };
+static int mt8186_pcm_funcs[] = { 1, 1, 1, 1 };
+
+static const struct group_desc mt8186_groups[] = {
+	PINCTRL_PIN_GROUP("i2c0", mt8186_i2c0),
+	PINCTRL_PIN_GROUP("i2c1", mt8186_i2c1),
+	PINCTRL_PIN_GROUP("i2c2", mt8186_i2c2),
+	PINCTRL_PIN_GROUP("i2c3", mt8186_i2c3),
+	PINCTRL_PIN_GROUP("i2c4", mt8186_i2c4),
+	PINCTRL_PIN_GROUP("i2c5", mt8186_i2c5),
+	PINCTRL_PIN_GROUP("i2c6", mt8186_i2c6),
+	PINCTRL_PIN_GROUP("i2c7", mt8186_i2c7),
+	PINCTRL_PIN_GROUP("i2c8", mt8186_i2c8),
+	PINCTRL_PIN_GROUP("i2c9", mt8186_i2c9),
+	PINCTRL_PIN_GROUP("msdc0_clk", mt8186_msdc0_clk),
+	PINCTRL_PIN_GROUP("msdc0_cmd_dat", mt8186_msdc0_cmd_dat),
+	PINCTRL_PIN_GROUP("msdc0_rst", mt8186_msdc0_rst),
+	PINCTRL_PIN_GROUP("msdc0_ds", mt8186_msdc0_ds),
+	PINCTRL_PIN_GROUP("msdc1_clk", mt8186_msdc1_clk),
+	PINCTRL_PIN_GROUP("msdc1_cmd_dat", mt8186_msdc1_cmd_dat),
+	PINCTRL_PIN_GROUP("spinor_clk_dat", mt8186_spinor_clk_dat),
+	PINCTRL_PIN_GROUP("spinor_cs_dat", mt8186_spinor_cs_dat),
+	PINCTRL_PIN_GROUP("spi1", mt8186_spi1),
+	PINCTRL_PIN_GROUP("spi2", mt8186_spi2),
+	PINCTRL_PIN_GROUP("spmi", mt8186_spmi),
+	PINCTRL_PIN_GROUP("scp_uart", mt8186_scp_uart),
+	PINCTRL_PIN_GROUP("disp_pwm", mt8186_disp_pwm),
+	PINCTRL_PIN_GROUP("dpi", mt8186_dpi),
+	PINCTRL_PIN_GROUP("aud_clk_mosi", mt8186_aud_clk_mosi),
+	PINCTRL_PIN_GROUP("aud_clk_miso", mt8186_aud_clk_miso),
+	PINCTRL_PIN_GROUP("aud_dat_mosi", mt8186_aud_dat_mosi),
+	PINCTRL_PIN_GROUP("aud_dat_miso", mt8186_aud_dat_miso),
+	PINCTRL_PIN_GROUP("i2s0", mt8186_i2s0),
+	PINCTRL_PIN_GROUP("i2s1", mt8186_i2s1),
+	PINCTRL_PIN_GROUP("i2s2", mt8186_i2s2),
+	PINCTRL_PIN_GROUP("i2s3", mt8186_i2s3),
+	PINCTRL_PIN_GROUP("pcm", mt8186_pcm),
+};
+
+static const char * const mt8186_i2c_groups[] = {
+	"i2c0", "i2c1", "i2c2", "i2c3", "i2c4",
+	"i2c5", "i2c6", "i2c7", "i2c8", "i2c9",
+};
+static const char * const mt8186_msdc_groups[] = {
+	"msdc0_clk", "msdc0_cmd_dat", "msdc0_rst", "msdc0_ds",
+	"msdc1_clk", "msdc1_cmd_dat",
+};
+static const char * const mt8186_spi_groups[] = {
+	"spi1", "spi2",
+};
+static const char * const mt8186_flash_groups[] = {
+	"spinor_clk_dat", "spinor_cs_dat",
+};
+static const char * const mt8186_spmi_groups[] = {
+	"spmi",
+};
+static const char * const mt8186_uart_groups[] = {
+	"scp_uart",
+};
+static const char * const mt8186_pwm_groups[] = {
+	"disp_pwm",
+};
+static const char * const mt8186_display_groups[] = {
+	"dpi",
+};
+static const char * const mt8186_audio_groups[] = {
+	"aud_clk_mosi", "aud_clk_miso", "aud_dat_mosi", "aud_dat_miso",
+	"i2s0", "i2s1", "i2s2", "i2s3", "pcm",
+};
+
+static const struct pinfunction mt8186_functions[] = {
+	PINCTRL_PIN_FUNCTION("i2c", mt8186_i2c),
+	PINCTRL_PIN_FUNCTION("msdc", mt8186_msdc),
+	PINCTRL_PIN_FUNCTION("spi", mt8186_spi),
+	PINCTRL_PIN_FUNCTION("flash", mt8186_flash),
+	PINCTRL_PIN_FUNCTION("spmi", mt8186_spmi),
+	PINCTRL_PIN_FUNCTION("uart", mt8186_uart),
+	PINCTRL_PIN_FUNCTION("pwm", mt8186_pwm),
+	PINCTRL_PIN_FUNCTION("display", mt8186_display),
+	PINCTRL_PIN_FUNCTION("audio", mt8186_audio),
+};
+
 static const struct mtk_pin_soc mt8186_data = {
 	.reg_cal = mt8186_reg_cals,
 	.pins = mtk_pins_mt8186,
 	.npins = ARRAY_SIZE(mtk_pins_mt8186),
-	.ngrps = ARRAY_SIZE(mtk_pins_mt8186),
-	.nfuncs = 8,
+	.grps = mt8186_groups,
+	.ngrps = ARRAY_SIZE(mt8186_groups),
+	.funcs = mt8186_functions,
+	.nfuncs = ARRAY_SIZE(mt8186_functions),
 	.gpio_m = 0,
 	.base_names = mt8186_pinctrl_register_base_names,
 	.nbase_names = ARRAY_SIZE(mt8186_pinctrl_register_base_names),
@@ -1242,17 +1411,9 @@ static const struct of_device_id mt8186_pinctrl_of_match[] = {
 	{ }
 };
 
-static struct platform_driver mt8186_pinctrl_driver = {
-	.driver = {
-		.name = "mt8186-pinctrl",
-		.of_match_table = mt8186_pinctrl_of_match,
-	},
+static struct driver mt8186_pinctrl_driver = {
+	.name = "mt8186-pinctrl",
+	.of_match_table = mt8186_pinctrl_of_match,
 	.probe = mtk_paris_pinctrl_probe,
 };
-
-static int __init mt8186_pinctrl_init(void)
-{
-	return platform_driver_register(&mt8186_pinctrl_driver);
-}
-
-arch_initcall(mt8186_pinctrl_init);
+core_platform_driver(mt8186_pinctrl_driver);

@@ -10,11 +10,10 @@
 #include <dt-bindings/pinctrl/mt65xx.h>
 #include <linux/device.h>
 #include <linux/err.h>
-#include <linux/gpio/driver.h>
-#include <linux/platform_device.h>
+#include <gpio.h>
 #include <linux/io.h>
 #include <linux/module.h>
-#include <linux/of_address.h>
+#include <of_address.h>
 
 #include "pinctrl-mtk-common-v2.h"
 
@@ -243,10 +242,20 @@ EXPORT_SYMBOL_GPL(mtk_hw_get_value);
 
 bool mtk_is_virt_gpio(struct mtk_pinctrl *hw, unsigned int gpio_n)
 {
-	const struct mtk_pin_desc *desc;
+	const struct mtk_pin_desc *desc = NULL;
 	bool virt_gpio = false;
+	unsigned int i;
 
-	desc = (const struct mtk_pin_desc *)&hw->soc->pins[gpio_n];
+	for (i = 0; i < hw->soc->npins; i++) {
+		if (hw->soc->pins[i].number != gpio_n)
+			continue;
+
+		desc = &hw->soc->pins[i];
+		break;
+	}
+
+	if (!desc)
+		return false;
 
 	/* if the GPIO is not supported for eint mode */
 	if (desc->eint.eint_m == NO_EINT_SUPPORT)

@@ -10,7 +10,9 @@
 #ifndef __PINCTRL_MTK_COMMON_V2_H
 #define __PINCTRL_MTK_COMMON_V2_H
 
-#include <linux/gpio/driver.h>
+#include <linux/spinlock.h>
+#include <gpio.h>
+#include <pinctrl.h>
 
 #define MTK_INPUT      0
 #define MTK_OUTPUT     1
@@ -226,8 +228,10 @@ struct mtk_pin_desc {
 
 struct mtk_pinctrl_group {
 	const char	*name;
-	unsigned long	config;
-	unsigned	pin;
+	const unsigned int *pins;
+	unsigned int	npins;
+	void		*data;
+	unsigned int	pin;
 };
 
 struct mtk_pinctrl;
@@ -287,14 +291,15 @@ struct mtk_pin_soc {
 };
 
 struct mtk_pinctrl {
-	struct pinctrl_dev		*pctrl;
+	struct pinctrl_device		pctrl;
 	void __iomem			**base;
 	u8				nbase;
 	struct device			*dev;
 	struct gpio_chip		chip;
 	const struct mtk_pin_soc        *soc;
 	struct mtk_pinctrl_group	*groups;
-	const char          **grp_names;
+	unsigned int			ngroups;
+	unsigned int			npins;
 	/* lock pin's register resource to avoid multiple threads issue*/
 	spinlock_t lock;
 	/* identify rsel setting by si unit or rsel define in dts node */
