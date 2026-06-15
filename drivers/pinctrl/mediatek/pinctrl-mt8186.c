@@ -1217,14 +1217,6 @@ static const char * const mt8186_pinctrl_register_base_names[] = {
 	"iocfg_rb", "iocfg_rt",
 };
 
-static const struct mtk_eint_hw mt8186_eint_hw = {
-	.port_mask = 0xf,
-	.ports     = 7,
-	.ap_num    = 217,
-	.db_cnt    = 32,
-	.db_time   = debounce_time_mt6765,
-};
-
 static const struct mtk_pin_soc mt8186_data = {
 	.reg_cal = mt8186_reg_cals,
 	.pins = mtk_pins_mt8186,
@@ -1232,7 +1224,6 @@ static const struct mtk_pin_soc mt8186_data = {
 	.ngrps = ARRAY_SIZE(mtk_pins_mt8186),
 	.nfuncs = 8,
 	.gpio_m = 0,
-	.eint_hw = &mt8186_eint_hw,
 	.base_names = mt8186_pinctrl_register_base_names,
 	.nbase_names = ARRAY_SIZE(mt8186_pinctrl_register_base_names),
 	.pull_type = mt8186_pull_type,
@@ -1255,7 +1246,6 @@ static struct platform_driver mt8186_pinctrl_driver = {
 	.driver = {
 		.name = "mt8186-pinctrl",
 		.of_match_table = mt8186_pinctrl_of_match,
-		.pm = pm_sleep_ptr(&mtk_paris_pinctrl_pm_ops),
 	},
 	.probe = mtk_paris_pinctrl_probe,
 };

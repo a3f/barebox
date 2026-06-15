@@ -902,41 +902,6 @@ static int mtk_gpio_direction_output(struct gpio_chip *chip, unsigned int gpio,
 	return pinctrl_gpio_direction_output(chip, gpio);
 }
 
-static int mtk_gpio_to_irq(struct gpio_chip *chip, unsigned int offset)
-{
-	struct mtk_pinctrl *hw = gpiochip_get_data(chip);
-	const struct mtk_pin_desc *desc;
-
-	if (!hw->eint)
-		return -ENOTSUPP;
-
-	desc = (const struct mtk_pin_desc *)&hw->soc->pins[offset];
-
-	if (desc->eint.eint_n == EINT_NA)
-		return -ENOTSUPP;
-
-	return mtk_eint_find_irq(hw->eint, desc->eint.eint_n);
-}
-
-static int mtk_gpio_set_config(struct gpio_chip *chip, unsigned int offset,
-			       unsigned long config)
-{
-	struct mtk_pinctrl *hw = gpiochip_get_data(chip);
-	const struct mtk_pin_desc *desc;
-	u32 debounce;
-
-	desc = (const struct mtk_pin_desc *)&hw->soc->pins[offset];
-
-	if (!hw->eint ||
-	    pinconf_to_config_param(config) != PIN_CONFIG_INPUT_DEBOUNCE ||
-	    desc->eint.eint_n == EINT_NA)
-		return -ENOTSUPP;
-
-	debounce = pinconf_to_config_argument(config);
-
-	return mtk_eint_set_debounce(hw->eint, desc->eint.eint_n, debounce);
-}
-
 static int mtk_build_gpiochip(struct mtk_pinctrl *hw)
 {
 	struct gpio_chip *chip = &hw->chip;
@@ -951,8 +916,6 @@ static int mtk_build_gpiochip(struct mtk_pinctrl *hw)
 	chip->direction_output	= mtk_gpio_direction_output;
 	chip->get		= mtk_gpio_get;
 	chip->set		= mtk_gpio_set;
-	chip->to_irq		= mtk_gpio_to_irq;
-	chip->set_config	= mtk_gpio_set_config;
 	chip->base		= -1;
 	chip->ngpio		= hw->soc->npins;
 
@@ -1068,11 +1031,6 @@ int mtk_paris_pinctrl_probe(struct platform_device *pdev)
 	if (err)
 		return err;
 
-	err = mtk_build_eint(hw, pdev);
-	if (err)
-		dev_warn(&pdev->dev,
-			 "Failed to add EINT, but pinctrl still can work\n");
-
 	/* Build gpiochip should be after pinctrl_enable is done */
 	err = mtk_build_gpiochip(hw);
 	if (err)
@@ -1083,24 +1041,6 @@ int mtk_paris_pinctrl_probe(struct platform_device *pdev)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(mtk_paris_pinctrl_probe);
-
-static int mtk_paris_pinctrl_suspend(struct device *device)
-{
-	struct mtk_pinctrl *pctl = dev_get_drvdata(device);
-
-	return mtk_eint_do_suspend(pctl->eint);
-}
-
-static int mtk_paris_pinctrl_resume(struct device *device)
-{
-	struct mtk_pinctrl *pctl = dev_get_drvdata(device);
-
-	return mtk_eint_do_resume(pctl->eint);
-}
-
-EXPORT_GPL_DEV_SLEEP_PM_OPS(mtk_paris_pinctrl_pm_ops) = {
-	NOIRQ_SYSTEM_SLEEP_PM_OPS(mtk_paris_pinctrl_suspend, mtk_paris_pinctrl_resume)
-};
 
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("MediaTek Pinctrl Common Driver V2 Paris");

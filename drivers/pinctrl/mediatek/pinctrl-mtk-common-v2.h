@@ -241,9 +241,6 @@ struct mtk_pin_soc {
 	unsigned int			ngrps;
 	const struct pinfunction	*funcs;
 	unsigned int			nfuncs;
-	const struct mtk_eint_regs	*eint_regs;
-	const struct mtk_eint_hw	*eint_hw;
-	struct mtk_eint_pin		*eint_pin;
 
 	/* Specific parameters per SoC */
 	u8				gpio_m;
@@ -296,7 +293,6 @@ struct mtk_pinctrl {
 	struct device			*dev;
 	struct gpio_chip		chip;
 	const struct mtk_pin_soc        *soc;
-	struct mtk_eint			*eint;
 	struct mtk_pinctrl_group	*groups;
 	const char          **grp_names;
 	/* lock pin's register resource to avoid multiple threads issue*/
@@ -311,8 +307,6 @@ int mtk_hw_set_value(struct mtk_pinctrl *hw, const struct mtk_pin_desc *desc,
 		     int field, int value);
 int mtk_hw_get_value(struct mtk_pinctrl *hw, const struct mtk_pin_desc *desc,
 		     int field, int *value);
-
-int mtk_build_eint(struct mtk_pinctrl *hw, struct platform_device *pdev);
 
 int mtk_pinconf_bias_disable_set(struct mtk_pinctrl *hw,
 				 const struct mtk_pin_desc *desc);

@@ -15,9 +15,7 @@
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of_address.h>
-#include <linux/of_irq.h>
 
-#include "mtk-eint.h"
 #include "pinctrl-mtk-common-v2.h"
 
 /**
@@ -234,22 +232,6 @@ int mtk_hw_get_value(struct mtk_pinctrl *hw, const struct mtk_pin_desc *desc,
 }
 EXPORT_SYMBOL_GPL(mtk_hw_get_value);
 
-static int mtk_xt_find_eint_num(struct mtk_pinctrl *hw, unsigned long eint_n)
-{
-	const struct mtk_pin_desc *desc;
-	int i = 0;
-
-	desc = (const struct mtk_pin_desc *)hw->soc->pins;
-
-	while (i < hw->soc->npins) {
-		if (desc[i].eint.eint_n == eint_n)
-			return desc[i].number;
-		i++;
-	}
-
-	return EINT_NA;
-}
-
 /*
  * Virtual GPIO only used inside SOC and not being exported to outside SOC.
  * Some modules use virtual GPIO as eint (e.g. pmif or usb).
@@ -276,168 +258,6 @@ bool mtk_is_virt_gpio(struct mtk_pinctrl *hw, unsigned int gpio_n)
 	return virt_gpio;
 }
 EXPORT_SYMBOL_GPL(mtk_is_virt_gpio);
-
-static int mtk_xt_get_gpio_n(void *data, unsigned long eint_n,
-			     unsigned int *gpio_n,
-			     struct gpio_chip **gpio_chip)
-{
-	struct mtk_pinctrl *hw = (struct mtk_pinctrl *)data;
-	const struct mtk_pin_desc *desc;
-
-	desc = (const struct mtk_pin_desc *)hw->soc->pins;
-	*gpio_chip = &hw->chip;
-
-	/*
-	 * Be greedy to guess first gpio_n is equal to eint_n.
-	 * Only eint virtual eint number is greater than gpio number.
-	 */
-	if (hw->soc->npins > eint_n &&
-	    desc[eint_n].eint.eint_n == eint_n)
-		*gpio_n = eint_n;
-	else
-		*gpio_n = mtk_xt_find_eint_num(hw, eint_n);
-
-	return *gpio_n == EINT_NA ? -EINVAL : 0;
-}
-
-static int mtk_xt_get_gpio_state(void *data, unsigned long eint_n)
-{
-	struct mtk_pinctrl *hw = (struct mtk_pinctrl *)data;
-	const struct mtk_pin_desc *desc;
-	struct gpio_chip *gpio_chip;
-	unsigned int gpio_n;
-	int value, err;
-
-	err = mtk_xt_get_gpio_n(hw, eint_n, &gpio_n, &gpio_chip);
-	if (err)
-		return err;
-
-	desc = (const struct mtk_pin_desc *)&hw->soc->pins[gpio_n];
-
-	err = mtk_hw_get_value(hw, desc, PINCTRL_PIN_REG_DI, &value);
-	if (err)
-		return err;
-
-	return !!value;
-}
-
-static int mtk_xt_set_gpio_as_eint(void *data, unsigned long eint_n)
-{
-	struct mtk_pinctrl *hw = (struct mtk_pinctrl *)data;
-	const struct mtk_pin_desc *desc;
-	struct gpio_chip *gpio_chip;
-	unsigned int gpio_n;
-	int err;
-
-	err = mtk_xt_get_gpio_n(hw, eint_n, &gpio_n, &gpio_chip);
-	if (err)
-		return err;
-
-	if (mtk_is_virt_gpio(hw, gpio_n))
-		return 0;
-
-	desc = (const struct mtk_pin_desc *)&hw->soc->pins[gpio_n];
-
-	err = mtk_hw_set_value(hw, desc, PINCTRL_PIN_REG_MODE,
-			       desc->eint.eint_m);
-	if (err)
-		return err;
-
-	err = mtk_hw_set_value(hw, desc, PINCTRL_PIN_REG_DIR, MTK_INPUT);
-	if (err)
-		return err;
-
-	err = mtk_hw_set_value(hw, desc, PINCTRL_PIN_REG_SMT, MTK_ENABLE);
-	/* SMT is supposed to be supported by every real GPIO and doesn't
-	 * support virtual GPIOs, so the extra condition err != -ENOTSUPP
-	 * is just for adding EINT support to these virtual GPIOs. It should
-	 * add an extra flag in the pin descriptor when more pins with
-	 * distinctive characteristic come out.
-	 */
-	if (err && err != -ENOTSUPP)
-		return err;
-
-	return 0;
-}
-
-static const struct mtk_eint_xt mtk_eint_xt = {
-	.get_gpio_n = mtk_xt_get_gpio_n,
-	.get_gpio_state = mtk_xt_get_gpio_state,
-	.set_gpio_as_eint = mtk_xt_set_gpio_as_eint,
-};
-
-int mtk_build_eint(struct mtk_pinctrl *hw, struct platform_device *pdev)
-{
-	struct device_node *np = pdev->dev.of_node;
-	int ret, i, j, count_reg_names;
-
-	if (!IS_ENABLED(CONFIG_EINT_MTK))
-		return 0;
-
-	if (!of_property_read_bool(np, "interrupt-controller"))
-		return -ENODEV;
-
-	hw->eint = devm_kzalloc(hw->dev, sizeof(*hw->eint), GFP_KERNEL);
-	if (!hw->eint)
-		return -ENOMEM;
-
-	count_reg_names = of_property_count_strings(np, "reg-names");
-	if (count_reg_names < 0)
-		return -EINVAL;
-
-	hw->eint->nbase = count_reg_names - (int)hw->soc->nbase_names;
-	if (hw->eint->nbase <= 0)
-		return -EINVAL;
-
-	hw->eint->base = devm_kmalloc_array(&pdev->dev, hw->eint->nbase,
-					    sizeof(*hw->eint->base), GFP_KERNEL | __GFP_ZERO);
-	if (!hw->eint->base) {
-		ret = -ENOMEM;
-		goto err_free_base;
-	}
-
-	for (i = hw->soc->nbase_names, j = 0; i < count_reg_names; i++, j++) {
-		hw->eint->base[j] = of_iomap(np, i);
-		if (IS_ERR(hw->eint->base[j])) {
-			ret = PTR_ERR(hw->eint->base[j]);
-			goto err_free_eint;
-		}
-	}
-
-	hw->eint->irq = irq_of_parse_and_map(np, 0);
-	if (!hw->eint->irq) {
-		ret = -EINVAL;
-		goto err_free_eint;
-	}
-
-	if (!hw->soc->eint_hw) {
-		ret = -ENODEV;
-		goto err_free_eint;
-	}
-
-	hw->eint->dev = &pdev->dev;
-	hw->eint->hw = hw->soc->eint_hw;
-	hw->eint->pctl = hw;
-	hw->eint->gpio_xlate = &mtk_eint_xt;
-
-	ret = mtk_eint_do_init(hw->eint, hw->soc->eint_pin);
-	if (ret)
-		goto err_free_eint;
-
-	return 0;
-
-err_free_eint:
-	for (j = 0; j < hw->eint->nbase; j++) {
-		if (hw->eint->base[j])
-			iounmap(hw->eint->base[j]);
-	}
-	devm_kfree(hw->dev, hw->eint->base);
-err_free_base:
-	devm_kfree(hw->dev, hw->eint);
-	hw->eint = NULL;
-	return ret;
-}
-EXPORT_SYMBOL_GPL(mtk_build_eint);
 
 /* Revision 0 */
 int mtk_pinconf_bias_disable_set(struct mtk_pinctrl *hw,

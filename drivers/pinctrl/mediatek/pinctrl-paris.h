@@ -24,7 +24,6 @@
 #include "../pinconf.h"
 #include "../pinctrl-utils.h"
 #include "../pinmux.h"
-#include "mtk-eint.h"
 #include "pinctrl-mtk-common-v2.h"
 
 #define MTK_RANGE(_a)		{ .range = (_a), .nranges = ARRAY_SIZE(_a), }
@@ -67,7 +66,5 @@ int mtk_paris_pinctrl_probe(struct platform_device *pdev);
 
 ssize_t mtk_pctrl_show_one_pin(struct mtk_pinctrl *hw,
 	unsigned int gpio, char *buf, unsigned int bufLen);
-
-extern const struct dev_pm_ops mtk_paris_pinctrl_pm_ops;
 
 #endif /* __PINCTRL_PARIS_H */
