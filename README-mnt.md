@@ -81,23 +81,16 @@ Note: OpenBSD is configured to use the framebuffer console by default. To use th
 fb0.register_simplefb=enabled
 ```
 
-There are a couple of device drivers that are known to cause OpenBSD to hang when booting. These drivers can be disabled by entering `boot -c` at OpenBSD's `boot>` prompt, then enter the following at the `UKC>` prompt:
-```
-UKC> disable rkusbdpphy*
-UKC> disable rkdrm*
-UKC> quit
-```
-
-Keyboard input may not be functional at this stage however. In this case, you can disable these devices from Barebox using [of_property](https://www.barebox.org/doc/latest/commands/misc/of_property.html#command-of-property) before booting OpenBSD:
+There are a couple of device drivers that are known to cause OpenBSD to hang when booting. These devices can be disabled from Barebox before booting OpenBSD using the provided [`fixup-openbsd`](./arch/arm/boards/mnt-reform2-rk3588/defaultenv-mnt-reform2-rk3588/bin/fixup-openbsd) script:
 
 ```
-of_property -s -f /phy@fed80000/ status disabled
-of_property -s -f /phy@fed90000/ status disabled
-of_property -s -f /display-subsystem/ status disabled
+# Run the script to disable devices with known issues
+fixup-openbsd
+# Continue booting as usual
 boot
 ```
 
-It is recommended to create a new kernel configuration disabling these drivers using the [config](https://man.openbsd.org/config.8) tool to avoid needing to do this on every boot.  Once booted into OpenBSD create `/etc/bsd.re-config` with the following contents:
+It is recommended to create a new OpenBSD kernel configuration disabling these drivers using the [config](https://man.openbsd.org/config.8) tool to avoid needing to do this on every boot.  Once booted into OpenBSD create `/etc/bsd.re-config` with the following contents:
 ```
 disable rkusbdpphy*
 disable rkdrm*
@@ -112,5 +105,3 @@ config -e -c /etc/bsd.re-config -f /bsd
 ```
 
 See also: https://man.openbsd.org/boot_config.8
-
-

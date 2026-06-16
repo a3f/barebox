@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# Disable both usbdpphy devices, as these currently hang when booting OpenBSD
+of_property -s -f /phy@fed80000/ status disabled
+of_property -s -f /phy@fed90000/ status disabled
+# Disable the Rockchip display subsystem device, for the same reason
+of_property -s -f /display-subsystem/ status disabled

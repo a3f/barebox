@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Fixups for current version, update as necessary
+fixup-openbsd7.9
+
+# If you would like OpenBSD to use the serial console instead of the framebuffer
+# console, uncomment the following line
+#fb0.register_simplefb=enabled
