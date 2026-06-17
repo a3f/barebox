@@ -82,6 +82,9 @@ const efi_guid_t efi_guid_event_group_return_to_efibootmgr =
 
 const char *efi_guid_string(const efi_guid_t *g)
 {
+	if (!IS_ENABLED(CONFIG_EFI_GUID_STRINGS))
+		return NULL;
+
 	EFI_GUID_STRING(EFI_NULL_GUID, "NULL", "NULL GUID");
 	EFI_GUID_STRING(EFI_MPS_TABLE_GUID, "MPS Table", "MPS Table GUID in EFI System Table");
 	EFI_GUID_STRING(EFI_ACPI_TABLE_GUID, "ACPI Table", "ACPI 1.0 Table GUID in EFI System Table");

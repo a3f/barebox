@@ -63,8 +63,13 @@ if EFI
 
 config EFI_GUID
 	bool
+
+config EFI_GUID_STRINGS
+	bool "Print EFI GUIDs as strings"
+	default y
+	select EFI_GUID
 	help
-	  With this option a table of EFI guids is compiled in.
+	  With this option a table of EFI guid descriptions is compiled in.
 
 config EFI_DEVICEPATH
 	bool
