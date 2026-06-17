@@ -150,9 +150,15 @@ struct cdev *get_cdev_by_mountpath(const char *path);
 /* Register a new filesystem driver */
 int register_fs_driver(struct fs_driver *fsdrv);
 
+#ifdef CONFIG_FS_AUTOMOUNT
 void automount_remove(const char *_path);
 int automount_add(const char *path, const char *cmd);
 void automount_print(void);
+#else
+static inline void automount_remove(const char *_path) {}
+static inline int automount_add(const char *path, const char *cmd) { return -ENOSYS; }
+static inline void automount_print(void) {}
+#endif
 
 int fs_init_legacy(struct fs_device *fsdev);
 int fsdev_open_cdev(struct fs_device *fsdev);
