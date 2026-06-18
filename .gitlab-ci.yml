@@ -4,7 +4,7 @@ build:
   script: |
     set -exu
     apt-get update
-    apt-get --yes install --no-install-recommends gcc-aarch64-linux-gnu build-essential bison flex lz4 device-tree-compiler git ca-certificates libssl-dev libusb-1.0-0-dev u-boot-tools
+    apt-get --yes install --no-install-recommends gcc-aarch64-linux-gnu build-essential bison flex gawk lz4 lzma-alone lzop device-tree-compiler pkgconf libtool git ca-certificates libssl-dev libusb-1.0-0-dev u-boot-tools libguestfs-tools genisoimage
     ./build.sh
   artifacts:
     paths:
