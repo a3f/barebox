@@ -270,9 +270,9 @@ enum autoboot_state do_autoboot_countdown(void)
 	else
 		strcat(abortkeys, global_autoboot_abort_key);
 
-	printf("\nHit %s%s to stop autoboot: ",
+	printf("Press %s%s to interrupt boot: ",
 	       menu_exists ? "m for menu or " : "",
-	       global_autoboot_abort_key ? global_autoboot_abort_key : "any");
+	       global_autoboot_abort_key ? global_autoboot_abort_key : "any key");
 
 	command_slice_release();
 	ret = console_countdown(global_autoboot_timeout, flags, abortkeys,

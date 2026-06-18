@@ -20,3 +20,9 @@ fbconsole0.active=oe
 
 # Scan for USB devices
 usb
+
+# Set autoboot countdown to 2 seconds
+global.autoboot_timeout=2
+
+echo Machine: $global.model
+echo Boot Loader: $global.version
