@@ -2942,7 +2942,7 @@ static struct device_node *mci_get_partition_node(struct device_node *hwnode,
 	struct device_node *np;
 	char partnodename[sizeof("bootx-partitions")];
 
-	if (index > 8)
+	if (!hwnode || index > 8)
 		return NULL;
 
 	switch (type) {
