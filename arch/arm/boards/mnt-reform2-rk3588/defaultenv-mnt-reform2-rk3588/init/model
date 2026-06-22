@@ -1,0 +1,3 @@
+#!/bin/sh
+
+of_property -fs /chosen mntre,barebox-model "$global.model"
