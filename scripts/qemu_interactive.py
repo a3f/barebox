@@ -49,6 +49,12 @@ def register_shared_options(parser):
     _add_option(parser, "--blk", action="append", dest="qemu_block",
                 default=[], metavar="FILE",
                 help="Pass block device to emulated barebox. Can be specified more than once")
+    _add_option(parser, "--sdblk", action="append", dest="qemu_sdblock",
+                default=[], metavar="FILE",
+                help="Pass SD-Card block device to emulated barebox. Can be specified more than once")
+    _add_option(parser, "--emmcblk", action="append", dest="qemu_emmcblock",
+                default=[], metavar="FILE",
+                help="Pass eMMC block device to emulated barebox. Can be specified more than once")
     _add_option(parser, "--nvmeblk", action="append", dest="qemu_nvmeblock",
                 default=[], metavar="FILE",
                 help="Pass NVMe block device with 4K sector size to emulated barebox. Can be specified more than once")
@@ -262,6 +268,20 @@ def apply_shared_options(strategy, target, options, *, interactive, fail=None): 
             )
         else:
             fail("--blk unsupported for target\n")
+
+    for i, blk in enumerate(_get_list_option(options, "qemu_sdblock")):
+        _append_qemu_args(
+            strategy, fail,
+            "-drive", f"if=none,format=raw,id=sdcard{i},file={blk}",
+            "-device", f"sd-card,drive=sdcard{i}"
+        )
+
+    for i, blk in enumerate(_get_list_option(options, "qemu_emmcblock")):
+        _append_qemu_args(
+            strategy, fail,
+            "-drive", f"if=none,format=raw,id=emmc{i},file={blk}",
+            "-device", f"emmc,drive=emmc{i},boot-partition-size=0,rpmb-partition-size=0"
+        )
 
     for i, blk in enumerate(_get_list_option(options, "qemu_nvmeblock")):
         _append_qemu_args(
