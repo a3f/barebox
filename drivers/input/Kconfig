@@ -91,4 +91,15 @@ config VIRTIO_INPUT
 	help
 	 This driver supports virtio keyboard input devices.
 
+config KEYBOARD_CROS_EC
+	tristate "ChromeOS EC keyboard"
+	select INPUT
+	select INPUT_MATRIXKMAP
+	select POLLER
+	depends on CROS_EC
+	help
+	  Say Y here to enable the matrix keyboard used by ChromeOS devices
+	  and implemented on the ChromeOS EC. You must enable one bus option
+	  (such as CROS_EC_SPI) to use this.
+
 endmenu
