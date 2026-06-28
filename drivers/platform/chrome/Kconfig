@@ -25,8 +25,14 @@ config CROS_EC
 	  You also need to enable the driver for the bus you are using. The
 	  protocol for talking to the EC is defined by the bus driver.
 
-	  To compile this driver as a module, choose M here: the
-	  module will be called cros_ec.
+config CROS_EC_SPI
+	tristate "ChromeOS Embedded Controller (SPI)"
+	depends on CROS_EC && SPI
+	help
+	  If you say Y here, you get support for talking to the ChromeOS EC
+	  through a SPI bus, using a byte-level protocol. Since the EC's
+	  response time cannot be guaranteed, we support ignoring
+	  'pre-amble' bytes before the response actually starts.
 
 config CROS_EC_PROTO
 	tristate
