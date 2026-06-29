@@ -600,6 +600,20 @@ static inline bool spi_is_bpw_supported(struct spi_device *spi, u32 bpw)
 
 int spi_sync(struct spi_device *spi, struct spi_message *message);
 
+static inline void spi_bus_lock(struct spi_controller *controller) {}
+static inline void spi_bus_unlock(struct spi_controller *controller) {}
+
+static inline int spi_sync_locked(struct spi_device *spi, struct spi_message *message)
+{
+	int ret;
+
+	spi_bus_lock(spi->controller);
+	ret = spi_sync(spi, message);
+	spi_bus_unlock(spi->controller);
+
+	return ret;
+}
+
 /**
  * spi_sync_transfer - synchronous SPI data transfer
  * @spi: device with which data will be exchanged
