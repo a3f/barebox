@@ -26,6 +26,7 @@
 #include <linux/time.h>
 #include <clock.h>
 #include <linux/bug.h>
+#include <linux/timekeeping.h>
 
 #define KTIME_MAX			((s64)~((u64)1 << 63))
 #define KTIME_MIN			(-KTIME_MAX - 1)
