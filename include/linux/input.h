@@ -17,6 +17,10 @@ struct input_dev {
 	struct list_head list;
 	struct device *parent;
 	DECLARE_BITMAP(keys, KEY_CNT);
+
+	unsigned int keycodemax;
+	unsigned int keycodesize;
+	void *keycode;
 };
 
 void input_report_key_event(struct input_dev *idev, unsigned int code, int value);

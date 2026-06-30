@@ -1,7 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-
+/* SPDX-Comment: Origin-URL: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/include/linux/input/matrix_keypad.h?id=de35996d4b364749194c5b473d1912578880833e */
 #ifndef _MATRIX_KEYPAD_H
 #define _MATRIX_KEYPAD_H
+
+#include <linux/types.h>
+
+struct device;
+struct input_dev;
 
 #define MATRIX_MAX_ROWS		32
 #define MATRIX_MAX_COLS		32
@@ -30,8 +35,12 @@ struct matrix_keymap_data {
 	unsigned int	keymap_size;
 };
 
-int matrix_keypad_build_keymap(struct device *dev,
-			       const struct matrix_keymap_data *keymap_data,
-			       unsigned int row_shift, unsigned short *keymap);
+int matrix_keypad_build_keymap(const struct matrix_keymap_data *keymap_data,
+			       const char *keymap_name,
+			       unsigned int rows, unsigned int cols,
+			       unsigned short *keymap,
+			       struct input_dev *input_dev);
+int matrix_keypad_parse_properties(struct device *dev,
+				   unsigned int *rows, unsigned int *cols);
 
 #endif /* _MATRIX_KEYPAD_H */

@@ -367,8 +367,13 @@ static int __init imx_keypad_probe(struct device *dev)
 		return PTR_ERR(iores);
 	keypad->mmio_base = IOMEM(iores->start);
 
-	ret = matrix_keypad_build_keymap(dev, keymap_data, MATRIX_ROW_SHIFT,
-				keypad->keycodes);
+	keypad->input.parent = dev;
+
+	ret = matrix_keypad_build_keymap(keymap_data, NULL,
+					 MAX_MATRIX_KEY_ROWS,
+					 MAX_MATRIX_KEY_COLS,
+					 keypad->keycodes,
+					 &keypad->input);
 	if (ret)
 		return ret;
 
@@ -404,7 +409,6 @@ static int __init imx_keypad_probe(struct device *dev)
 	if (ret)
 		return ret;
 
-	keypad->input.parent = dev;
 	ret = input_device_register(&keypad->input);
 	if (ret)
 		return ret;
