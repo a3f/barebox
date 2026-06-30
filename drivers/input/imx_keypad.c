@@ -42,9 +42,9 @@
 #include <poller.h>
 #include <kfifo.h>
 #include <malloc.h>
-#include <input/matrix_keypad.h>
+#include <linux/input/matrix_keypad.h>
 #include <linux/err.h>
-#include <input/input.h>
+#include <linux/input.h>
 
 /*
  * Keypad Controller registers (halfword)

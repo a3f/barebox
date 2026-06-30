@@ -29,7 +29,7 @@
 #include <gpio_keys.h>
 #include <readkey.h>
 #include <spi/spi.h>
-#include <input/input.h>
+#include <linux/input.h>
 
 static void usb_a9260_set_board_type(void)
 {

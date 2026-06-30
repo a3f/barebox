@@ -5,7 +5,7 @@
 #include <restart.h>
 #include <poweroff.h>
 #include <init.h>
-#include <input/input.h>
+#include <linux/input.h>
 #include <dt-bindings/input/linux-event-codes.h>
 
 static void input_specialkeys_notify(struct input_notifier *in,

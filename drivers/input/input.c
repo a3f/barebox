@@ -7,9 +7,9 @@
 #include <kfifo.h>
 #include <poller.h>
 #include <clock.h>
-#include <input/input.h>
+#include <linux/input.h>
 #include <linux/bitmap.h>
-#include <input/keyboard.h>
+#include <linux/input/keyboard.h>
 #include <dt-bindings/input/linux-event-codes.h>
 #include <readkey.h>
 

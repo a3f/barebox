@@ -5,7 +5,7 @@
 #include <linux/virtio.h>
 #include <linux/virtio_config.h>
 #include <linux/virtio_ring.h>
-#include <input/input.h>
+#include <linux/input.h>
 #include <sound.h>
 #include <dt-bindings/input/linux-event-codes.h>
 
