@@ -27,7 +27,7 @@ struct gpio_keys {
 	int nbuttons;
 
 	struct poller_async poller;
-	struct input_device input;
+	struct input_dev input;
 };
 
 static void gpio_key_poller(void *data)

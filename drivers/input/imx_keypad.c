@@ -70,7 +70,7 @@
 #define MAX_MATRIX_KEY_NUM	(MAX_MATRIX_KEY_ROWS * MAX_MATRIX_KEY_COLS)
 
 struct imx_keypad {
-	struct input_device input;
+	struct input_dev input;
 	struct clk *clk;
 	void __iomem *mmio_base;
 
