@@ -10,7 +10,7 @@
 #include <gpio_keys.h>
 #include <poller.h>
 #include <linux/gpio/consumer.h>
-#include <input/input.h>
+#include <linux/input.h>
 
 struct gpio_key {
 	struct gpio_desc *gpio;

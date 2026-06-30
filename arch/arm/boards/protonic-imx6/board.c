@@ -13,7 +13,7 @@
 #include <globalvar.h>
 #include <gpio.h>
 #include <i2c/i2c.h>
-#include <input/input.h>
+#include <linux/input.h>
 #include <mach/imx/bbu.h>
 #include <mach/imx/imx6.h>
 #include <mach/imx/ocotp-fusemap.h>

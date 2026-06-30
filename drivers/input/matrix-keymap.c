@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <common.h>
-#include <input/matrix_keypad.h>
+#include <linux/input/matrix_keypad.h>
 
 static int matrix_keypad_parse_of_keymap(struct device *dev,
 					 unsigned int row_shift,

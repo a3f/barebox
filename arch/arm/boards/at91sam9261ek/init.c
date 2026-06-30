@@ -26,7 +26,7 @@
 #include <readkey.h>
 #include <led.h>
 #include <spi/spi.h>
-#include <input/input.h>
+#include <linux/input.h>
 
 static struct atmel_nand_data nand_pdata = {
 	.ale		= 22,

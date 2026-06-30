@@ -13,7 +13,7 @@
 #include <linux/usb/usb.h>
 #include <string.h>
 #include <dma.h>
-#include <input/input.h>
+#include <linux/input.h>
 
 /*
  * NOTE: It's important for the NUM, CAPS, SCROLL-lock bits to be in this
