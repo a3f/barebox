@@ -27,7 +27,7 @@ void input_unregister_notfier(struct input_notifier *in)
 	list_del(&in->list);
 }
 
-void input_report_key_event(struct input_device *idev, unsigned int code, int value)
+void input_report_key_event(struct input_dev *idev, unsigned int code, int value)
 {
 	struct input_event event;
 	struct input_notifier *in;
@@ -59,21 +59,21 @@ void input_report_key_event(struct input_device *idev, unsigned int code, int va
 
 static LIST_HEAD(input_devices);
 
-int input_device_register(struct input_device *idev)
+int input_device_register(struct input_dev *idev)
 {
 	list_add_tail(&idev->list, &input_devices);
 
 	return 0;
 }
 
-void input_device_unregister(struct input_device *idev)
+void input_device_unregister(struct input_dev *idev)
 {
 	list_del(&idev->list);
 }
 
 void input_key_get_status(unsigned long *keys, int bits)
 {
-	struct input_device *idev;
+	struct input_dev *idev;
 
 	bitmap_zero(keys, bits);
 
@@ -86,7 +86,7 @@ void input_key_get_status(unsigned long *keys, int bits)
 
 bool input_is_key_pressed(int key)
 {
-	struct input_device *idev;
+	struct input_dev *idev;
 
 	if (key > KEY_MAX)
 		return false;

@@ -13,16 +13,16 @@ struct input_event {
 	uint16_t value;
 };
 
-struct input_device {
+struct input_dev {
 	struct list_head list;
 	struct device *parent;
 	DECLARE_BITMAP(keys, KEY_CNT);
 };
 
-void input_report_key_event(struct input_device *idev, unsigned int code, int value);
+void input_report_key_event(struct input_dev *idev, unsigned int code, int value);
 
-int input_device_register(struct input_device *);
-void input_device_unregister(struct input_device *);
+int input_device_register(struct input_dev *);
+void input_device_unregister(struct input_dev *);
 
 void input_key_get_status(unsigned long *keys, int bits);
 bool input_is_key_pressed(int key);

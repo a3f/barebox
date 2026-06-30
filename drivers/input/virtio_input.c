@@ -13,7 +13,7 @@
 #include <uapi/linux/virtio_input.h>
 
 struct virtio_input {
-	struct input_device        idev;
+	struct input_dev           idev;
 	struct virtio_device       *vdev;
 	struct virtqueue           *evt, *sts;
 	struct virtio_input_event  evts[64];

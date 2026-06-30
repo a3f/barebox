@@ -45,7 +45,7 @@ struct usb_kbd_pdata {
 	int		intinterval;
 	struct usb_endpoint_descriptor *ep;
 	int (*do_poll)(struct usb_kbd_pdata *);
-	struct input_device input;
+	struct input_dev input;
 };
 
 static void usb_kbd_release_all_keys(struct usb_kbd_pdata *data)
