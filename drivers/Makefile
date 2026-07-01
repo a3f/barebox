@@ -43,6 +43,7 @@ obj-y += crypto/
 obj-$(CONFIG_AIODEV) += aiodev/
 obj-y	+= memory/
 obj-y	+= soc/
+obj-y	+= platform/
 obj-$(CONFIG_PM_GENERIC_DOMAINS)	+= pmdomain/
 obj-y	+= nvme/
 obj-y	+= ddr/
