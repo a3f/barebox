@@ -118,6 +118,7 @@ config PINCTRL_STM32
 	help
 	  Pinmux and GPIO controller found on STM32 family
 
+source "drivers/pinctrl/mediatek/Kconfig"
 source "drivers/pinctrl/sunxi/Kconfig"
 endif
 
