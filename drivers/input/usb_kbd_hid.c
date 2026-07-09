@@ -157,8 +157,6 @@ static void usb_kbd_poll(void *arg)
 			if (gone) {
 				input_report_key_event(&data->input, usb_kbd_keycode[pressed_old], 0);
 			}
-		} else {
-			break;
 		}
 	}
 
@@ -176,7 +174,8 @@ static int usb_kbd_probe(struct usb_device *usbdev,
 	struct usb_kbd_pdata *data;
 
 	dev_info(&usbdev->dev, "USB HID keyboard found\n");
-	ret = usb_set_protocol(usbdev, iface->desc.bInterfaceNumber, 0);
+	/* Report protocol matches what this device's descriptor declares. */
+	ret = usb_set_protocol(usbdev, iface->desc.bInterfaceNumber, 1);
 	if (ret < 0)
 		return ret;
 
@@ -213,6 +212,10 @@ static int usb_kbd_probe(struct usb_device *usbdev,
 			dev_info(&usbdev->dev, "poll keyboard via cont ep\n");
 	} else
 		dev_info(&usbdev->dev, "poll keyboard via int ep\n");
+
+	/* data->old starts zeroed; seed it from the real idle report so the
+	 * first poll doesn't read nonzero idle bytes as a keypress. */
+	memcpy(data->old, data->new, USB_KBD_BOOT_REPORT_SIZE);
 
 	data->input.parent = &usbdev->dev;
 	ret = input_device_register(&data->input);
