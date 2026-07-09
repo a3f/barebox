@@ -108,7 +108,7 @@ static void usb_kbd_poll(void *arg)
 		/* exit with noreturn */
 		dev_err(&usbdev->dev,
 			"usb_submit_int_msg() failed. Keyboard disconnect?\n");
-		return;
+		goto exit;
 	}
 
 	if (!memcmp(data->old, data->new, USB_KBD_BOOT_REPORT_SIZE))
