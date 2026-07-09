@@ -54,6 +54,13 @@ static char *remove_param(const char *params, const char *param)
 	return result;
 }
 
+static char *extlinux_make_abs(const char *rootpath, const char *relpath)
+{
+	if (relpath[0] == '/')
+		return basprintf("%s%s", rootpath, relpath);
+	return basprintf("%s/%s", rootpath, relpath);
+}
+
 static int extlinux_boot(struct bootentry *be, int verbose, int dryrun)
 {
 	struct extlinux_entry *e =
@@ -67,18 +74,18 @@ static int extlinux_boot(struct bootentry *be, int verbose, int dryrun)
 	data.dryrun = max_t(int, dryrun, data.dryrun);
 	data.verbose = max(verbose, data.verbose);
 
-	kernel_abs = basprintf("%s/%s", e->rootpath, e->kernel);
+	kernel_abs = extlinux_make_abs(e->rootpath, e->kernel);
 	data.os_file = kernel_abs;
 
 	if (e->initrd) {
-		initrd_abs = basprintf("%s/%s", e->rootpath, e->initrd);
+		initrd_abs = extlinux_make_abs(e->rootpath, e->initrd);
 		data.initrd_file = initrd_abs;
 	}
 
 	if (e->fdt) {
 		char *fdtdir = e->fdtdir ? : e->rootpath;
 
-		fdt_abs = basprintf("%s/%s", fdtdir, e->fdt);
+		fdt_abs = extlinux_make_abs(fdtdir, e->fdt);
 		data.oftree_file = fdt_abs;
 	}
 
@@ -164,7 +171,7 @@ static struct extlinux_entry *parse_extlinux_conf(const char *abspath,
 			if (!strcmp(val, default_label)) {
 				entry = xzalloc(sizeof(*entry));
 				entry->label = xstrdup(val);
-				entry->rootpath = dirname(xstrdup(abspath));
+				entry->rootpath = xstrdup(rootpath);
 			} else if (entry) {
 				break;
 			}
@@ -172,7 +179,7 @@ static struct extlinux_entry *parse_extlinux_conf(const char *abspath,
 		}
 
 		if (entry) {
-			if (!strcasecmp(key, "KERNEL"))
+			if (!strcasecmp(key, "KERNEL") || !strcasecmp(key, "LINUX"))
 				entry->kernel = xstrdup(val);
 			else if (!strcasecmp(key, "INITRD"))
 				entry->initrd = xstrdup(val);
