@@ -594,9 +594,12 @@ static void abort_td(struct usb_device *udev, int ep_index)
 	if (!event)
 		return;
 
+	comp = GET_COMP_CODE(le32_to_cpu(event->event_cmd.status));
+	if (comp == COMP_CTX_STATE)
+		dev_dbg(ctrl->dev, "abort_td: Set TR Dequeue Pointer got CTX_STATE, endpoint was already in the target state\n");
 	BUG_ON(TRB_TO_SLOT_ID(le32_to_cpu(event->event_cmd.flags))
-		!= udev->slot_id || GET_COMP_CODE(le32_to_cpu(
-		event->event_cmd.status)) != COMP_SUCCESS);
+		!= udev->slot_id || (comp != COMP_SUCCESS && comp
+		!= COMP_CTX_STATE));
 	xhci_acknowledge_event(ctrl);
 }
 
