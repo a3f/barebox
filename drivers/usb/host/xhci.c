@@ -1111,8 +1111,11 @@ static int _xhci_submit_int_msg(struct usb_device *udev, unsigned long pipe,
 	 * interrupt endpoint is to be serviced, the xHC will consume
 	 * (at most) one TD. A TD (comprised of sg list entries) can
 	 * take several service intervals to transmit.
+	 *
+	 * timeout_ms=0 defeats that: it aborts before the xHC's own
+	 * autonomous poll cycle ever gets a chance to complete.
 	 */
-	return xhci_bulk_tx(udev, pipe, length, buffer, 0);
+	return xhci_bulk_tx(udev, pipe, length, buffer, interval);
 }
 
 /**
