@@ -194,10 +194,11 @@ static int usb_kbd_probe(struct usb_device *usbdev,
 	data->intpktsize = min(usb_maxpacket(usbdev, data->intpipe),
 			       USB_KBD_BOOT_REPORT_SIZE);
 	data->intinterval = data->ep->bInterval;
-	/* test polling via interrupt endpoint */
+	/* -EAGAIN/-ETIMEDOUT here just mean nothing's arrived yet at probe
+	 * time, not a broken endpoint; only a real error should fall back. */
 	data->do_poll = usb_kbd_int_poll;
 	ret = data->do_poll(data);
-	if (ret < 0) {
+	if (ret < 0 && ret != -EAGAIN && ret != -ETIMEDOUT) {
 		/* fall back to polling via control enpoint */
 		data->do_poll = usb_kbd_cnt_poll;
 		usb_set_idle(usbdev,
