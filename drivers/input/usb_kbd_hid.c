@@ -110,19 +110,18 @@ static void usb_kbd_poll(void *arg)
 		goto exit;
 	}
 
+	/* Composite device: keyboard/mouse/consumer/gamepad share this
+	 * endpoint via Report ID. Ignore anything that isn't keyboard (ID 1). */
+	if (data->new[0] != 1)
+		goto exit;
+
 	if (!memcmp(data->old, data->new, USB_KBD_BOOT_REPORT_SIZE))
 		goto exit;
 
-	/*printk(KERN_ALERT "%s: %02x %02x %02x %02x %02x %02x %02x %02x\n", __func__,
-				 data->new[0], // 0x01
-				 data->new[1],
-				 data->new[2],
-				 data->new[3], // first key
-				 data->new[4],
-				 data->new[5],
-				 data->new[6],
-				 data->new[7]
-				 );*/
+	dev_dbg(&usbdev->dev, "ret=%d change: %02x %02x %02x %02x %02x %02x %02x %02x\n",
+		ret,
+		data->new[0], data->new[1], data->new[2], data->new[3],
+		data->new[4], data->new[5], data->new[6], data->new[7]);
 
 	for (i = 3; i <= 7; i++) {
 		uint8_t pressed_new = data->new[i];
