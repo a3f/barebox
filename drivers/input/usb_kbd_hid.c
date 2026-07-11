@@ -100,12 +100,11 @@ static void usb_kbd_poll(void *arg)
 	int ret, i;
 
 	ret = data->do_poll(data);
-	if (ret < 0)
-		usb_kbd_release_all_keys(data);
-	if (ret == -EAGAIN)
+	/* -EAGAIN/-ETIMEDOUT just mean nothing's pending; not a real error. */
+	if (ret == -EAGAIN || ret == -ETIMEDOUT)
 		goto exit;
 	if (ret < 0) {
-		/* exit with noreturn */
+		usb_kbd_release_all_keys(data);
 		dev_err(&usbdev->dev,
 			"usb_submit_int_msg() failed. Keyboard disconnect?\n");
 		goto exit;
