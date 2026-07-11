@@ -29,10 +29,11 @@
 	(USB_KBD_NUMLOCK | USB_KBD_CAPSLOCK | USB_KBD_SCROLLLOCK)
 
 /*
- * USB Keyboard reports are 8 bytes in boot protocol.
- * Appendix B of HID Device Class Definition 1.11
+ * Boot-protocol report is 8 bytes (Appendix B, HID 1.11), but this device's
+ * report descriptor declares a Report ID, which TinyUSB prepends as a 9th
+ * byte on the wire ahead of the 8-byte struct.
  */
-#define USB_KBD_BOOT_REPORT_SIZE 8
+#define USB_KBD_BOOT_REPORT_SIZE 9
 
 struct usb_kbd_pdata;
 
@@ -118,18 +119,19 @@ static void usb_kbd_poll(void *arg)
 	if (!memcmp(data->old, data->new, USB_KBD_BOOT_REPORT_SIZE))
 		goto exit;
 
-	dev_dbg(&usbdev->dev, "ret=%d change: %02x %02x %02x %02x %02x %02x %02x %02x\n",
+	dev_dbg(&usbdev->dev, "ret=%d change: %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
 		ret,
 		data->new[0], data->new[1], data->new[2], data->new[3],
-		data->new[4], data->new[5], data->new[6], data->new[7]);
+		data->new[4], data->new[5], data->new[6], data->new[7],
+		data->new[8]);
 
-	for (i = 3; i <= 7; i++) {
+	for (i = 3; i <= 8; i++) {
 		uint8_t pressed_new = data->new[i];
 
 		if (pressed_new > 0) {
 			// new keypress?
 			int new = 1;
-			for (int j = 3; j <= 7; j++) {
+			for (int j = 3; j <= 8; j++) {
 				if (data->old[j] == pressed_new) {
 					new = 0;
 					break;
@@ -141,12 +143,12 @@ static void usb_kbd_poll(void *arg)
 		}
 	}
 
-	for (i = 3; i <= 7; i++) {
+	for (i = 3; i <= 8; i++) {
 		uint8_t pressed_old = data->old[i];
 		if (pressed_old > 0) {
 			// key released?
 			int gone = 1;
-			for (int j = 3; j <= 7; j++) {
+			for (int j = 3; j <= 8; j++) {
 				if (data->new[j] == pressed_old) {
 					gone = 0;
 					break;
