@@ -1075,10 +1075,17 @@ int register_fbconsole(struct fb_info *fb)
 		return ret;
 	}
 
-	priv->par_font_val = 0;
-	priv->par_font = add_param_font(&cdev->class_dev,
-			set_font, NULL,
-			&priv->par_font_val, priv);
+	/*
+	 * Use TER16x32 on a HiDPI screen by default if available.
+	 * The algorithm used is adapted from the linux kernel for the
+	 * same purpose.
+	 */
+	if ((fb->xres / 8) * (fb->yres / 16) / 1000 > 25) {
+		priv->par_font_val = find_font_enum_by_name("TER16x32");
+	} else
+		priv->par_font_val = 0;
+	priv->par_font = add_param_font(&cdev->class_dev, set_font, NULL,
+					&priv->par_font_val, priv);
 
 	dev_add_param_uint32(&cdev->class_dev, "margin.top", set_margin,
 			NULL, &priv->margin.top, "%u", priv);

@@ -31,6 +31,7 @@ int font_register(struct font_desc *font)
 
 	return 0;
 }
+
 int find_font_index(const struct font_desc *font, int ch)
 {
 	int index;
@@ -66,6 +67,19 @@ const struct font_desc *find_font_enum(int n)
 	}
 
 	return NULL;
+}
+
+int find_font_enum_by_name(const char *name)
+{
+	struct font_desc *f;
+	int i = 0;
+
+	list_for_each_entry(f, &fonts_list, list)
+	{
+		if (!strcmp(f->name, name))
+			return i;
+	};
+	return 0;
 }
 
 struct param_d *add_param_font(struct device *dev,
