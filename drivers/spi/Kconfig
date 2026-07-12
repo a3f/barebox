@@ -139,6 +139,14 @@ config SPI_NXP_FLEXSPI
 	  This controller does not support generic SPI messages and only
 	  supports the high-level SPI memory interface.
 
+config SPI_MTK
+	tristate "MediaTek SPI controller"
+	depends on ARCH_MEDIATEK || COMPILE_TEST
+	help
+	  This selects the MediaTek(R) SPI bus driver.
+	  If you want to use MediaTek(R) SPI interface.
+	  SPI drivers for Mediatek MT65XX and MT81XX series ARM SoCs.
+
 config SPI_SIFIVE
 	tristate "SiFive SPI controller"
 	depends on SOC_SIFIVE || COMPILE_TEST
