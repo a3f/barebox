@@ -48,3 +48,11 @@ config USB_XHCI_PCI
 	help
 	  Say y here if your USB 3.0 controller is connected via PCI and
 	  you wish to access the USB devices on the bus from barebox.
+
+config USB_XHCI_MTK
+	tristate "xHCI support for MediaTek SoCs"
+	depends on USB_XHCI
+	help
+	  Say 'Y' to enable the support for the xHCI host controller
+	  found in MediaTek SoCs.
+	  If unsure, say N.

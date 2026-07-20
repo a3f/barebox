@@ -1465,6 +1465,9 @@ static int xhci_probe(struct device *dev)
 
 static const struct of_device_id xhci_dt_ids[] = {
 	{ .compatible = "generic-xhci" },
+#ifdef CONFIG_USB_XHCI_MTK
+	{ .compatible = "mediatek,mtk-xhci" },
+#endif
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, xhci_dt_ids);
