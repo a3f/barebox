@@ -23,9 +23,11 @@
 #include <dma.h>
 #include <init.h>
 #include <io.h>
+#include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/usb/usb.h>
 #include <linux/usb/xhci.h>
+#include <regulator.h>
 #include <asm/unaligned.h>
 
 #include "xhci.h"
@@ -1421,14 +1423,35 @@ int xhci_deregister(struct xhci_ctrl *ctrl)
 
 static int xhci_probe(struct device *dev)
 {
+	struct clk_bulk_data *clks;
+	struct regulator *vbus;
 	struct resource *iores;
 	struct xhci_ctrl *ctrl;
+	int ret;
 
 	iores = dev_request_mem_resource(dev, 0);
 	if (IS_ERR(iores))
 		return PTR_ERR(iores);
 
 	ctrl = xzalloc(sizeof(*ctrl));
+
+	ret = clk_bulk_get_all_enabled(dev, &clks);
+	if (ret < 0)
+		return ret;
+
+	vbus = regulator_get_optional(dev, "vbus");
+	if (IS_ERR(vbus)) {
+		ret = PTR_ERR(vbus);
+		if (ret != -ENODEV)
+			return dev_err_probe(dev, ret,
+					     "failed to get VBUS supply\n");
+		vbus = NULL;
+	}
+
+	ret = regulator_enable(vbus);
+	if (ret)
+		return dev_err_probe(dev, ret,
+				     "failed to enable VBUS supply\n");
 
 	ctrl->dev = dev;
 	ctrl->hccr = IOMEM(iores->start);
@@ -1439,6 +1462,12 @@ static int xhci_probe(struct device *dev)
 
 	return xhci_register(ctrl);
 }
+
+static const struct of_device_id xhci_dt_ids[] = {
+	{ .compatible = "generic-xhci" },
+	{ /* sentinel */ }
+};
+MODULE_DEVICE_TABLE(of, xhci_dt_ids);
 
 static void xhci_remove(struct device *dev)
 {
@@ -1451,5 +1480,6 @@ static struct driver xhci_driver = {
 	.name  = "xHCI",
 	.probe = xhci_probe,
 	.remove = xhci_remove,
+	.of_compatible = DRV_OF_COMPAT(xhci_dt_ids),
 };
 device_platform_driver(xhci_driver);
