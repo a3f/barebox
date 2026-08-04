@@ -100,16 +100,16 @@ out:
 
 int efi_execute_image(efi_handle_t handle,
 		      struct efi_loaded_image *loaded_image,
-		      enum filetype filetype)
+		      bool is_kernel)
 {
 	efi_status_t efiret;
 	const char *options;
-	bool is_driver, is_kernel = false;
+	bool is_driver;
 
 	is_driver = (loaded_image->image_code_type == EFI_BOOT_SERVICES_CODE) ||
 		(loaded_image->image_code_type == EFI_RUNTIME_SERVICES_CODE);
 
-	if (filetype_is_linux_efi_image(filetype)) {
+	if (is_kernel) {
 		options = linux_bootargs_get();
 		printf("Booting kernel via StartImage");
 		if (options) {
@@ -123,7 +123,6 @@ int efi_execute_image(efi_handle_t handle,
 		efi_set_variable_usec("LoaderTimeExecUSec", &efi_systemd_vendor_guid,
 				      ktime_to_us(ktime_get()));
 
-		is_kernel = true;
 		shutdown_barebox();
 	}
 
@@ -160,7 +159,8 @@ static int efi_execute(struct binfmt_hook *b, char *file, int argc, char **argv)
 	if (ret)
 		return ret;
 
-	return efi_execute_image(handle, loaded_image, b->type);
+	return efi_execute_image(handle, loaded_image,
+				 filetype_is_linux_efi_image(b->type));
 }
 
 static struct binfmt_hook binfmt_efi_hook = {

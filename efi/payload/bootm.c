@@ -165,7 +165,6 @@ static int do_bootm_efi_stub(struct image_data *data)
 	size_t initrd_size;
 	bool image_freed = false;
 	efi_handle_t handle = NULL; /* silence compiler warning */
-	enum filetype type;
 	int ret;
 
 	ret = efi_load_os(data, &loaded_image, &handle);
@@ -180,12 +179,15 @@ static int do_bootm_efi_stub(struct image_data *data)
 	if (ret)
 		goto unload_oftree;
 
-	type = file_detect_type(loaded_image->image_base, PAGE_SIZE);
-
 	if (data->dryrun)
 		goto unload_ramdisk;
 
-	ret = efi_execute_image(handle, loaded_image, type);
+	/*
+	 * We always treat an EFI executable being booted as if it were
+	 * a kernel, i.e. we serialize the Linux bootargs into the UEFI
+	 * load options and shutdown barebox, so that returns to it hang.
+	 */
+	ret = efi_execute_image(handle, loaded_image, true);
 
 	/* efi_execute_image takes care to unload the image on error,
 	 * so we set image_freed and fall through to freeing ramdisk
