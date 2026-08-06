@@ -14,6 +14,11 @@ fuzzer-$(CONFIG_UNCOMPRESS)	+= uncompress
 fuzzer-$(CONFIG_OF_OVERLAY)	+= dtb-overlay
 fuzzer-$(CONFIG_TLV)		+= tlv
 fuzzer-$(CONFIG_FS_FAT)		+= fat
+fuzzer-$(CONFIG_STATE)		+= state-direct
+ifdef CONFIG_STATE
+# the circular bucket target needs an in-memory MTD device to run on
+fuzzer-$(CONFIG_MTD)		+= state-circular
+endif
 
 ifeq ($(CONFIG_SANDBOX),y)
 
