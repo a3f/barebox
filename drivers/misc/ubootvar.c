@@ -16,6 +16,7 @@
 #include <libfile.h>
 #include <command.h>
 #include <crc.h>
+#include <fuzz.h>
 #include <ubootvar.h>
 #include <unistd.h>
 
@@ -310,7 +311,7 @@ static int ubootvar_apply_default_blob(struct ubootvar_data *ubdata,
 	return 0;
 }
 
-#if IS_ENABLED(CONFIG_SELFTEST_UBOOTVAR)
+#if IS_ENABLED(CONFIG_SELFTEST_UBOOTVAR) || IS_ENABLED(CONFIG_FUZZ)
 int ubootvar_apply_blobs(const void * const blob[2],
 				const size_t size[2], int count,
 				const void *default_blob, size_t default_size,
@@ -366,6 +367,145 @@ out:
 	return ret;
 }
 #endif
+
+static size_t ubootvar_fuzz_len(const u8 **data, size_t *size)
+{
+	size_t len;
+
+	if (!*size)
+		return 0;
+
+	len = *(*data)++;
+	(*size)--;
+
+	if (*size) {
+		len |= (size_t)*(*data)++ << 8;
+		(*size)--;
+	}
+
+	if (!*size)
+		return 0;
+
+	return len % (*size + 1);
+}
+
+static const u8 *ubootvar_fuzz_take(const u8 **data, size_t *size, size_t len)
+{
+	const u8 *p = *data;
+
+	len = min(len, *size);
+	*data += len;
+	*size -= len;
+
+	return p;
+}
+
+static void *ubootvar_fuzz_build_blob(const u8 *payload, size_t payload_size,
+				      bool redundant, u8 flag, bool valid_crc,
+				      size_t *out_size)
+{
+	size_t header_size = sizeof(uint32_t) + redundant;
+	uint8_t *blob, *data;
+	uint32_t crc;
+
+	*out_size = header_size + payload_size;
+	blob = malloc(*out_size);
+	if (!blob)
+		return NULL;
+
+	data = blob + sizeof(crc);
+	if (redundant)
+		*data++ = flag;
+
+	memcpy(data, payload, payload_size);
+
+	crc = crc32(0, data, payload_size);
+	if (!valid_crc)
+		crc++;
+
+	memcpy(blob, &crc, sizeof(crc));
+
+	return blob;
+}
+
+static int fuzz_ubootvar(const u8 *in, size_t size)
+{
+	const void *blob[2] = {};
+	size_t blob_size[2] = {};
+	void *copy_blob[2] = {};
+	const void *default_blob = NULL;
+	size_t default_size = 0;
+	void *allocated_default = NULL;
+	void *selected = NULL;
+	size_t selected_size;
+	const u8 *payload[2] = {};
+	size_t payload_size[2] = {};
+	bool redundant, structured;
+	u8 flags, env_flags[2];
+	int count, i;
+
+	if (size < 3)
+		return 0;
+
+	flags = *in++;
+	env_flags[0] = *in++;
+	env_flags[1] = *in++;
+	size -= 3;
+
+	redundant = flags & BIT(0);
+	structured = flags & BIT(1);
+	count = redundant ? 2 : 1;
+
+	for (i = 0; i < count; i++) {
+		payload_size[i] = ubootvar_fuzz_len(&in, &size);
+		payload[i] = ubootvar_fuzz_take(&in, &size, payload_size[i]);
+	}
+
+	if (flags & BIT(2)) {
+		default_size = ubootvar_fuzz_len(&in, &size);
+		default_blob = ubootvar_fuzz_take(&in, &size, default_size);
+	}
+
+	if (structured) {
+		for (i = 0; i < count; i++) {
+			copy_blob[i] = ubootvar_fuzz_build_blob(payload[i],
+						payload_size[i], redundant,
+						env_flags[i],
+						flags & BIT(3 + i),
+						&blob_size[i]);
+			if (!copy_blob[i])
+				goto out;
+			blob[i] = copy_blob[i];
+		}
+
+		if (default_blob) {
+			allocated_default = ubootvar_fuzz_build_blob(default_blob,
+						default_size, false, 0,
+						flags & BIT(5),
+						&default_size);
+			if (!allocated_default)
+				goto out;
+			default_blob = allocated_default;
+		}
+	} else {
+		for (i = 0; i < count; i++) {
+			blob[i] = payload[i];
+			blob_size[i] = payload_size[i];
+		}
+	}
+
+	ubootvar_apply_blobs(blob, blob_size, count, default_blob,
+			     default_size, &selected, &selected_size);
+	free(selected);
+
+out:
+	for (i = 0; i < count; i++)
+		free(copy_blob[i]);
+	free(allocated_default);
+
+	return 0;
+}
+fuzz_test("ubootvar", fuzz_ubootvar);
 
 static int ubootenv_probe(struct device *dev)
 {

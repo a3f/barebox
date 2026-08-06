@@ -18,6 +18,7 @@
 #include <wchar.h>
 #include <linux/err.h>
 #include <linux/ctype.h>
+#include <fuzz.h>
 
 /**
  * Some theory of operation:
@@ -517,6 +518,27 @@ static void ubootvarfs_remove(struct device *dev)
 	ubootvarfs_free_vars(data);
 	free(data);
 }
+
+static int fuzz_ubootvarfs(const u8 *in, size_t size)
+{
+	struct ubootvarfs_data data = {};
+	char *blob;
+
+	if (!size)
+		return 0;
+
+	blob = memdup(in, size);
+	if (!blob)
+		return 0;
+
+	ubootvarfs_parse(&data, blob, size);
+	ubootvarfs_free_vars(&data);
+
+	free(blob);
+
+	return 0;
+}
+fuzz_test("ubootvarfs", fuzz_ubootvarfs);
 
 static struct fs_driver ubootvarfs_driver = {
 	.type = filetype_ubootvar,
