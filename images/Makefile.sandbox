@@ -14,6 +14,7 @@ fuzzer-$(CONFIG_UNCOMPRESS)	+= uncompress
 fuzzer-$(CONFIG_OF_OVERLAY)	+= dtb-overlay
 fuzzer-$(CONFIG_UBOOTVAR)	+= ubootvar
 fuzzer-$(CONFIG_FS_UBOOTVARFS)	+= ubootvarfs
+fuzzer-$(CONFIG_EFI_PE_PARSER)	+= pe
 fuzzer-$(CONFIG_TLV)		+= tlv
 fuzzer-$(CONFIG_FS_FAT)		+= fat
 fuzzer-$(CONFIG_STATE)		+= state-direct
