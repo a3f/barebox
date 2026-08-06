@@ -24,6 +24,7 @@ obj-$(CONFIG_SELFTEST_RESOURCE) += resource.o
 obj-$(CONFIG_SELFTEST_TEST_COMMAND) += test_command.o
 obj-$(CONFIG_SELFTEST_IDR) += idr.o
 obj-$(CONFIG_SELFTEST_TLV) += tlv.o tlv.dtb.o
+obj-$(CONFIG_SELFTEST_UBOOTVAR) += ubootvar.o
 obj-$(CONFIG_SELFTEST_DM) += dm.o
 obj-$(CONFIG_SELFTEST_BLSPEC) += blspec.o
 bbenv-$(CONFIG_SELFTEST_BLSPEC) += defaultenv-blspec-test

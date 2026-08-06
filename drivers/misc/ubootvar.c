@@ -16,6 +16,7 @@
 #include <libfile.h>
 #include <command.h>
 #include <crc.h>
+#include <ubootvar.h>
 #include <unistd.h>
 
 enum ubootvar_flag_scheme {
@@ -308,6 +309,63 @@ static int ubootvar_apply_default_blob(struct ubootvar_data *ubdata,
 
 	return 0;
 }
+
+#if IS_ENABLED(CONFIG_SELFTEST_UBOOTVAR)
+int ubootvar_apply_blobs(const void * const blob[2],
+				const size_t size[2], int count,
+				const void *default_blob, size_t default_size,
+				void **out, size_t *out_size)
+{
+	struct ubootvar_copy copy[2] = {};
+	struct ubootvar_data ubdata = {};
+	bool redundant = count > 1;
+	int current, i, ret = 0;
+
+	if (!out || !out_size || count < 1 || count > 2)
+		return -EINVAL;
+
+	*out = NULL;
+	*out_size = 0;
+
+	for (i = 0; i < count; i++) {
+		if (!blob[i])
+			continue;
+
+		copy[i].blob = memdup(blob[i], size[i]);
+		if (!copy[i].blob) {
+			ret = -ENOMEM;
+			goto out;
+		}
+
+		ubootvar_parse_copy(&copy[i], copy[i].blob, size[i],
+				    redundant);
+	}
+
+	current = ubootvar_select_copy(NULL, &ubdata, copy, count,
+				       FLAG_INCREMENTAL);
+	if (current < 0) {
+		ret = current;
+		goto out;
+	}
+
+	if (ubdata.crc_invalid && default_blob)
+		ubootvar_apply_default_blob(&ubdata, default_blob,
+					    default_size);
+
+	*out_size = ubdata.size;
+	if (ubdata.size) {
+		*out = memdup(ubdata.data, ubdata.size);
+		if (!*out)
+			ret = -ENOMEM;
+	}
+
+out:
+	for (i = 0; i < count; i++)
+		free(copy[i].blob);
+
+	return ret;
+}
+#endif
 
 static int ubootenv_probe(struct device *dev)
 {
