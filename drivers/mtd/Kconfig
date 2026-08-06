@@ -2,6 +2,10 @@
 menuconfig MTD
 	bool "Memory Technology Device (MTD) support"
 
+config MTDRAM
+	bool
+	depends on MTD
+
 if MTD
 
 config MTD_WRITE

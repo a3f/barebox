@@ -12,6 +12,7 @@
 #include <linux/bug.h>
 #include <linux/string.h>
 #include <ramdisk.h>
+#include <mtdram.h>
 
 /**
  * struct fuzz_test - Information about a fuzz test
@@ -63,6 +64,20 @@ extern const struct fuzz_test __barebox_fuzz_tests_end;
 		return ret;					\
 	}							\
 	fuzz_test(_name, _func##_ramdisk_##_sector_size)
+
+#define fuzz_test_mtdram(_name, _size, _erasesize, _writesize, _func)	\
+	static int _func##_mtdram(const u8 *data, size_t size)		\
+	{								\
+		static struct mtdram *mtdram;				\
+		if (!mtdram)						\
+			mtdram = mtdram_init(_size, _erasesize,		\
+					     _writesize);		\
+		if (!mtdram)						\
+			return -ENODEV;					\
+		mtdram_setup(mtdram, data, size);			\
+		return _func(mtdram_get_mtd(mtdram));			\
+	}								\
+	fuzz_test(_name, _func##_mtdram)
 
 #define fuzz_test_str(_name, _func)				\
 	static int _func##_str(const u8 *_data, size_t size)	\
