@@ -16,6 +16,7 @@
 #include <libfile.h>
 #include <command.h>
 #include <crc.h>
+#include <unistd.h>
 
 enum ubootvar_flag_scheme {
 	FLAG_NONE,
@@ -26,12 +27,26 @@ enum ubootvar_flag_scheme {
 struct ubootvar_data {
 	struct cdev cdev;
 	char *path[2];
+	char *default_env_path;
+	bool crc_invalid;
 	bool current;
 	uint8_t flag;
 	int count;
 	void *data;
 	size_t size;
+	struct list_head list;
 };
+
+struct ubootvar_copy {
+	void *blob;
+	uint8_t *data;
+	size_t size;
+	uint8_t flag;
+	bool usable;
+	bool crc_ok;
+};
+
+static LIST_HEAD(ubootvar_list);
 
 static int ubootvar_flush(struct cdev *cdev)
 {
@@ -174,16 +189,132 @@ static void ubootenv_info(struct device *dev)
 	       ubdata->path[ubdata->current]);
 }
 
+static void ubootvar_parse_copy(struct ubootvar_copy *copy, void *blob,
+				size_t size, bool redundant)
+{
+	uint32_t crc;
+	uint8_t *data = blob;
+	size_t header_size = sizeof(uint32_t);
+
+	if (redundant)
+		header_size += sizeof(uint8_t);
+
+	if (size < header_size)
+		return;
+
+	memcpy(&crc, data, sizeof(crc));
+	data += sizeof(crc);
+	size -= sizeof(crc);
+
+	if (redundant) {
+		copy->flag = *data;
+		data++;
+		size--;
+	}
+
+	copy->data = data;
+	copy->size = size;
+	copy->usable = true;
+	copy->crc_ok = crc32(0, data, size) == crc;
+}
+
+static int ubootvar_select_copy(struct device *dev, struct ubootvar_data *ubdata,
+				struct ubootvar_copy *copy, int count,
+				enum ubootvar_flag_scheme flag_scheme)
+{
+	unsigned int crc_ok = 0;
+	int current, i;
+
+	for (i = 0; i < count; i++) {
+		if (copy[i].crc_ok)
+			crc_ok |= BIT(i);
+	}
+
+	switch (crc_ok) {
+	case 0b00:
+		current = -EINVAL;
+
+		for (i = 0; i < count; i++) {
+			if (copy[i].usable) {
+				current = i;
+				break;
+			}
+		}
+
+		if (current < 0) {
+			dev_err(dev, "No readable U-Boot environment data found\n");
+			return current;
+		}
+
+		memset(copy[current].data, 0, copy[current].size);
+		ubdata->crc_invalid = true;
+		dev_info(dev, "No good partitions found, creating an empty one\n");
+		break;
+	case 0b11:
+		/*
+		 * Both partitions are valid, so we need to examine flags to
+		 * determine which one to use as current.
+		 */
+		switch (flag_scheme) {
+		case FLAG_INCREMENTAL:
+			if ((copy[0].flag == 0xff && copy[1].flag == 0) ||
+			    (copy[1].flag == 0xff && copy[0].flag == 0)) {
+				/*
+				 * When flag overflow happens current
+				 * partition is the one whose counter reached
+				 * zero first.
+				 */
+				current = copy[1].flag == 0;
+			} else {
+				current = copy[1].flag > copy[0].flag;
+			}
+			break;
+		default:
+			dev_err(dev, "Unknown flag scheme %u\n", flag_scheme);
+			return -EINVAL;
+		}
+		break;
+	default:
+		/*
+		 * Only one partition is valid, so the choice of the current
+		 * one is obvious. This deliberately wins over builtin default
+		 * fallback.
+		 */
+		current = __ffs(crc_ok);
+		break;
+	}
+
+	ubdata->data = copy[current].data;
+	ubdata->size = copy[current].size;
+	ubdata->current = current;
+	ubdata->count = count;
+	ubdata->flag = copy[current].flag;
+
+	return current;
+}
+
+static int ubootvar_apply_default_blob(struct ubootvar_data *ubdata,
+				       const void *blob, size_t file_size)
+{
+	size_t data_size;
+
+	if (file_size <= sizeof(uint32_t))
+		return -EINVAL;
+
+	data_size = min(file_size - sizeof(uint32_t), ubdata->size);
+	memset(ubdata->data, 0, ubdata->size);
+	memcpy(ubdata->data, (const uint8_t *)blob + sizeof(uint32_t),
+	       data_size);
+
+	return 0;
+}
+
 static int ubootenv_probe(struct device *dev)
 {
 	struct ubootvar_data *ubdata;
-	unsigned int crc_ok = 0;
+	struct ubootvar_copy copy[2] = {};
 	int ret, i, current, count = 0;
-	uint32_t crc[2];
-	uint8_t flag[2] = { FLAG_NONE, FLAG_NONE };
 	size_t size[2];
-	void *blob[2] = { NULL, NULL };
-	uint8_t *data[2];
 
 	/*
 	 * FIXME: Flag scheme is determined by the type of underlined
@@ -194,6 +325,11 @@ static int ubootenv_probe(struct device *dev)
 	enum ubootvar_flag_scheme flag_scheme = FLAG_INCREMENTAL;
 
 	ubdata = xzalloc(sizeof(*ubdata));
+
+	of_property_read_string(dev->of_node, "default-environment-path",
+				(const char **)&ubdata->default_env_path);
+	if (ubdata->default_env_path)
+		ubdata->default_env_path = strdup(ubdata->default_env_path);
 
 	ret = of_find_path(dev->of_node, "device-path-0",
 			   &ubdata->path[0],
@@ -225,91 +361,39 @@ static int ubootenv_probe(struct device *dev)
 	}
 
 	for (i = 0; i < count; i++) {
-		data[i] = blob[i] = read_file(ubdata->path[i], &size[i]);
-		if (!blob[i]) {
-			dev_err(dev, "Failed to read U-Boot environment\n");
-			ret = -EIO;
-			goto out;
-		}
-
-		crc[i] = *(uint32_t *)data[i];
-
-		size[i] -= sizeof(uint32_t);
-		data[i] += sizeof(uint32_t);
-
-		if (count > 1) {
+		copy[i].blob = read_file(ubdata->path[i], &size[i]);
+		if (!copy[i].blob) {
 			/*
-			 * When used in primary/redundant
-			 * configuration, environment header has an
-			 * additional "flag" byte
+			 * Leave the copy unusable instead of substituting an
+			 * empty environment: the data may well be intact and
+			 * only this read have failed, and flushing an empty
+			 * environment over it would destroy it for good. If
+			 * no copy at all can be read, probe fails below.
 			 */
-			flag[i] = *data[i];
-			size[i] -= sizeof(uint8_t);
-			data[i] += sizeof(uint8_t);
+			dev_warn(dev, "Failed to read U-Boot environment %s\n",
+				 ubdata->path[i]);
+			continue;
 		}
 
-		crc_ok |= (crc32(0, data[i], size[i]) == crc[i]) << i;
+		ubootvar_parse_copy(&copy[i], copy[i].blob, size[i],
+				    count > 1);
+		if (!copy[i].usable)
+			dev_warn(dev, "U-Boot environment %s is too small\n",
+				 ubdata->path[i]);
 	}
 
-	switch (crc_ok) {
-	case 0b00:
-		current = 0;
-		memset(data[0], 0, size[0]);
-		dev_info(dev, "No good partitions found, creating an empty one\n");
-		break;
-	case 0b11:
-		/*
-		 * Both partition are valid, so we need to examine
-		 * flags to determine which one to use as current
-		 */
-		switch (flag_scheme) {
-		case FLAG_INCREMENTAL:
-			if ((flag[0] == 0xff && flag[1] == 0) ||
-			    (flag[1] == 0xff && flag[0] == 0)) {
-				/*
-				 * When flag overflow happens current
-				 * partition is the one whose counter
-				 * reached zero first. That is if
-				 * flag[1] == 0 is true (1), then i
-				 * would be 1 as well
-				 */
-				current = flag[1] == 0;
-			} else {
-				/*
-				 * In no-overflow case the partition
-				 * with higher flag value is
-				 * considered current
-				 */
-				current = flag[1] > flag[0];
-			}
-			break;
-		default:
-			ret = -EINVAL;
-			dev_err(dev, "Unknown flag scheme %u\n", flag_scheme);
-			goto out;
-		}
-		break;
-	default:
-		/*
-		 * Only one partition is valid, so the choice of the
-		 * current one is obvious
-		 */
-		current = __ffs(crc_ok);
-		break;
-	};
-
-	ubdata->data = data[current];
-	ubdata->size = size[current];
+	current = ubootvar_select_copy(dev, ubdata, copy, count, flag_scheme);
+	if (current < 0) {
+		ret = current;
+		goto out;
+	}
 
 	ubdata->cdev.name = basprintf("ubootvar%d",
 				      cdev_find_free_index("ubootvar"));
-	ubdata->cdev.size = size[current];
+	ubdata->cdev.size = ubdata->size;
 	ubdata->cdev.ops = &ubootvar_ops;
 	ubdata->cdev.dev = dev;
 	ubdata->cdev.filetype = filetype_ubootvar;
-	ubdata->current = current;
-	ubdata->count = count;
-	ubdata->flag = flag[current];
 
 	dev->priv = ubdata;
 
@@ -321,27 +405,70 @@ static int ubootenv_probe(struct device *dev)
 
 	cdev_create_default_automount(&ubdata->cdev);
 
-	if (count > 1) {
+	for (i = 0; i < count; i++) {
 		/*
-		 * We won't be using read data from redundant
-		 * parttion, so we may as well free at this point
+		 * We won't be using data from other copies, so we may as
+		 * well free them at this point.
 		 */
-		free(blob[!current]);
+		if (i != current)
+			free(copy[i].blob);
 	}
 
 	devinfo_add(dev, ubootenv_info);
 
+	list_add_tail(&ubdata->list, &ubootvar_list);
+
 	return 0;
 out:
 	for (i = 0; i < count; i++)
-		free(blob[i]);
+		free(copy[i].blob);
 
+	free(ubdata->cdev.name);
 	free(ubdata->path[0]);
 	free(ubdata->path[1]);
+	free(ubdata->default_env_path);
 	free(ubdata);
 
 	return ret;
 }
+
+static int ubootvar_load_defaults(void)
+{
+	struct ubootvar_data *ubdata;
+
+	list_for_each_entry(ubdata, &ubootvar_list, list) {
+		struct device *dev = ubdata->cdev.dev;
+		size_t file_size;
+		void *blob;
+		int ret;
+
+		if (!ubdata->crc_invalid || !ubdata->default_env_path)
+			continue;
+
+		blob = read_file(ubdata->default_env_path, &file_size);
+		if (!blob) {
+			dev_warn(dev, "default environment %s not found\n",
+				 ubdata->default_env_path);
+			continue;
+		}
+
+		ret = ubootvar_apply_default_blob(ubdata, blob, file_size);
+		if (ret) {
+			dev_err(dev, "default environment %s too small\n",
+				ubdata->default_env_path);
+			free(blob);
+			continue;
+		}
+
+		free(blob);
+
+		dev_info(dev, "Restored default environment from %s\n",
+			 ubdata->default_env_path);
+	}
+
+	return 0;
+}
+postenvironment_initcall(ubootvar_load_defaults);
 
 static struct of_device_id ubootenv_dt_ids[] = {
 	{

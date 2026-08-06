@@ -14,6 +14,19 @@ Required properties:
 * ``device-path-0`` and ``device-path-1``: phandle of the partition
   the environment is on (redundant configuration)
 
+Optional properties:
+
+* ``default-environment-path``: path to a file containing a default
+  U-Boot environment in mkenvimage binary format (4-byte CRC header
+  followed by ``key=value\0`` pairs). When the on-disk CRC is
+  invalid (corrupted or erased), the data portion of this file
+  (after the CRC header) is copied into the environment blob instead
+  of leaving it empty. The CRC in the file is not validated - it
+  will be recomputed on the next flush. The file is read at
+  ``postenvironment_initcall`` time, so it can reside in the barebox
+  default environment (e.g. ``/env/data/uboot-default-env.bin``).
+  Generate with: ``mkenvimage -s <size> -o output.bin input.txt``
+
 Example:
 
 .. code-block:: none
