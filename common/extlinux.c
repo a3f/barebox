@@ -18,6 +18,7 @@
 struct extlinux_entry {
 	struct bootentry entry;
 	char *rootpath;
+	char *cfgdir;
 	char *label;
 	char *kernel;
 	char *initrd;
@@ -54,6 +55,16 @@ static char *remove_param(const char *params, const char *param)
 	return result;
 }
 
+/* Absolute paths resolve against the partition root; relative paths resolve
+ * against the extlinux.conf file's own directory, per syslinux convention. */
+static char *extlinux_make_abs(const char *rootpath, const char *cfgdir,
+				const char *relpath)
+{
+	if (relpath[0] == '/')
+		return basprintf("%s%s", rootpath, relpath);
+	return basprintf("%s/%s", cfgdir, relpath);
+}
+
 static int extlinux_boot(struct bootentry *be, int verbose, int dryrun)
 {
 	struct extlinux_entry *e =
@@ -67,18 +78,18 @@ static int extlinux_boot(struct bootentry *be, int verbose, int dryrun)
 	data.dryrun = max_t(int, dryrun, data.dryrun);
 	data.verbose = max(verbose, data.verbose);
 
-	kernel_abs = basprintf("%s/%s", e->rootpath, e->kernel);
+	kernel_abs = extlinux_make_abs(e->rootpath, e->cfgdir, e->kernel);
 	data.os_file = kernel_abs;
 
 	if (e->initrd) {
-		initrd_abs = basprintf("%s/%s", e->rootpath, e->initrd);
+		initrd_abs = extlinux_make_abs(e->rootpath, e->cfgdir, e->initrd);
 		data.initrd_file = initrd_abs;
 	}
 
 	if (e->fdt) {
-		char *fdtdir = e->fdtdir ? : e->rootpath;
+		char *fdtdir = e->fdtdir ? : e->cfgdir;
 
-		fdt_abs = basprintf("%s/%s", fdtdir, e->fdt);
+		fdt_abs = extlinux_make_abs(e->rootpath, fdtdir, e->fdt);
 		data.oftree_file = fdt_abs;
 	}
 
@@ -120,6 +131,7 @@ static void extlinux_entry_free(struct bootentry *be)
 		container_of(be, struct extlinux_entry, entry);
 
 	free(e->rootpath);
+	free(e->cfgdir);
 	free(e->label);
 	free(e->kernel);
 	free(e->initrd);
@@ -164,7 +176,8 @@ static struct extlinux_entry *parse_extlinux_conf(const char *abspath,
 			if (!strcmp(val, default_label)) {
 				entry = xzalloc(sizeof(*entry));
 				entry->label = xstrdup(val);
-				entry->rootpath = dirname(xstrdup(abspath));
+				entry->rootpath = xstrdup(rootpath);
+				entry->cfgdir = dirname(xstrdup(abspath));
 			} else if (entry) {
 				break;
 			}
@@ -172,7 +185,7 @@ static struct extlinux_entry *parse_extlinux_conf(const char *abspath,
 		}
 
 		if (entry) {
-			if (!strcasecmp(key, "KERNEL"))
+			if (!strcasecmp(key, "KERNEL") || !strcasecmp(key, "LINUX"))
 				entry->kernel = xstrdup(val);
 			else if (!strcasecmp(key, "INITRD"))
 				entry->initrd = xstrdup(val);

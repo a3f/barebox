@@ -29,10 +29,11 @@
 	(USB_KBD_NUMLOCK | USB_KBD_CAPSLOCK | USB_KBD_SCROLLLOCK)
 
 /*
- * USB Keyboard reports are 8 bytes in boot protocol.
- * Appendix B of HID Device Class Definition 1.11
+ * Boot-protocol report is 8 bytes (Appendix B, HID 1.11), but this device's
+ * report descriptor declares a Report ID, which TinyUSB prepends as a 9th
+ * byte on the wire ahead of the 8-byte struct.
  */
-#define USB_KBD_BOOT_REPORT_SIZE 8
+#define USB_KBD_BOOT_REPORT_SIZE 9
 
 struct usb_kbd_pdata;
 
@@ -100,38 +101,37 @@ static void usb_kbd_poll(void *arg)
 	int ret, i;
 
 	ret = data->do_poll(data);
-	if (ret < 0)
-		usb_kbd_release_all_keys(data);
-	if (ret == -EAGAIN)
+	/* -EAGAIN/-ETIMEDOUT just mean nothing's pending; not a real error. */
+	if (ret == -EAGAIN || ret == -ETIMEDOUT)
 		goto exit;
 	if (ret < 0) {
-		/* exit with noreturn */
+		usb_kbd_release_all_keys(data);
 		dev_err(&usbdev->dev,
 			"usb_submit_int_msg() failed. Keyboard disconnect?\n");
-		return;
+		goto exit;
 	}
+
+	/* Composite device: keyboard/mouse/consumer/gamepad share this
+	 * endpoint via Report ID. Ignore anything that isn't keyboard (ID 1). */
+	if (data->new[0] != 1)
+		goto exit;
 
 	if (!memcmp(data->old, data->new, USB_KBD_BOOT_REPORT_SIZE))
 		goto exit;
 
-	/*printk(KERN_ALERT "%s: %02x %02x %02x %02x %02x %02x %02x %02x\n", __func__,
-				 data->new[0], // 0x01
-				 data->new[1],
-				 data->new[2],
-				 data->new[3], // first key
-				 data->new[4],
-				 data->new[5],
-				 data->new[6],
-				 data->new[7]
-				 );*/
+	dev_dbg(&usbdev->dev, "ret=%d change: %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+		ret,
+		data->new[0], data->new[1], data->new[2], data->new[3],
+		data->new[4], data->new[5], data->new[6], data->new[7],
+		data->new[8]);
 
-	for (i = 3; i <= 7; i++) {
+	for (i = 3; i <= 8; i++) {
 		uint8_t pressed_new = data->new[i];
 
 		if (pressed_new > 0) {
 			// new keypress?
 			int new = 1;
-			for (int j = 3; j <= 7; j++) {
+			for (int j = 3; j <= 8; j++) {
 				if (data->old[j] == pressed_new) {
 					new = 0;
 					break;
@@ -143,12 +143,12 @@ static void usb_kbd_poll(void *arg)
 		}
 	}
 
-	for (i = 3; i <= 7; i++) {
+	for (i = 3; i <= 8; i++) {
 		uint8_t pressed_old = data->old[i];
 		if (pressed_old > 0) {
 			// key released?
 			int gone = 1;
-			for (int j = 3; j <= 7; j++) {
+			for (int j = 3; j <= 8; j++) {
 				if (data->new[j] == pressed_old) {
 					gone = 0;
 					break;
@@ -157,8 +157,6 @@ static void usb_kbd_poll(void *arg)
 			if (gone) {
 				input_report_key_event(&data->input, usb_kbd_keycode[pressed_old], 0);
 			}
-		} else {
-			break;
 		}
 	}
 
@@ -176,7 +174,8 @@ static int usb_kbd_probe(struct usb_device *usbdev,
 	struct usb_kbd_pdata *data;
 
 	dev_info(&usbdev->dev, "USB HID keyboard found\n");
-	ret = usb_set_protocol(usbdev, iface->desc.bInterfaceNumber, 0);
+	/* Report protocol matches what this device's descriptor declares. */
+	ret = usb_set_protocol(usbdev, iface->desc.bInterfaceNumber, 1);
 	if (ret < 0)
 		return ret;
 
@@ -195,10 +194,11 @@ static int usb_kbd_probe(struct usb_device *usbdev,
 	data->intpktsize = min(usb_maxpacket(usbdev, data->intpipe),
 			       USB_KBD_BOOT_REPORT_SIZE);
 	data->intinterval = data->ep->bInterval;
-	/* test polling via interrupt endpoint */
+	/* -EAGAIN/-ETIMEDOUT here just mean nothing's arrived yet at probe
+	 * time, not a broken endpoint; only a real error should fall back. */
 	data->do_poll = usb_kbd_int_poll;
 	ret = data->do_poll(data);
-	if (ret < 0) {
+	if (ret < 0 && ret != -EAGAIN && ret != -ETIMEDOUT) {
 		/* fall back to polling via control enpoint */
 		data->do_poll = usb_kbd_cnt_poll;
 		usb_set_idle(usbdev,
@@ -213,6 +213,10 @@ static int usb_kbd_probe(struct usb_device *usbdev,
 			dev_info(&usbdev->dev, "poll keyboard via cont ep\n");
 	} else
 		dev_info(&usbdev->dev, "poll keyboard via int ep\n");
+
+	/* data->old starts zeroed; seed it from the real idle report so the
+	 * first poll doesn't read nonzero idle bytes as a keypress. */
+	memcpy(data->old, data->new, USB_KBD_BOOT_REPORT_SIZE);
 
 	data->input.parent = &usbdev->dev;
 	ret = input_device_register(&data->input);
