@@ -194,6 +194,9 @@ kind of build can be reproduced locally without any setup::
 The behavior is controlled by environment variables as described in
 the OSS-Fuzz documentation, most importantly:
 
+* ``LLVM``: the kbuild toolchain selector (``1``, ``-<suffix>`` or a
+  path ending in ``/``). When unset, the newest complete LLVM
+  toolchain found in ``PATH`` is used, preferring an unsuffixed one
 * ``SANITIZER``: one of ``address`` (default), ``undefined``,
   ``coverage`` or ``none``
 * ``CFLAGS``: compiler flags, replacing the per-sanitizer defaults

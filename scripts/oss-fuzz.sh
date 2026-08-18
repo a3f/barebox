@@ -10,6 +10,8 @@
 #   ./oss-fuzz-work/out/fuzz-filetype
 #
 # Relevant environment variables (see the OSS-Fuzz documentation):
+#   LLVM               kbuild toolchain selector: 1, -<suffix> or a
+#                      path ending in /; autodetected when unset
 #   SANITIZER          address (default), undefined, coverage, none
 #   CFLAGS             compiler flags, replacing the per-sanitizer defaults
 #   LIB_FUZZING_ENGINE fuzzing engine link argument
@@ -21,8 +23,38 @@ set -eux
 
 srctree=$(readlink -f "$(dirname "$0")/..")
 
-export CC=${CC:-clang}
-export CXX=${CXX:-clang++}
+# Kbuild's LLVM=1 expects an unsuffixed LLVM toolchain in PATH, which
+# not all distributions provide: Debian, for example, may ship clang-21
+# and ld.lld-21 without an unsuffixed ld.lld. When LLVM is not given,
+# fall back to the newest versioned toolchain that is complete.
+llvm_complete() {
+	command -v "clang$1" && command -v "ld.lld$1" && \
+		command -v "llvm-ar$1"
+} >/dev/null
+
+if [ -z "${LLVM:-}" ]; then
+	LLVM=1
+	if ! llvm_complete ""; then
+		for v in $(compgen -c clang- | \
+			   sed -n 's/^clang-\([0-9]\+\)$/\1/p' | sort -run); do
+			if llvm_complete "-$v"; then
+				LLVM=-$v
+				break
+			fi
+		done
+	fi
+fi
+
+# Default CC/CXX to the same toolchain LLVM= selects for kbuild, so
+# auxiliary uses like scripts/clang-runtime-dir.sh match the compiler
+# that performs the link
+case "$LLVM" in
+*/) llvm_prefix=$LLVM llvm_suffix='' ;;
+-*) llvm_prefix='' llvm_suffix=$LLVM ;;
+*)  llvm_prefix='' llvm_suffix='' ;;
+esac
+export CC=${CC:-${llvm_prefix}clang$llvm_suffix}
+export CXX=${CXX:-${llvm_prefix}clang++$llvm_suffix}
 SANITIZER=${SANITIZER:-address}
 WORK=${WORK:-$srctree/oss-fuzz-work}
 OUT=${OUT:-$WORK/out}
@@ -55,7 +87,7 @@ if [ -z "${CFLAGS:-}" ]; then
 fi
 
 kmake() {
-	make -C "$srctree" O="$BUILD" LLVM=${LLVM:-1} "$@"
+	make -C "$srctree" O="$BUILD" LLVM="$LLVM" "$@"
 }
 
 kmake libfuzzer_defconfig
