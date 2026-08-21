@@ -283,6 +283,7 @@ static int efi_late_init(void)
 {
 	const char *state_desc = "/boot/EFI/barebox/state.dtb";
 	struct device_node *state_root = NULL;
+	struct device_node *root;
 	size_t size;
 	void *fdt;
 	int ret;
@@ -299,6 +300,18 @@ static int efi_late_init(void)
 	fdt = read_file(state_desc, &size);
 	if (!fdt) {
 		pr_info("unable to read %s: %m\n", state_desc);
+		return 0;
+	}
+
+	/*
+	 * A device tree built into barebox, e.g. from external dts
+	 * fragments, takes precedence: any state it describes has been
+	 * instantiated by the state driver already.
+	 */
+	root = of_get_root_node();
+	if (root && !list_empty(&root->children)) {
+		pr_warn("device tree is populated, ignoring %s\n", state_desc);
+		free(fdt);
 		return 0;
 	}
 
