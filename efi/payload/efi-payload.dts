@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/dts-v1/;
+
+/*
+ * Tentative device tree for barebox running as EFI payload. It's empty,
+ * because EFI systems describe their hardware to barebox by other means,
+ * but it can be populated with barebox-specific nodes, e.g. a state
+ * partition description, via CONFIG_EXTERNAL_DTS_FRAGMENTS.
+ */
+/ {
+	compatible = "barebox,efi-payload";
+
+	#address-cells = <2>;
+	#size-cells = <2>;
+};
