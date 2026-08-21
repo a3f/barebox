@@ -3088,14 +3088,19 @@ out:
 
 void of_merge_nodes(struct device_node *np, const struct device_node *other)
 {
-	struct device_node *child;
+	struct device_node *child, *existing;
 	struct property *pp;
 
 	list_for_each_entry(pp, &other->properties, list)
-		of_new_property(np, pp->name, pp->value, pp->length);
+		of_set_property(np, pp->name, pp->value, pp->length, true);
 
-	for_each_child_of_node(other, child)
-		of_copy_node(np, child);
+	for_each_child_of_node(other, child) {
+		existing = of_get_child_by_name(np, child->name);
+		if (existing)
+			of_merge_nodes(existing, child);
+		else
+			of_copy_node(np, child);
+	}
 }
 
 struct device_node *of_copy_node(struct device_node *parent, const struct device_node *other)

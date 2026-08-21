@@ -1048,6 +1048,11 @@ static inline void of_delete_node(struct device_node *node)
 {
 }
 
+static inline void of_merge_nodes(struct device_node *np,
+				  const struct device_node *other)
+{
+}
+
 static inline int of_machine_is_compatible(const char *compat)
 {
 	return 0;
