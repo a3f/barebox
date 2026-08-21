@@ -282,12 +282,21 @@ postcore_efi_initcall(efi_postcore_init);
 static int efi_late_init(void)
 {
 	const char *state_desc = "/boot/EFI/barebox/state.dtb";
-	struct device_node *state_root = NULL;
+	struct device_node *root, *state_root, *np;
+	struct state *state;
 	size_t size;
 	void *fdt;
 	int ret;
 
 	if (!IS_ENABLED(CONFIG_STATE))
+		return 0;
+
+	/*
+	 * A state description compiled into barebox, e.g. via
+	 * CONFIG_EXTERNAL_DTS_FRAGMENTS, has been instantiated by the state
+	 * driver already and takes precedence over the file on the ESP.
+	 */
+	if (of_find_compatible_node(NULL, NULL, "barebox,state"))
 		return 0;
 
 	if (!get_mounted_path("/boot")) {
@@ -305,31 +314,42 @@ static int efi_late_init(void)
 	state_root = of_unflatten_dtb(fdt, size);
 	free(fdt);
 
-	if (!IS_ERR(state_root)) {
-		struct device_node *np;
-		struct state *state;
-
-		ret = barebox_register_of(state_root);
-		if (ret)
-			pr_warn("Failed to register device-tree: %pe\n", ERR_PTR(ret));
-
-		np = of_find_node_by_alias(state_root, "state");
-		if (!np) {
-			pr_warn("No state alias in %s\n", state_desc);
-			return 0;
-		}
-
-		state = state_new_from_node(np, false);
-		if (IS_ERR(state))
-			return PTR_ERR(state);
-
-		ret = state_load(state);
-		if (ret && ret != -ENOMEDIUM)
-			pr_warn("Failed to load persistent state, continuing with defaults, %d\n",
-				ret);
-
+	if (IS_ERR(state_root)) {
+		pr_warn("Failed to unflatten %s: %pe\n", state_desc, state_root);
 		return 0;
 	}
+
+	root = of_get_root_node();
+	if (root) {
+		/*
+		 * We are called after of_probe(), so instantiate the state
+		 * below by hand instead of relying on the state driver.
+		 */
+		of_merge_nodes(root, state_root);
+		of_delete_node(state_root);
+		of_alias_scan();
+	} else {
+		ret = barebox_register_of(state_root);
+		if (ret) {
+			pr_warn("Failed to register device-tree: %pe\n", ERR_PTR(ret));
+			return 0;
+		}
+	}
+
+	np = of_find_node_by_alias(NULL, "state");
+	if (!np) {
+		pr_warn("No state alias in %s\n", state_desc);
+		return 0;
+	}
+
+	state = state_new_from_node(np, false);
+	if (IS_ERR(state))
+		return PTR_ERR(state);
+
+	ret = state_load(state);
+	if (ret && ret != -ENOMEDIUM)
+		pr_warn("Failed to load persistent state, continuing with defaults, %d\n",
+			ret);
 
 	return 0;
 }
