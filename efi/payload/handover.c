@@ -186,6 +186,8 @@ static int do_bootm_efi(struct image_data *data)
 	efi_set_variable_usec("LoaderTimeExecUSec", &efi_systemd_vendor_guid,
 			      ktime_to_us(ktime_get()));
 
+	efi_export_dtb();
+
 	shutdown_barebox();
 	linux_efi_handover(handle, boot_header);
 
