@@ -4,6 +4,7 @@ extra-y += barebox.lds
 
 obj-y += dtb.o
 obj-pbl-y += sections.o setupc.o reloc.o sections.o runtime-offset.o
+obj-pbl-y += call_with_stack.o
 obj-$(CONFIG_ARCH_HAS_SJLJ) += setjmp.o longjmp.o
 obj-$(CONFIG_RISCV_OPTIMZED_STRING_FUNCTIONS) += memcpy.o memset.o memmove.o
 obj-$(CONFIG_RISCV_SBI) += sbi.o

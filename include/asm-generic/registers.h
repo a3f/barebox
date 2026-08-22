@@ -21,4 +21,14 @@ static __always_inline bool pc_inside(unsigned long start, unsigned long size)
 	return pc - start < size;
 }
 
+/*
+ * call_with_stack - switch to the stack ending at stack_top and call fn
+ *
+ * stack_top must be aligned as the architecture requires and fn must not
+ * return. No memory is accessed, so there needn't be a stack yet.
+ */
+void __noreturn call_with_stack(unsigned long stack_top,
+				void (*fn)(unsigned long, unsigned long),
+				unsigned long arg0, unsigned long arg1);
+
 #endif
