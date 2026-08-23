@@ -225,6 +225,13 @@ to this image can be guarded with ``#ifdef fallback_dts``. The option is
 only selectable once ``CONFIG_EXTERNAL_DTS_FRAGMENTS`` is set, see
 :ref:`external_dts_fragments`.
 
+For loaders that take the load and entry address from ELF program headers
+and pass no device tree, e.g. the Xilinx Zynq-7000 FSBL fed by bootgen,
+``CONFIG_BOARD_GENERIC_DT_ELF`` additionally builds
+``images/barebox-dt-2nd.elf``, which boots the device tree built from the
+external dts fragments and records the load address configured with
+``CONFIG_BOARD_GENERIC_DT_ELF_LOADADDR``.
+
 The barebox build can also generate a FIT image combining ``barebox-dt-2nd.img``
 and all enabled device trees. This image requires python3 and python3-libfdt
 and is thus only built by default if ``CONFIG_BOARD_GENERIC_FIT`` is enabled
