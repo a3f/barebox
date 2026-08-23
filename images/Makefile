@@ -56,6 +56,12 @@ extra-y += $(pbl-lds)
 $(pbl-lds): $(obj)/../arch/$(SRCARCH)/lib/pbl.lds.S FORCE
 	$(call if_changed_dep,cpp_lds_S)
 
+elf-image-lds := $(obj)/elf-image.lds
+extra-y += $(elf-image-lds)
+
+$(elf-image-lds): $(srctree)/images/elf-image.lds.S FORCE
+	$(call if_changed_dep,cpp_lds_S)
+
 ifeq ($(CONFIG_PBL_IMAGE_NO_PIGGY),)
 BAREBOX_PIGGY_OBJS = $(obj)/piggy.o $(obj)/sha_sum.o
 else
@@ -231,6 +237,28 @@ ifneq ($(pblx-y)$(pblx-),)
   $(error pblx- has been removed. Please use pblb- instead.)
 endif
 
+# barebox-%.elf - wrap a raw PBL binary into a bootable ELF executable
+# ----------------------------------------------------------------
+# Loaders like the Xilinx FSBL (fed by bootgen) take the load and entry
+# address from the ELF program header, so they can't be handed a raw
+# binary. ELF_LOADADDR_<image> provides that address. --nmagic avoids
+# page-aligning the segment, -s strips the symbols ld -b binary invents
+# and no -z noexecstack keeps a PT_GNU_STACK segment from being added,
+# so that a sole PT_LOAD segment describes the whole image. A final .elf
+# image without a FILE_ variable is instead linked from the PBL objects
+# by the %.elf pattern rule above.
+quiet_cmd_elf_image = ELFIMG  $@
+      cmd_elf_image = $(LD) --nmagic -s -b binary \
+		--defsym=BAREBOX_ELF_LOADADDR=$(ELF_LOADADDR_$(@F)) \
+		-T $(elf-image-lds) -o $@ $<
+
+elf-image-y := $(foreach m,$(filter %.elf,$(image-y)),$(if $(FILE_$(m)),$(m)))
+
+.SECONDEXPANSION:
+$(addprefix $(obj)/,$(elf-image-y)): $(obj)/$$(FILE_$$(@F)) $(elf-image-lds) FORCE
+	$(Q)if [ -z "$(ELF_LOADADDR_$(@F))" ]; then echo "ELF_LOADADDR_$(@F) empty!"; false; fi
+	$(call if_changed,elf_image)
+
 targets += $(image-y) pbl.lds barebox.x barebox.z piggy.o sha_sum.o barebox.sha.bin barebox.sum
 targets += $(patsubst %,%.pblb,$(pblb-y))
 targets += $(patsubst %,%.pbl,$(pblb-y))
@@ -281,4 +309,4 @@ clean-files := *.pbl *.pblb *.elf *.map start_*.imximg *.img barebox.z start_*.k
 	*.t30img.cfg *.t124img *.t124img.cfg *.mlospi *.mlo *.mxsbs *.mxssd *.rkimg \
 	start_*.simximg start_*.usimximg start_*.pimximg start_*.psimximg *.zynqimg \
 	*.image *.swapped *.missing-firmware
-clean-files += pbl.lds
+clean-files += pbl.lds elf-image.lds
