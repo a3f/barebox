@@ -30,6 +30,28 @@ config BOARD_GENERIC_DT
 	  architecture and thus can be used anywhere that a Kernel image could be used.
 	  The image will be called images/barebox-dt-2nd.img
 
+config BOARD_GENERIC_DT_ELF
+	depends on ARM
+	depends on BOARD_GENERIC_DT
+	depends on EXTERNAL_DTS_ONLY
+	bool "Build ELF executable of generic DT 2nd stage image"
+	help
+	  This enables compilation of an ELF executable of the generic 2nd
+	  stage image for loaders that take the load and entry address from
+	  the ELF program headers, like the Xilinx Zynq-7000 FSBL fed by
+	  bootgen. Such loaders pass no device tree, so the image relies on
+	  the built-in device tree assembled from the external dts fragments,
+	  which must describe the board fully, including its memory.
+	  The image will be called images/barebox-dt-2nd.elf
+
+config BOARD_GENERIC_DT_ELF_LOADADDR
+	hex "barebox-dt-2nd.elf load address"
+	depends on BOARD_GENERIC_DT_ELF
+	help
+	  The address recorded in the ELF program headers, at which the
+	  loader will load and execute the image. This is platform-specific,
+	  e.g. an address in DDR like 0x04000000 for the Zynq-7000.
+
 config BOARD_GENERIC_FIT
 	depends on BOARD_GENERIC_DT
 	bool "Build generic device tree 2nd stage FIT image"
