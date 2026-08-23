@@ -15,6 +15,7 @@ struct handoff_data {
 #define HANDOFF_DATA_ARM_MACHINE	HANDOFF_DATA_BAREBOX(3)
 #define HANDOFF_DATA_EFI		HANDOFF_DATA_BAREBOX(4)
 #define HANDOFF_DATA_TEE_DT_OVL		HANDOFF_DATA_BAREBOX(5)
+#define HANDOFF_DATA_SOC_TYPE		HANDOFF_DATA_BAREBOX(6)
 
 #define HANDOFF_DATA_BOARD(n)		(0x951726fb + (n))
 
@@ -65,5 +66,19 @@ static inline void *handoff_data_get_entry(unsigned int cookie, size_t *size)
 }
 #endif
 void handoff_data_add_dt(void *fdt);
+
+#ifdef __PBL__
+/*
+ * The stage dispatch hands off the type declared in the board info. An
+ * image running on more than one SoC may still override it later.
+ */
+void pbl_set_soc_type(unsigned int type);
+unsigned int pbl_get_soc_type(void);
+void pbl_handoff_soc_type(void);
+#elif defined(CONFIG_PBL_IMAGE)
+unsigned int barebox_soc_type(void);
+#else
+static inline unsigned int barebox_soc_type(void) { return 0; }
+#endif
 
 #endif /* __PBL_HANDOFF_DATA_H */
