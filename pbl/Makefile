@@ -4,6 +4,7 @@
 # only unsed by the pbl
 #
 pbl-$(CONFIG_PBL_CONSTRUCTORS) += ctors.o
+pbl-$(CONFIG_ARCH_HAS_PBL_ENTRY) += entry.o
 pbl-y += misc.o
 pbl-y += string.o
 pbl-y += malloc.o

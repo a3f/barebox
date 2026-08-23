@@ -313,6 +313,10 @@ struct ftrace_likely_data {
 #define __diag_GCC(version, severity, string)
 #endif
 
+#ifndef __diag_ignore_all
+#define __diag_ignore_all(option, comment)
+#endif
+
 #define __diag_push()	__diag(push)
 #define __diag_pop()	__diag(pop)
 
@@ -451,5 +455,12 @@ struct ftrace_likely_data {
 
 #define __prereloc \
 	notrace __no_sanitize_address __no_stack_protector
+
+/*
+ * Marks functions that may run before a stack pointer has been set up:
+ * they must not spill or call anything that does. No compiler enforces
+ * this, so it expands to nothing and only documents the constraint.
+ */
+#define __unsafe_prestack
 
 #endif /* __LINUX_COMPILER_TYPES_H */

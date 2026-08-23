@@ -95,6 +95,19 @@ config ARCH_HAS_DATA_ABORT_MASK_PBL
 config ARCH_HAS_ZERO_PAGE
 	bool
 
+config ARCH_HAS_NAKED
+	bool
+	help
+	  The architecture supports the naked function attribute: the
+	  compiler emits neither prologue nor epilogue, but may still
+	  spill to the stack.
+
+config ARCH_HAS_PBL_ENTRY
+	bool
+	help
+	  The architecture provides a PBL image head consuming the board
+	  info entry point description and thus needs pbl/entry.c.
+
 config ARCH_HAS_MALLOC_SIZE
 	bool
 	help
