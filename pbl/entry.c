@@ -25,7 +25,11 @@
 #include <asm/reloc.h>
 #include <asm/sections.h>
 #include <asm-generic/registers.h>
+#include <console.h>
+#include <debug_ll.h>
+#include <stdio.h>
 #include <barebox.h>
+#include <pbl.h>
 #include <pbl/entry.h>
 #include <pbl/soc-type.h>
 #include <pbl/handoff-data.h>
@@ -161,6 +165,47 @@ pbl_head_reloc_v1(ulong stage_ul, ulong entry_data)
 	pbl_head_entry_v1(&__pbl_board_info, entry_data);
 }
 
+static void pbl_console_report_stage(int stage_idx)
+{
+	static bool stage_reported;
+	char stage_str[2] = "0";
+
+	if (stage_reported)
+		return;
+
+	stage_str[0] += stage_idx;
+
+	pbl_puts(stage_str);
+	pbl_puts(">");
+
+	stage_reported = true;
+}
+
+/*
+ * Called before the SoC init callback for a console that needs no setup
+ * and after the SoC and board init callbacks, until the console is up;
+ * the board init may still fill in the console description.
+ */
+static void pbl_console_init(const struct pbl_console *console,
+			     int stage_idx)
+{
+	static bool console_initialized;
+
+	if (console_initialized)
+		return;
+
+	if (console->setup)
+		console->setup(console->arg);
+
+	if (console->driver && console->driver->putc) {
+		pbl_set_putc(console->driver->putc, console->arg);
+		console_initialized = true;
+	}
+
+	if (console_initialized || !IS_ENABLED(CONFIG_PBL_CONSOLE))
+		pbl_console_report_stage(stage_idx);
+}
+
 static void noinline
 pbl_head_entry_v1(struct pbl_board_info *pbi, ulong entry_data)
 {
@@ -178,12 +223,35 @@ pbl_head_entry_v1(struct pbl_board_info *pbi, ulong entry_data)
 
 	current_stage = stage;
 
+	/* A console needing no setup is readily usable by soc_init */
+	if (!pbi->console.setup)
+		pbl_console_init(&pbi->console, stage_idx);
+
 	if (stage->soc_init)
 		stage->soc_init();
+
+	/* Initialize console if possible */
+	pbl_console_init(&pbi->console, stage_idx);
+
+	if (stage->soc_init)
+		pbl_debug("soc_init done\n");
+
 	if (stage->board_init)
 		stage->board_init(entry_data);
-	if (stage->soc_chainload)
+
+	/* Initialize console if possible */
+	pbl_console_init(&pbi->console, stage_idx);
+
+	/* Without a console, the stage goes to the DEBUG_LL fallback */
+	pbl_console_report_stage(stage_idx);
+
+	if (stage->board_init)
+		pbl_debug("board_init done\n");
+
+	if (stage->soc_chainload) {
+		pbl_debug("Chainloading..\n");
 		stage->soc_chainload(stage->board_data);
+	}
 
 	hang();
 }

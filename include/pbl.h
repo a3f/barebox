@@ -57,4 +57,10 @@ void __noreturn barebox_pbl_entry(ulong, ulong, void *);
 #define pbl_puts	puts_ll
 #endif
 
+#ifdef DEBUG
+#define pbl_debug	pbl_puts
+#else
+#define pbl_debug	(void)
+#endif
+
 #endif /* __PBL_H__ */

@@ -26,6 +26,23 @@ enum pbl_stage_idx {
 typedef void (*pbl_board_fn_t)(void);
 typedef enum pbl_stage_idx (*pbl_locate_pc_fn_t)(void);
 
+/* UART side of a board's console description; may grow getc and flush */
+struct pbl_console_driver {
+	void (*putc)(void *arg, int c);	/* as accepted by pbl_set_putc() */
+};
+
+/*
+ * Board-declared PBL console: a driver and its argument, usually the UART
+ * base address. A UART usable on entry needs no setup callback and is
+ * registered before the SoC init, one with a setup callback afterwards.
+ * Boards describing no console print through DEBUG_LL.
+ */
+struct pbl_console {
+	void (*setup)(void *arg);
+	void *arg;
+	const struct pbl_console_driver *driver;
+};
+
 /*
  * Stage description. prereloc_cpu_init runs first thing after the head
  * has selected the stack, still unrelocated and before BSS is cleared,
@@ -36,7 +53,7 @@ typedef enum pbl_stage_idx (*pbl_locate_pc_fn_t)(void);
  * head determined on entry has its callback run, so a board entered
  * through more than one stage declares it on each.
  *
- * soc_init, board_init and soc_chainload run relocated
+ * soc_init, the console setup, board_init and soc_chainload run relocated
  * with BSS cleared, so the remaining SoC lowlevel initialization may use
  * polled timeouts and the PBL clocksource.
  */
@@ -72,6 +89,8 @@ struct pbl_board_info {
 	unsigned int soc_type;
 
 	pbl_locate_pc_fn_t assembly_locate_pc;
+
+	struct pbl_console console;
 
 	struct pbl_stage rom_stage;	/* PBL_STAGE_ROM */
 	struct pbl_stage first_stage;	/* PBL_STAGE_OCRAM */

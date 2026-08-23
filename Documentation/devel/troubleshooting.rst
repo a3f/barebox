@@ -54,6 +54,7 @@ options:
 
   This enables very early low-level UART debugging.
   It bypasses console frameworks and writes directly to UART registers.
+
   Many boards in barebox print a ``>`` character when ``CONFIG_DEBUG_LL``
   is enabled. If you see such a character after enabling ``DEBUG_LL``, it
   indicates that the barebox prebootloader has been found and control was
@@ -61,6 +62,12 @@ options:
   requires co-operation from the board entry point, e.g., the pin muxing for
   the serial console needs to be done in software in some situations before
   the UART is accessible from the outside.
+
+  Boards using the board info entry point (``ENTRY_POINT()``) will
+  also indicate the boot stage before the ``>`` character, e.g. ``1>2>``
+  means the prebootloader entered its 1st stage followed by entering the
+  2nd stage. ``CONFIG_DEBUG_PBL`` would provide more information on what
+  callback is being executed.
 
   .. note::
      Make sure the correct UART index or address is selected under
