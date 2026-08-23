@@ -89,6 +89,11 @@ cmd_dtc = $(CPP) $(dtc_cpp_flags) -x assembler-with-cpp -o $(dtc-tmp) \
 $(obj)/%.dtb: $(src)/%.dts FORCE
 	$(call if_changed_dep,dtc,$(dts-frags))
 
+# The fallback device tree has no board-specific content, so its source is
+# shared by all architectures instead of living in the dts directory
+$(obj)/fallback.dtb: $(obj)/%.dtb: $(srctree)/common/fallback.dts FORCE
+	$(call if_changed_dep,dtc,$(dts-frags))
+
 $(obj)/%.dtbo: $(src)/%.dtso $(DTC) FORCE
 	$(call if_changed_dep,dtc)
 

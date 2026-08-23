@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 
+obj-pbl-$(CONFIG_OFDEVICE) += fallback.dtb.o
+
 lwl-$(CONFIG_BOARD_ERIZO_GENERIC) += erizo-generic.dtb.o
 lwl-$(CONFIG_BOARD_HIFIVE) += hifive-unmatched-a00.dtb.o \
                               hifive-unleashed-a00.dtb.o
