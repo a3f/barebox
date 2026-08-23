@@ -215,6 +215,16 @@ For example:
   U-Boot: bootz $kernel_addr - $fdt_addr # On 32-bit ARM
   U-Boot: booti $kernel_addr - $fdt_addr # for other platforms
 
+On ARM, if ``CONFIG_EXTERNAL_DTS_ONLY`` is enabled, the image uses the
+device tree built from the external dts fragments instead of the passed
+device tree, which remains accessible as ``/external-devicetree``. The
+override device tree is a full device tree in its own right and is thus
+expected to describe the available memory itself. As the fragments are
+applied to the fallback device tree in this case, fragment content specific
+to this image can be guarded with ``#ifdef fallback_dts``. The option is
+only selectable once ``CONFIG_EXTERNAL_DTS_FRAGMENTS`` is set, see
+:ref:`external_dts_fragments`.
+
 The barebox build can also generate a FIT image combining ``barebox-dt-2nd.img``
 and all enabled device trees. This image requires python3 and python3-libfdt
 and is thus only built by default if ``CONFIG_BOARD_GENERIC_FIT`` is enabled
