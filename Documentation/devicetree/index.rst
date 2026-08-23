@@ -111,6 +111,45 @@ and ``cpus``, but **not** ``memory``.
 
 .. _specification: https://www.devicetree.org/specifications/
 
+.. _external_dts_fragments:
+
+External Device Tree Fragments
+------------------------------
+
+Device tree changes that are specific to a product, but shouldn't be carried
+as patches against the barebox tree, can be supplied from outside as dts
+fragments. ``CONFIG_EXTERNAL_DTS_FRAGMENTS`` takes a space-separated list of
+dts files that are appended, in order, to the source of every device tree
+barebox builds::
+
+  CONFIG_EXTERNAL_DTS_FRAGMENTS="/path/to/first.dtsi /path/to/second.dtsi"
+
+As the same fragments are used for all device trees of a multi-image build,
+a preprocessor macro derived from the name of the main dts file is defined
+while it's compiled, e.g. ``foo_board_dts`` for ``foo-board.dts``, so
+fragment content can be limited to a single image::
+
+  #ifdef foo_board_dts
+  / {
+          /* only applied to foo-board.dtb */
+  };
+  #endif
+
+Once ``CONFIG_EXTERNAL_DTS_FRAGMENTS`` is set, ``CONFIG_EXTERNAL_DTS_ONLY``
+becomes selectable. It discards the contents of the board device tree
+sources, so the fragments alone make up the resulting device trees, which
+allows replacing the device tree of all enabled boards without patching
+barebox. The fragments are applied to the empty fallback device tree from
+``common/fallback.dts`` in that case, so image-specific content is guarded
+with ``#ifdef fallback_dts`` instead. Device tree overlays (``.dtbo``) keep
+their source as-is either way.
+
+Both options are meant to be set by an external build system, like Yocto or
+buildroot, not to be put into barebox' defconfig files. Because
+``CONFIG_EXTERNAL_DTS_ONLY`` is hidden until the fragments are configured,
+it can't be enabled on its own, which would leave barebox with empty device
+trees.
+
 Device Tree Compiler
 --------------------
 

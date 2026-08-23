@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
+# The fallback device tree serves as the device tree of the EFI payload
+# and as the base for CONFIG_EXTERNAL_DTS_ONLY. Linker garbage
+# collection drops it from all PBL images that don't reference it.
+obj-pbl-$(CONFIG_OFDEVICE) += fallback.dtb.o
+
 lwl-$(CONFIG_MACH_ADVANTECH_ROM_742X) += imx6dl-advantech-rom-7421.dtb.o
 lwl-$(CONFIG_MACH_AFI_GF) += am335x-afi-gf.dtb.o
 lwl-$(CONFIG_MACH_AM625_SK) += k3-am625-sk.dtb.o k3-am625-r5-sk.dtb.o k3-am625sip-r5-sk.dtb.o

@@ -1462,6 +1462,30 @@ config EXTERNAL_DTS_FRAGMENTS
 	  to add dts fragments from outside the Barebox source tree into the
 	  Barebox build.
 
+	  Setting this option makes EXTERNAL_DTS_ONLY selectable below, which
+	  discards the board device tree sources, so the fragments alone make
+	  up the resulting device trees.
+
+config EXTERNAL_DTS_ONLY
+	bool "build device trees from external dts fragments only"
+	depends on EXTERNAL_DTS_FRAGMENTS != ""
+	help
+	  Normally, the device tree blobs are built from the board's device
+	  tree source, extended by the external dts fragments configured
+	  above. With this option enabled, the contents of the board's device
+	  tree source are discarded and the device tree blobs are built from
+	  the external dts fragments alone. This allows completely replacing
+	  the device tree for all enabled boards.
+	  The preprocessor macro based on the name of the main dts file is
+	  still defined, so fragments can be limited to specific images of a
+	  multi image build.
+
+	  Like EXTERNAL_DTS_FRAGMENTS, this option is not intended to be put
+	  into Barebox' defconfig files, but to be set by an external build
+	  system.
+
+	  If unsure, say n.
+
 config FILETYPE_STRINGS
 	bool "Print file types as strings"
 	default y

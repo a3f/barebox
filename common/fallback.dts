@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/dts-v1/;
+
+/*
+ * Fallback device tree for barebox images that are not tied to a board
+ * device tree, like the EFI payload. It's empty, but can be populated
+ * at build time via CONFIG_EXTERNAL_DTS_FRAGMENTS. With
+ * CONFIG_EXTERNAL_DTS_ONLY, it also replaces the board device tree
+ * sources, so all device trees are made up of the external dts fragments
+ * alone.
+ */
+
+/ {
+};
