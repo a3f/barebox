@@ -7,6 +7,7 @@ unsigned long get_runtime_offset(void);
 
 void relocate_to_current_adr(void);
 void relocate_to_adr(unsigned long target);
+void relocate_to_adr_full(unsigned long target);
 
 void setup_c(void);
 

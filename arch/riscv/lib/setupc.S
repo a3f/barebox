@@ -39,13 +39,22 @@ bss_cleared:
 
 /*
  * void relocate_to_adr(unsigned long targetadr)
+ * void relocate_to_adr_full(unsigned long targetadr)
  *
  * Copy binary to targetadr, relocate code and continue
- * executing at new address.
+ * executing at new address. The _full variant takes the piggy data
+ * along, so barebox proper can still be decompressed afterwards.
  */
 .section .text.relocate_to_adr
-ENTRY(relocate_to_adr)
 					/* a0: target address */
+ENTRY(relocate_to_adr_full)
+	lla	a3, __image_end		/* include piggy data */
+	j	1f
+ENDPROC(relocate_to_adr_full)
+
+ENTRY(relocate_to_adr)
+	lla	a3, __bss_start		/* skip piggy data */
+1:
 	addi	sp, sp, -SZREG * 2
 	lla	a1, _text		/* a1: source address */
 
@@ -61,8 +70,7 @@ ENTRY(relocate_to_adr)
 	add	a2, a2, a0
 	REG_S	a2, (sp)
 
-	lla	a2, __bss_start
-	sub	a2, a2, a1		 /* a2: size */
+	sub	a2, a3, a1		 /* a2: size */
 
 	jal	__memcpy
 
