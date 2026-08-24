@@ -171,7 +171,7 @@ static int do_dmesg(int argc, char *argv[])
 
 BAREBOX_CMD_HELP_START(dmesg)
 BAREBOX_CMD_HELP_TEXT("print or control the barebox message buffer")
-BAREBOX_CMD_HELP_TEXT("Loglevels can be specified as number (0=emerg, 7=vdebug)")
+BAREBOX_CMD_HELP_TEXT("Loglevels can be specified as number (0=emerg, 8=vdebug)")
 BAREBOX_CMD_HELP_TEXT("Known debug loglevels are: emerg, alert, crit, err, warn, notice, info, debug,")
 BAREBOX_CMD_HELP_TEXT("vdebug")
 BAREBOX_CMD_HELP_TEXT("")
@@ -183,13 +183,13 @@ BAREBOX_CMD_HELP_OPT ("-l <loglevel>",	"Restrict output to the given (comma-sepa
 BAREBOX_CMD_HELP_OPT ("-p <loglevel>",	"Restrict output to specified log level at most")
 BAREBOX_CMD_HELP_OPT ("-n <loglevel>",	"Set level at which printing of messages is done to the console")
 BAREBOX_CMD_HELP_OPT ("-r",		"Print timestamp and log-level prefixes")
-BAREBOX_CMD_HELP_OPT ("-t",		"Show timestamp informations")
+BAREBOX_CMD_HELP_OPT ("-t",		"Show timestamp information")
 BAREBOX_CMD_HELP_END
 
 BAREBOX_CMD_START(dmesg)
 	.cmd	= do_dmesg,
 	BAREBOX_CMD_DESC("Print or control log messages")
-	BAREBOX_CMD_OPTS("[-cdelprt]")
+	BAREBOX_CMD_OPTS("[-cdelnprt]")
 	BAREBOX_CMD_GROUP(CMD_GRP_INFO)
 	BAREBOX_CMD_HELP(cmd_dmesg_help)
 BAREBOX_CMD_END

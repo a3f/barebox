@@ -197,6 +197,7 @@ BAREBOX_CMD_HELP_OPT("-d <name>", "device name (eg 'pwm0')")
 BAREBOX_CMD_HELP_OPT("-D <duty_ns>", "duty cycle (ns)")
 BAREBOX_CMD_HELP_OPT("-P <period_ns>", "period (ns)")
 BAREBOX_CMD_HELP_OPT("-f <freq_hz>", "frequency (Hz)")
+BAREBOX_CMD_HELP_OPT("-F <freq_hz>", "frequency (Hz), defaulting duty cycle to 50%")
 BAREBOX_CMD_HELP_OPT("-w <duty_%>", "duty cycle (%) - the on 'width' of each cycle")
 BAREBOX_CMD_HELP_OPT("-i\t", "line inverted polarity")
 BAREBOX_CMD_HELP_OPT("-s\t", "stop (disable) the pwm device")
@@ -206,7 +207,7 @@ BAREBOX_CMD_HELP_END
 BAREBOX_CMD_START(pwm)
 	.cmd		= do_pwm_cmd,
 	BAREBOX_CMD_DESC("pwm")
-	BAREBOX_CMD_OPTS("[-ldDPfwisv]")
+	BAREBOX_CMD_OPTS("[-ldDPfwFisv]")
 	BAREBOX_CMD_GROUP(CMD_GRP_HWMANIP)
 	BAREBOX_CMD_HELP(cmd_pwm_help)
 BAREBOX_CMD_END

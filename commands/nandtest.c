@@ -399,7 +399,7 @@ BAREBOX_CMD_HELP_OPT ("-t",  "Really do a nandtest on device")
 BAREBOX_CMD_HELP_OPT ("-r",  "Readonly nandtest on device")
 BAREBOX_CMD_HELP_OPT ("-m",  "Mark blocks bad if they appear so")
 BAREBOX_CMD_HELP_OPT ("-s SEED",   "supply random seed")
-BAREBOX_CMD_HELP_OPT ("-i ITERATIONS",  "nNumber of iterations")
+BAREBOX_CMD_HELP_OPT ("-i ITERATIONS",  "Number of iterations")
 BAREBOX_CMD_HELP_OPT ("-o OFFS",  "start offset on flash")
 BAREBOX_CMD_HELP_OPT ("-l LEN",   "length of flash to test")
 BAREBOX_CMD_HELP_END
@@ -407,7 +407,7 @@ BAREBOX_CMD_HELP_END
 BAREBOX_CMD_START(nandtest)
 	.cmd		= do_nandtest,
 	BAREBOX_CMD_DESC("NAND flash memory test")
-	BAREBOX_CMD_OPTS("[-tmsiol] NANDDEVICE")
+	BAREBOX_CMD_OPTS("[-trmsiol] NANDDEVICE")
 	BAREBOX_CMD_GROUP(CMD_GRP_HWMANIP)
 	BAREBOX_CMD_HELP(cmd_nandtest_help)
 BAREBOX_CMD_END

@@ -588,7 +588,7 @@ static int do_fiptool(int argc, char *argv[])
 }
 
 BAREBOX_CMD_HELP_START(fiptool)
-BAREBOX_CMD_HELP_TEXT("List information about the specified files or directories")
+BAREBOX_CMD_HELP_TEXT("Inspect and manipulate TF-A firmware image packages")
 BAREBOX_CMD_HELP_TEXT("")
 BAREBOX_CMD_HELP_TEXT("Global options:")
 BAREBOX_CMD_HELP_OPT ("-v",  "verbose output")
@@ -627,7 +627,7 @@ BAREBOX_CMD_HELP_TEXT("")
 BAREBOX_CMD_HELP_TEXT("fiptool remove [OPTS] FIP_FILENAME")
 BAREBOX_CMD_HELP_OPT("-a VALUE", "Each image is aligned to VALUE (default: 1)")
 BAREBOX_CMD_HELP_OPT("-b uuid=UUID", "Remove an image with the given UUID")
-BAREBOX_CMD_HELP_OPT("-f", "force overwrit of the output FIP file if it already exists")
+BAREBOX_CMD_HELP_OPT("-f", "force overwrite of the output FIP file if it already exists")
 BAREBOX_CMD_HELP_OPT("-o", "Set an alternative output FIP file")
 BAREBOX_CMD_HELP_OPT("-e TYPE", "remove TYPE entry")
 #endif

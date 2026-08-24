@@ -73,7 +73,7 @@ out:
 }
 
 BAREBOX_CMD_HELP_START(memset)
-BAREBOX_CMD_HELP_TEXT("Fills the first COUNT bytes at offset ADDR with byte DATA,")
+BAREBOX_CMD_HELP_TEXT("Fills the first COUNT bytes at offset ADDR with byte DATA.")
 BAREBOX_CMD_HELP_TEXT("")
 BAREBOX_CMD_HELP_TEXT("Options:")
 BAREBOX_CMD_HELP_OPT ("-b",  "byte access")
@@ -86,7 +86,7 @@ BAREBOX_CMD_HELP_END
 BAREBOX_CMD_START(memset)
 	.cmd		= do_memset,
 	BAREBOX_CMD_DESC("memory fill")
-	BAREBOX_CMD_OPTS("[-bwlq [-d FILE] ADDR DATA COUNT")
+	BAREBOX_CMD_OPTS("[-bwlq] [-d FILE] ADDR DATA COUNT")
 	BAREBOX_CMD_GROUP(CMD_GRP_MEM)
 	BAREBOX_CMD_HELP(cmd_memset_help)
 BAREBOX_CMD_END
