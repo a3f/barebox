@@ -319,6 +319,10 @@ static int efi_late_init(void)
 			return 0;
 		}
 
+		/* probing the registered tree may have instantiated it already */
+		if (state_by_node(np))
+			return 0;
+
 		state = state_new_from_node(np, false);
 		if (IS_ERR(state))
 			return PTR_ERR(state);
