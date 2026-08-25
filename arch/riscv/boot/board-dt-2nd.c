@@ -5,6 +5,7 @@
 #include <linux/sizes.h>
 #include <asm/ns16550.h>
 #include <pbl.h>
+#include <pbl/handoff-data.h>
 #include <fdt.h>
 
 #if __riscv_xlen == 64
@@ -72,11 +73,14 @@ static void noinline __noreturn start_dt_2nd_nonnaked(unsigned long hartid,
 	/*
 	 * QEMU likes to place the FDT at the end of RAM, where barebox
 	 * would normally extract itself to. Accommodate this by moving
-	 * memory end, so it doesn't overlap FDT
+	 * memory end, so it doesn't overlap FDT. The FDT will be copied
+	 * into the handoff data following the uncompressed image, so
+	 * account for that as well.
 	 */
-	uncompressed_len = input_data_len() + MAX_BSS_SIZE;
+	uncompressed_len = input_data_len() + sizeof(struct handoff_data_entry) +
+		ALIGN(be32_to_cpu(fdt->totalsize), 8);
 
-	if (riscv_mem_barebox_image(membase, endmem, uncompressed_len) < endfdt &&
+	if (riscv_mem_barebox_image(membase, endmem, uncompressed_len, NULL) < endfdt &&
 	    _fdt < riscv_mem_stack_top(membase, endmem))
 		memsize = ALIGN_DOWN(_fdt - membase, SZ_1M);
 

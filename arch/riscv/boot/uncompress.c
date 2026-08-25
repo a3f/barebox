@@ -11,6 +11,7 @@
 #include <linux/sizes.h>
 #include <pbl.h>
 #include <pbl/mmu.h>
+#include <pbl/handoff-data.h>
 #include <asm/barebox-riscv.h>
 #include <asm-generic/memory_layout.h>
 #include <asm/sections.h>
@@ -32,6 +33,7 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 	unsigned long barebox_base;
 	void *pg_start, *pg_end;
 	unsigned long pc = get_pc();
+	void *handoff_data;
 	struct elf_image elf;
 	int ret;
 
@@ -53,12 +55,18 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 	else
 		relocate_to_adr(membase);
 
-	barebox_base = riscv_mem_barebox_image(membase, endmem,
-					       uncompressed_len + MAX_BSS_SIZE);
-
 	setup_c();
 
 	pr_debug("memory at 0x%08lx, size 0x%08lx\n", membase, memsize);
+
+	/* Add handoff data now, so riscv_mem_barebox_image takes it into account */
+	if (fdt)
+		handoff_data_add_dt(fdt);
+
+	barebox_base = riscv_mem_barebox_image(membase, endmem,
+					       uncompressed_len, NULL);
+
+	handoff_data = (void *)barebox_base + ALIGN(uncompressed_len, 8) + MAX_BSS_SIZE;
 
 	pbl_malloc_init(riscv_mem_early_malloc(membase, endmem), PBL_MALLOC_SIZE);
 
@@ -96,7 +104,10 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 
 	barebox = (void *)(unsigned long)elf.entry;
 
-	pr_debug("jumping to uncompressed image at 0x%p. dtb=0x%p\n", barebox, fdt);
+	handoff_data_move(handoff_data);
 
-	barebox(membase, memsize, fdt);
+	pr_debug("jumping to uncompressed image at 0x%p. handoff data at 0x%p\n",
+		 barebox, handoff_data);
+
+	barebox(membase, memsize, handoff_data);
 }

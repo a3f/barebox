@@ -13,6 +13,7 @@
 #define _BAREBOX_RISCV_H_
 
 #include <pbl.h>
+#include <pbl/handoff-data.h>
 #include <linux/sizes.h>
 #include <asm-generic/memory_layout.h>
 #include <linux/kernel.h>
@@ -70,11 +71,24 @@ static inline unsigned long riscv_mem_ramoops(unsigned long membase,
 	return endmem;
 }
 
+/*
+ * When using compressed images in conjunction with relocatable images
+ * the PBL code must pick a suitable place where to uncompress the barebox
+ * image. For doing this the PBL code must know the size of the final
+ * image including the BSS segment. The BSS size is unknown to the PBL
+ * code, so define a maximum BSS size here.
+ */
+#define MAX_BSS_SIZE SZ_1M
+
 static inline unsigned long riscv_mem_barebox_image(unsigned long membase,
 						    unsigned long endmem,
-						    unsigned long size)
+						    unsigned long uncompressed_len,
+						    const struct handoff_data *handoff_data)
 {
 #ifdef __PBL__
+	unsigned long size = ALIGN(uncompressed_len, 8) +
+		MAX_BSS_SIZE + __handoff_data_size(handoff_data);
+
 	endmem = riscv_mem_ramoops(membase, endmem);
 
 	return ALIGN_DOWN(endmem - size, SZ_1M);
@@ -94,16 +108,6 @@ static inline unsigned long riscv_mem_barebox_image(unsigned long membase,
 	}                                                               \
 	static void __naked __noreturn noinline __##name                \
 		(ulong arg0, ulong arg1, ulong arg2)
-
-
-/*
- * When using compressed images in conjunction with relocatable images
- * the PBL code must pick a suitable place where to uncompress the barebox
- * image. For doing this the PBL code must know the size of the final
- * image including the BSS segment. The BSS size is unknown to the PBL
- * code, so define a maximum BSS size here.
- */
-#define MAX_BSS_SIZE SZ_1M
 
 #define barebox_image_size (__image_end - __image_start)
 
