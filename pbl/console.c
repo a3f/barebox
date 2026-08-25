@@ -3,6 +3,7 @@
 #include <common.h>
 #include <debug_ll.h>
 #include <asm/sections.h>
+#include <asm/reloc.h>
 #include <linux/err.h>
 
 /*
@@ -22,13 +23,17 @@ static __attribute__ ((section(".data"))) void *putc_ctx;
  */
 void pbl_set_putc(void (*putcf)(void *ctx, int c), void *ctx)
 {
-	putc_offset = (ulong)putcf - (ulong)_text;
+	/*
+	 * Use runtime_address(), so the console can be set up and used
+	 * before the PBL has relocated itself, e.g. in the EFI stub.
+	 */
+	putc_offset = (ulong)putcf - (ulong)runtime_address(_text);
 	putc_ctx = ctx;
 }
 
 static void __putc(void *ctx, int c)
 {
-	void (*putc)(void *, int) = (void *)_text + putc_offset;
+	void (*putc)(void *, int) = runtime_address(_text) + putc_offset;
 	putc(ctx, c);
 }
 
