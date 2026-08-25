@@ -35,6 +35,7 @@ extern efi_guid_t efi_fdt_guid;
 extern efi_guid_t efi_loaded_image_device_path_guid;
 extern const efi_guid_t efi_device_path_to_text_protocol_guid;
 extern const efi_guid_t efi_dt_fixup_protocol_guid;
+extern const efi_guid_t efi_riscv_boot_protocol_guid;
 extern const efi_guid_t efi_driver_binding_protocol_guid;
 extern const efi_guid_t efi_load_file_protocol_guid;
 extern const efi_guid_t efi_load_file2_protocol_guid;
@@ -134,6 +135,9 @@ extern const efi_guid_t efi_debug_image_info_table_guid;
 
 #define EFI_DEVICE_TREE_GUID \
     EFI_GUID(  0xb1b621d5, 0xf19c, 0x41a5, 0x83, 0x0b, 0xd9, 0x15, 0x2c, 0x69, 0xaa, 0xe0 )
+
+#define EFI_RISCV_BOOT_PROTOCOL_GUID \
+    EFI_GUID(0xccd15fec, 0x6f73, 0x4eec, 0x83, 0x95, 0x3e, 0x69, 0xe4, 0xb9, 0x40, 0xbf)
 
 #define EFI_DEVICE_PATH_PROTOCOL_GUID \
     EFI_GUID(  0x9576e91, 0x6d3f, 0x11d2, 0x8e, 0x39, 0x0, 0xa0, 0xc9, 0x69, 0x72, 0x3b )

@@ -25,6 +25,7 @@ efi_guid_t efi_loaded_image_device_path_guid =
 const efi_guid_t efi_device_path_to_text_protocol_guid =
 		EFI_DEVICE_PATH_TO_TEXT_PROTOCOL_GUID;
 const efi_guid_t efi_dt_fixup_protocol_guid = EFI_DT_FIXUP_PROTOCOL_GUID;
+const efi_guid_t efi_riscv_boot_protocol_guid = EFI_RISCV_BOOT_PROTOCOL_GUID;
 /* GUID of the EFI_DRIVER_BINDING_PROTOCOL */
 const efi_guid_t efi_driver_binding_protocol_guid = EFI_DRIVER_BINDING_PROTOCOL_GUID;
 
@@ -104,6 +105,7 @@ const char *efi_guid_string(const efi_guid_t *g)
 	EFI_GUID_STRING(EFI_FILE_SYSTEM_VOLUME_LABEL_ID, "Filesystem Volume Label ID", "EFI FileSystem Volume Label ID");
 	EFI_GUID_STRING(EFI_SIMPLE_FILE_SYSTEM_GUID, "Filesystem", "EFI 1.0 Simple FileSystem");
 	EFI_GUID_STRING(EFI_DEVICE_TREE_GUID, "Device Tree", "EFI Device Tree GUID");
+	EFI_GUID_STRING(EFI_RISCV_BOOT_PROTOCOL_GUID, "RISC-V Boot Protocol", "RISC-V EFI Boot Protocol");
 	EFI_GUID_STRING(EFI_DEVICE_PATH_PROTOCOL_GUID, "Device Path Protocol", "EFI 1.0 Device Path protocol");
 	EFI_GUID_STRING(EFI_DEVICE_PATH_TO_TEXT_PROTOCOL_GUID, "Device Path To Text Protocol", "EFI Device Path To Text Protocol");
 	EFI_GUID_STRING(EFI_DEVICE_PATH_UTILITIES_PROTOCOL_GUID, "Device Path Utilities Protocol", "EFI Device Path Utilities Protocol");
