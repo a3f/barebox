@@ -11,6 +11,7 @@
 #include <malloc.h>
 #include <uncompress.h>
 #include <linux/minmax.h>
+#include <linux/sizes.h>
 
 /**
  * struct decompress_loadable_priv - private data for decompressing loadable
@@ -28,7 +29,9 @@ struct decompress_loadable_priv {
  * @dest_size: size of destination buffer
  * @skip_bytes: bytes to skip at start (for offset handling)
  * @bytes_written: total bytes written to dest_buf so far
+ * @growable: dest_buf is heap-allocated and may be grown to fit all data
  * @done: early termination flag (buffer full)
+ * @error: error encountered while flushing (e.g. growing the buffer failed)
  */
 struct decompress_ctx {
 	struct loadable *inner;
@@ -38,7 +41,9 @@ struct decompress_ctx {
 	size_t dest_size;
 	loff_t skip_bytes;
 	size_t bytes_written;
+	bool growable;
 	bool done;
+	int error;
 };
 
 static struct decompress_ctx *current_ctx;
@@ -96,6 +101,22 @@ static long decompress_flush(void *buf, unsigned long len)
 		ctx->skip_bytes = 0;
 	}
 
+	/* Grow the destination buffer, if we are allowed to */
+	if (ctx->growable && ctx->bytes_written + len > ctx->dest_size) {
+		size_t new_size = max_t(size_t, ctx->dest_size * 2,
+					ctx->bytes_written + len);
+		void *new_buf = realloc(ctx->dest_buf, new_size);
+
+		if (!new_buf) {
+			ctx->error = -ENOMEM;
+			ctx->done = true;
+			return 0;
+		}
+
+		ctx->dest_buf = new_buf;
+		ctx->dest_size = new_size;
+	}
+
 	/* Copy to destination buffer */
 	space_left = ctx->dest_size - ctx->bytes_written;
 	to_copy = min_t(size_t, len, space_left);
@@ -104,7 +125,7 @@ static long decompress_flush(void *buf, unsigned long len)
 	ctx->bytes_written += to_copy;
 
 	/* Check if we've filled the buffer */
-	if (ctx->bytes_written >= ctx->dest_size) {
+	if (!ctx->growable && ctx->bytes_written >= ctx->dest_size) {
 		ctx->done = true;
 		return 0;  /* Signal completion */
 	}
@@ -193,6 +214,61 @@ static ssize_t decompress_loadable_extract_into_buf(struct loadable *l,
 	return ctx.bytes_written;
 }
 
+/**
+ * decompress_loadable_extract() - extract all decompressed data to a new buffer
+ * @l: loadable wrapper
+ * @size: decompressed size is returned here
+ *
+ * As the decompressed size is unknown upfront, the buffer is grown as
+ * needed while decompressing. This allows loadable_view() to work for
+ * compressed loadables.
+ *
+ * Return: allocated buffer, NULL for zero-size, or error pointer on failure
+ */
+static void *decompress_loadable_extract(struct loadable *l, size_t *size)
+{
+	struct decompress_loadable_priv *priv = l->priv;
+	struct loadable_info li;
+	size_t initial = SZ_4M;
+	int ret;
+
+	/* Take a guess at the compression ratio to limit reallocations */
+	ret = loadable_get_info(priv->inner, &li);
+	if (!ret && li.final_size != LOADABLE_SIZE_UNKNOWN && li.final_size)
+		initial = li.final_size * 4;
+
+	struct decompress_ctx ctx = {
+		.inner = priv->inner,
+		.dest_buf = malloc(initial),
+		.dest_size = initial,
+		.growable = true,
+	};
+
+	if (!ctx.dest_buf)
+		return ERR_PTR(-ENOMEM);
+
+	current_ctx = &ctx;
+
+	ret = uncompress(NULL, 0, decompress_fill, decompress_flush,
+			 NULL, NULL, decompress_error);
+
+	current_ctx = NULL;
+
+	if (ctx.error)
+		ret = ctx.error;
+	else if (ret > 0)
+		ret = -EIO;
+
+	if (ret || !ctx.bytes_written) {
+		free(ctx.dest_buf);
+		return ret ? ERR_PTR(ret) : NULL;
+	}
+
+	*size = ctx.bytes_written;
+
+	return ctx.dest_buf;
+}
+
 static void decompress_loadable_release(struct loadable *l)
 {
 	struct decompress_loadable_priv *priv = l->priv;
@@ -204,6 +280,7 @@ static void decompress_loadable_release(struct loadable *l)
 static const struct loadable_ops decompress_loadable_ops = {
 	.get_info = decompress_loadable_get_info,
 	.extract_into_buf = decompress_loadable_extract_into_buf,
+	.extract = decompress_loadable_extract,
 	.release = decompress_loadable_release,
 };
 
