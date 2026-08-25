@@ -258,6 +258,13 @@ static struct image_handler efi_arm64_handle_tr = {
 	.filetype = filetype_arm64_efi_linux_image,
 };
 
+static struct image_handler efi_riscv_handle_tr = {
+	.name = "EFI RISC-V Linux kernel",
+	.bootm = do_bootm_efi_stub,
+	.check_image = bootm_efi_check_image,
+	.filetype = filetype_riscv_efi_linux_image,
+};
+
 BAREBOX_MAGICVAR(global.linux.efi.handover,
 		 "Use legacy x86 handover protocol instead of StartImage BootService");
 
@@ -273,6 +280,9 @@ static int efi_register_bootm_handler(void)
 
 	if (IS_ENABLED(CONFIG_ARM64))
 		register_image_handler(&efi_arm64_handle_tr);
+
+	if (IS_ENABLED(CONFIG_RISCV))
+		register_image_handler(&efi_riscv_handle_tr);
 
 	return 0;
 }

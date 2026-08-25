@@ -193,6 +193,11 @@ static struct binfmt_hook binfmt_arm64_efi_hook = {
 	.hook = efi_execute,
 };
 
+static struct binfmt_hook binfmt_riscv_efi_hook = {
+	.type = filetype_riscv_efi_linux_image,
+	.hook = efi_execute,
+};
+
 static struct binfmt_hook binfmt_x86_efi_hook = {
 	.type = filetype_x86_efi_linux_image,
 	.hook = efi_execute,
@@ -209,6 +214,9 @@ static int efi_register_image_handler(void)
 
 	if (IS_ENABLED(CONFIG_ARM64))
 		binfmt_register(&binfmt_arm64_efi_hook);
+
+	if (IS_ENABLED(CONFIG_RISCV))
+		binfmt_register(&binfmt_riscv_efi_hook);
 
 	return 0;
 }
