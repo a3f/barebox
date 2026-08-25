@@ -29,6 +29,14 @@
 #define RISCV_HEADER_VERSION (RISCV_HEADER_VERSION_MAJOR << 16 | \
 			      RISCV_HEADER_VERSION_MINOR)
 
+/*
+ * Alignment of the PE/COFF sections and file when the image is built
+ * with an EFI stub. Sections are page-aligned, so the firmware can
+ * apply the section permissions.
+ */
+#define PECOFF_FILE_ALIGNMENT		0x200
+#define PECOFF_SECTION_ALIGNMENT	0x1000
+
 #ifndef __ASSEMBLY__
 /**
  * struct riscv_image_header - riscv kernel image header

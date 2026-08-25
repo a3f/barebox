@@ -104,10 +104,13 @@ void barebox_non_pbl_start(unsigned long membase, unsigned long memsize,
 	unsigned long barebox_base = riscv_mem_barebox_image(membase, endmem,
 							     barebox_image_size,
 							     hd);
+	size_t size;
 
 	handoff_data_set(hd);
 
-	irq_init_vector(riscv_mode());
+	/* As EFI payload, we keep the firmware's trap handlers */
+	if (!handoff_data_get_entry(HANDOFF_DATA_EFI, &size))
+		irq_init_vector(riscv_mode());
 
 	pr_debug("memory at 0x%08lx, size 0x%08lx\n", membase, memsize);
 

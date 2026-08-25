@@ -29,3 +29,12 @@ void __noreturn __naked barebox_riscv_entry(unsigned long membase,
 	barebox_pbl_start(membase, memsize, boarddata);
 }
 
+/*
+ * Generic entry point for the PBL. This is used by the EFI stub, which
+ * is entered by the UEFI firmware in supervisor mode.
+ */
+void __noreturn barebox_pbl_entry(unsigned long membase, unsigned long memsize,
+				  void *boarddata)
+{
+	barebox_riscv_entry(membase, memsize, boarddata, RISCV_S_MODE);
+}

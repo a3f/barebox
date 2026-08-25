@@ -12,6 +12,7 @@
 #include <pbl.h>
 #include <pbl/mmu.h>
 #include <pbl/handoff-data.h>
+#include <efi/mode.h>
 #include <asm/barebox-riscv.h>
 #include <asm-generic/memory_layout.h>
 #include <asm/sections.h>
@@ -37,7 +38,9 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 	struct elf_image elf;
 	int ret;
 
-	irq_init_vector(riscv_mode());
+	/* As EFI payload, we keep the firmware's trap handlers */
+	if (!efi_is_payload())
+		irq_init_vector(riscv_mode());
 
 	/* piggy data is not relocated, so determine the bounds now */
 	pg_start = runtime_address(input_data);
@@ -75,7 +78,7 @@ void __noreturn barebox_pbl_start(unsigned long membase, unsigned long memsize,
 	 * This creates an initial identity mapping that will be refined
 	 * later based on ELF segments.
 	 */
-	if (IS_ENABLED(CONFIG_MMU))
+	if (IS_ENABLED(CONFIG_MMU) && !efi_is_payload())
 		mmu_early_enable(membase, memsize, barebox_base);
 
 	pr_debug("uncompressing barebox binary at 0x%p (size 0x%08x) to 0x%08lx (uncompressed size: 0x%08x)\n",

@@ -2,26 +2,12 @@
 
 #include <common.h>
 #include <asm/sections.h>
+#include <asm/barebox-riscv.h>
 #include <linux/sizes.h>
 #include <asm/ns16550.h>
 #include <pbl.h>
 #include <pbl/handoff-data.h>
 #include <fdt.h>
-
-#if __riscv_xlen == 64
-#define IMAGE_LOAD_OFFSET 0x200000 /* Image load offset(2MB) from start of RAM */
-#else
-#define IMAGE_LOAD_OFFSET 0x400000 /* Image load offset(4MB) from start of RAM */
-#endif
-
-/* because we can depend on being loaded at an offset, we can just use
- * our load address as stack top
- */
-#define __barebox_riscv_head() \
-	__barebox_riscv_header("auipc sp, 0", IMAGE_LOAD_OFFSET, \
-			       RISCV_HEADER_VERSION, "RISCV", RISCV_IMAGE_MAGIC2)
-
-#include <asm/barebox-riscv.h>
 
 static void virt_ns16550_putc(void *base, int ch)
 {
@@ -41,12 +27,16 @@ static const struct fdt_device_id console_ids[] = {
 	{ /* sentinel */ }
 };
 
-static void noinline __noreturn start_dt_2nd_nonnaked(unsigned long hartid,
-						      unsigned long _fdt)
+/* called from assembly */
+void __noreturn dt_2nd_riscv(unsigned long hartid, unsigned long _fdt);
+
+void __noreturn dt_2nd_riscv(unsigned long hartid, unsigned long _fdt)
 {
 	unsigned long membase, memsize, endmem, endfdt, uncompressed_len;
 	struct fdt_header *fdt = (void *)_fdt;
 	void (*pbl_uart_init)(void);
+
+	/* entry point already set up stack */
 
 	if (!fdt)
 		hang();
@@ -85,9 +75,4 @@ static void noinline __noreturn start_dt_2nd_nonnaked(unsigned long hartid,
 		memsize = ALIGN_DOWN(_fdt - membase, SZ_1M);
 
 	barebox_riscv_supervisor_entry(membase, memsize, hartid, fdt);
-}
-
-ENTRY_FUNCTION(start_dt_2nd, hartid, _fdt, a2)
-{
-	start_dt_2nd_nonnaked(hartid, _fdt);
 }

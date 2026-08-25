@@ -37,6 +37,31 @@ the header for the initial stack to work. Using the ``-kernel`` option
 in Qemu or booting from bootloaders that can properly boot Linux will
 take care of this.
 
+barebox as EFI payload
+^^^^^^^^^^^^^^^^^^^^^^
+
+Like on ARM64, the generic ``barebox-dt-2nd.img`` can also be built with
+an EFI stub, so the very same image doubles as an EFI application that
+can be started by UEFI firmware, like U-Boot or EDK2, running in
+supervisor mode. This is enabled by ``CONFIG_EFI_PAYLOAD``::
+
+  make ARCH=riscv rv64i_efi_defconfig
+
+The resulting image is available as ``barebox.efi`` symlink in the build
+directory. Firmware services are used for console, block devices
+and the like, see :ref:`barebox_on_uefi` for details.
+For a quick test with U-Boot on the QEMU Virt machine, install
+``barebox.efi`` as ``EFI/BOOT/BOOTRISCV64.EFI`` on a FAT-formatted
+EFI system partition and let the U-Boot distro boot pick it up::
+
+  qemu-system-riscv64 -M virt -m 1G -nographic \
+  	-kernel u-boot.bin \
+  	-drive if=none,file=./esp.img,format=raw,id=hd0 \
+  	-device virtio-blk-device,drive=hd0
+
+Enabling ``CONFIG_EFI_PAYLOAD_ESP_IMAGE`` generates such an
+``images/barebox.esp`` GPT disk image with the ESP directly.
+
 TinyEMU
 -------
 

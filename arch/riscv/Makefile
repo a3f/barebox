@@ -9,6 +9,13 @@ virt32_mmu_defconfig:
 rv64i_mmu_defconfig:
 	$(call merge_into_defconfig_named,rv64i_defconfig,enable_mmu,$@)
 
+# barebox is an EFI payload only on RISC-V, so unlike the generic
+# rule in the top-level Makefile, don't merge the EFI loader fragment
+generated_configs += rv64i_efi_defconfig
+
+rv64i_efi_defconfig:
+	$(call merge_into_defconfig_named,rv64i_defconfig,efi-payload,$@)
+
 KBUILD_CPPFLAGS += -fno-strict-aliasing
 
 ifeq ($(CONFIG_ARCH_RV32I),y)

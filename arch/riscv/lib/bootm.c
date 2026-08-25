@@ -3,6 +3,7 @@
 
 #include <common.h>
 #include <bootm.h>
+#include <efi/mode.h>
 #include <asm/system.h>
 
 static int do_bootm_linux(struct image_data *data)
@@ -45,6 +46,9 @@ static struct image_handler riscv_barebox_handler = {
 
 static int riscv_register_image_handler(void)
 {
+	if (efi_is_payload())
+		return 0;
+
 	register_image_handler(&riscv_linux_handler);
 	register_image_handler(&riscv_barebox_handler);
 

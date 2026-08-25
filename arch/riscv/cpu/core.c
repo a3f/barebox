@@ -23,11 +23,16 @@
 #include <globalvar.h>
 #include <magicvar.h>
 #include <asm/system.h>
+#include <efi/mode.h>
 #include <io.h>
 
 static int riscv_request_stack(void)
 {
 	extern unsigned long riscv_stack_top;
+
+	if (efi_is_payload())
+		return 0;
+
 	return request_barebox_region("stack",
 				      riscv_stack_top - STACK_SIZE,
 				      STACK_SIZE, MEMATTRS_RW) ? 0 : -EINVAL;
