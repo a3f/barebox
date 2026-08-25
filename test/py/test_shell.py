@@ -114,6 +114,23 @@ def test_cmd_clk(barebox, barebox_config):
     assert count_dicts_in_command_output(barebox, 'clk_dump -vj') == regions
 
 
+def test_barebox_assign_device_param(barebox, barebox_config):
+    skip_disabled(barebox_config, "CONFIG_CMD_GLOBAL", "CONFIG_CMD_ECHO")
+
+    # device names may contain characters that are not valid in an ordinary
+    # shell variable name, so an assignment has to accept them as well
+    for name in ["dash-var", "at@var", "colon:var", "comma,var", "0digit"]:
+        var = f"global.{name}"
+
+        barebox.run_check(f"global {name}=one")
+        assert barebox.run_check(f"echo ${{{var}}}") == ["one"]
+
+        barebox.run_check(f"{var}=two")
+        assert barebox.run_check(f"echo ${{{var}}}") == ["two"]
+
+        barebox.run_check(f"global -r {name}")
+
+
 def test_barebox_test_var_exists(barebox, barebox_config):
     skip_disabled(barebox_config, "CONFIG_CMD_TEST", "CONFIG_CMD_ECHO")
 

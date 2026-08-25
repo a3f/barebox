@@ -1137,6 +1137,21 @@ static int run_list(struct p_context *ctx, struct pipe *pi)
 
 static char *get_dollar_var(char ch);
 
+/*
+ * The first character stays restricted to alphanumerics, so that a command
+ * option like -f=bar can never be mistaken for an assignment, but for the
+ * later characters, we allow some more that can appear in OF node names.
+ */
+static bool is_varname_char(char c)
+{
+	return isalnum(c) || (c && strchr("_.-@:,", c));
+}
+
+static bool is_varname_first_char(char c)
+{
+	return isalnum(c);
+}
+
 /* This is used to set local shell variables
    flg_export==0 if only local (not exporting) variable
    flg_export==1 if "new" exporting environ
@@ -1147,7 +1162,7 @@ static int set_local_var(const char *s, int flg_export)
 	int ret;
 
 	/* might be possible! */
-	if (!isalpha(*s))
+	if (!is_varname_first_char(*s))
 		return -1;
 
 	name = strdup(s);
@@ -1176,13 +1191,11 @@ static int is_assignment(const char *s)
 	if (s == NULL)
 		return 0;
 
-	if (!isalpha(*s))
+	if (!is_varname_first_char(*s))
 		return 0;
 
-	++s;
-
-	while(isalnum(*s) || *s=='_' || *s=='.')
-		++s;
+	while (is_varname_char(*++s))
+		;
 
 	return *s=='=';
 }

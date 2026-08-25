@@ -92,10 +92,14 @@ The parameters can be used as shell variables:
 
 .. note::
 
-  Hush shell syntax for defining and setting variables is the same, so
-  some characters such as hyphens are not allowed on the left hand side
-  of a shell variable assignment. :ref:`command_setenv`, if enabled,
-  can still be used to write such a variable though.
+  Device names often contain characters that are unusual in a shell
+  variable name, such as the hyphen, ``@`` and ``:`` of a device tree
+  derived name, or a leading digit. Assignments accept these, but reading
+  such a parameter requires the braced form, because ``$`` followed by a
+  bare name stops at the first of those characters::
+
+    barebox:/ nor0.barebox-environment.size=0x100000
+    barebox:/ echo ${nor0.barebox-environment.size}
 
 device variables may have a type, so assigning wrong values may fail:
 
