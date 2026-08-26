@@ -438,19 +438,51 @@ out:
 	return errno_set(ret);
 }
 
+/*
+ * file_seek - set the file position
+ *
+ * Some file system drivers keep their own file position and only learn
+ * about a change through their lseek operation, so the position must
+ * be changed through this function and not by writing f_pos directly.
+ */
+static int file_seek(struct file *f, loff_t pos)
+{
+	int ret;
+
+	if (f->f_inode->i_fop->lseek) {
+		ret = f->f_inode->i_fop->lseek(f, pos);
+		if (ret < 0)
+			return ret;
+	}
+
+	f->f_pos = pos;
+
+	return 0;
+}
+
 ssize_t pread(int fd, void *buf, size_t count, loff_t offset)
 {
 	loff_t pos;
 	struct file *f = fd_to_file(fd, false);
-	int ret;
+	int ret, err;
 
 	if (IS_ERR(f))
 		return -errno;
 
+	if (f->f_size != FILE_SIZE_STREAM && offset > f->f_size)
+		return 0;
+
 	pos = f->f_pos;
-	f->f_pos = offset;
+
+	ret = file_seek(f, offset);
+	if (ret)
+		return errno_set(ret);
+
 	ret = __read(f, buf, count);
-	f->f_pos = pos;
+
+	err = file_seek(f, pos);
+	if (ret >= 0 && err)
+		ret = errno_set(err);
 
 	return ret;
 }
@@ -511,15 +543,22 @@ ssize_t pwrite(int fd, const void *buf, size_t count, loff_t offset)
 {
 	loff_t pos;
 	struct file *f = fd_to_file(fd, false);
-	int ret;
+	int ret, err;
 
 	if (IS_ERR(f))
 		return -errno;
 
 	pos = f->f_pos;
-	f->f_pos = offset;
+
+	ret = file_seek(f, offset);
+	if (ret)
+		return errno_set(ret);
+
 	ret = __write(f, buf, count);
-	f->f_pos = pos;
+
+	err = file_seek(f, pos);
+	if (ret >= 0 && err)
+		ret = errno_set(err);
 
 	return ret;
 }
@@ -595,13 +634,9 @@ loff_t lseek(int fd, loff_t offset, int whence)
 	if (f->f_size != FILE_SIZE_STREAM && (pos < 0 || pos > f->f_size))
 		goto out;
 
-	if (f->f_inode->i_fop->lseek) {
-		ret = f->f_inode->i_fop->lseek(f, pos);
-		if (ret < 0)
-			goto out;
-	}
-
-	f->f_pos = pos;
+	ret = file_seek(f, pos);
+	if (ret < 0)
+		goto out;
 
 	return pos;
 
