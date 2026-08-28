@@ -613,10 +613,10 @@ void mmu_early_enable(unsigned long membase, unsigned long memsize)
 
 	pr_debug("enabling MMU, ttb @ 0x%p\n", ttb);
 
-	cache_invalidate_stale();
-
 	if (get_cr() & CR_M)
 		return;
+
+	cache_invalidate_stale();
 
 	set_ttbr(ttb);
 
