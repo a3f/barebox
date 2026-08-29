@@ -8,11 +8,8 @@ TEXT_BASE = $(CONFIG_TEXT_BASE)
 
 machine-y := efi
 KBUILD_CFLAGS += -fpic -mno-sse -mno-mmx
-ifeq ($(CONFIG_X86_32),y)
-	TARGET = efi-app-ia32
-else
-	TARGET = efi-app-x86_64
-endif
+# .eh_frame would end up in barebox.efi, which is a plain objcopy -O binary
+KBUILD_CFLAGS += -fno-asynchronous-unwind-tables -fno-unwind-tables
 
 ifeq ($(CONFIG_X86_32),y)
 	UTS_MACHINE := i386
@@ -49,9 +46,10 @@ KBUILD_BINARY := barebox
 
 KBUILD_LDFLAGS := --no-undefined
 
-OBJCOPYFLAGS_barebox.efi = \
-	-j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel -j .rela \
-	-j .reloc -j .bbenv.* -j .bblogo.* -j .barebox_imd --output-target=$(TARGET)
+# The PE/COFF header is part of the image (arch/x86/mach-efi/efi-header.S)
+# and the linker script takes care of the layout, so no efi-app-* objcopy
+# output target, which llvm-objcopy lacks, is needed.
+OBJCOPYFLAGS_barebox.efi = -O binary
 
 barebox.efi: $(KBUILD_BINARY) FORCE
 	$(call if_changed,objcopy)
