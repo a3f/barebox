@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
 		if (verbose)
 			printf("saving contents of %s to file %s\n", dirname, filename);
 
-		err = envfs_save(filename, dirname, envfs_flags);
+		err = envfs_save(filename, dirname, envfs_flags, false);
 
 		if (verbose && err)
 			printf("saving env failed: %d\n", err);

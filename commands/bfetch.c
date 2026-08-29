@@ -633,7 +633,7 @@ static void print_env(unsigned *line)
 	if (!IS_ENABLED(CONFIG_ENV_HANDLING))
 		return;
 
-	ret = envfs_save(BFETCH_TMP_ENV, NULL, 0);
+	ret = envfs_save(BFETCH_TMP_ENV, NULL, 0, false);
 	if (!ret) {
 		struct stat st;
 

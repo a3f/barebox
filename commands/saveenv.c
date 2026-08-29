@@ -37,7 +37,7 @@ static int do_saveenv(int argc, char *argv[])
 
 	printf("saving environment to %s\n", filename);
 
-	ret = envfs_save(filename, dirname, envfs_flags);
+	ret = envfs_save(filename, dirname, envfs_flags, false);
 
 	return ret;
 }

@@ -779,7 +779,7 @@ int nvvar_save(void)
 		}
 	}
 
-	envfs_save(env, TMPDIR, 0);
+	envfs_save(env, TMPDIR, 0, false);
 out:
 	unlink_recursive(TMPDIR, NULL);
 

@@ -45,6 +45,7 @@ struct envfs_entry {
 
 struct action_data {
 	const char *base;
+	bool full;
 	void *writep;
 	struct envfs_entry *env;
 };
@@ -177,7 +178,7 @@ static int file_action(const char *filename, struct stat *statbuf,
 	struct envfs_entry *env;
 	int fd, ret;
 
-	if (!do_compare_file(filename, data->base))
+	if (!data->full && !do_compare_file(filename, data->base))
 		return 1;
 
 	env = xzalloc(sizeof(*env));
@@ -297,12 +298,21 @@ static int file_remove_action(const char *filename, struct stat *statbuf,
  * @param[in] filename where to store
  * @param[in] dirname what to store (all files in this dir)
  * @param[in] flags superblock flags (refer ENVFS_FLAGS_* macros)
+ * @param[in] full store everything, not only what differs from the default
+ *            environment built into barebox
  * @return 0 on success, anything else in case of failure
+ *
+ * The stored environment is normally only the difference to the default
+ * environment compiled into this barebox, which is what the same barebox
+ * merges it back into when it reads it. An environment handed to a different
+ * barebox is merged into a default environment of its own, so it needs to be
+ * a full one.
  *
  * Note: This function will also be used on the host! See note in the header
  * of this file.
  */
-int envfs_save(const char *filename, const char *dirname, unsigned flags)
+int envfs_save(const char *filename, const char *dirname, unsigned flags,
+	       bool full)
 {
 	struct envfs_super *super;
 	int envfd, size, ret;
@@ -319,9 +329,11 @@ int envfs_save(const char *filename, const char *dirname, unsigned flags)
 
 	data.writep = NULL;
 	data.base = dirname;
+	data.full = full;
 
 #ifdef __BAREBOX__
-	defaultenv_load(TMPDIR, 0);
+	if (!full)
+		defaultenv_load(TMPDIR, 0);
 #endif
 
 	if (flags & ENVFS_FLAGS_FORCE_BUILT_IN) {
@@ -330,8 +342,9 @@ int envfs_save(const char *filename, const char *dirname, unsigned flags)
 		/* first pass: calculate size */
 		recursive_action(dirname, ACTION_RECURSE | ACTION_SORT, file_action,
 				NULL, &data, 0);
-		recursive_action("/.defaultenv", ACTION_RECURSE | ACTION_SORT,
-				file_remove_action, NULL, &data, 0);
+		if (!full)
+			recursive_action("/.defaultenv", ACTION_RECURSE | ACTION_SORT,
+					file_remove_action, NULL, &data, 0);
 		size = 0;
 
 		for (env = data.env; env; env = env->next) {
@@ -428,7 +441,8 @@ out:
 out1:
 	free(buf);
 #ifdef __BAREBOX__
-	unlink_recursive(TMPDIR, NULL);
+	if (!full)
+		unlink_recursive(TMPDIR, NULL);
 #endif
 	return ret;
 }
