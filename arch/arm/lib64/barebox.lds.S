@@ -63,7 +63,7 @@ SECTIONS
 	.bss : { *(.bss*) } :data
 	.__bss_stop :  { *(.__bss_stop) } :data
 	_end = .;
-	_barebox_image_size = __bss_start;
+	_barebox_image_size = ABSOLUTE(__bss_start);
 }
 
 NOCROSSREFS_FROM(.efi_runtime.text)
