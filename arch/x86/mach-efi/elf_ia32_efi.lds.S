@@ -64,7 +64,7 @@ SECTIONS
 		*(.sbss)
 		*(.scommon)
 		*(.dynbss)
-		*(.bss)
+		*(.bss .bss.*)
 		*(COMMON)
 	}
 	_edata = .;

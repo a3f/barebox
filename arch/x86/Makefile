@@ -26,7 +26,10 @@ endif
 
 
 ifeq ($(CONFIG_X86_EFI),y)
-LDFLAGS_barebox += -shared -Bsymbolic -znocombreloc
+# Link as PIE like the other architectures, not as a shared object: the
+# latter exports every global symbol, which makes each of them a root for
+# --gc-sections and thereby defeats LD_DEAD_CODE_DATA_ELIMINATION.
+LDFLAGS_barebox += -pie -znocombreloc
 else
 LDFLAGS_barebox += -static
 endif

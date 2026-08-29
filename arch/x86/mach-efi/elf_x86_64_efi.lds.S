@@ -62,7 +62,7 @@ SECTIONS
 		*(.sbss)
 		*(.scommon)
 		*(.dynbss)
-		*(.bss)
+		*(.bss .bss.*)
 		*(COMMON)
 		*(.rel.local)
 		__bss_stop = .;
