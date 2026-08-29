@@ -21,8 +21,17 @@ targets:
       efivarfs0: 'Driver: efivarfs'
       # efifs0: 'Driver: efifs' # TODO: ESP not detected
     env:
-      nv/boot.default: qemu_fw_cfg
-      nv/autoboot: boot
+      # the payload has no console of its own until its environment says so
+      nv/dev.cs0.active: ioe
+      # the environment is shared with the payload the loader boots, so
+      # everything that only applies to the loader is guarded on efi.loader,
+      # which only the barebox providing EFI services has
+      init/efi-loader: |
+        #!/bin/sh
+        [ -n "$efi.loader" ] || exit
+        efi.env.export=1
+        global.boot.default=qemu_fw_cfg
+        global.autoboot=boot
 images:
   barebox-qemu-virt.img: !template "$LG_BUILDDIR/images/barebox-qemu-virt.img"
   barebox.efi: !template "$LG_BUILDDIR/barebox.efi"
