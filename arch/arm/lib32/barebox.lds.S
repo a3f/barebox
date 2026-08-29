@@ -74,6 +74,9 @@ SECTIONS
 
 	.data : { *(.data*) } :data
 
+	. = ALIGN(4);
+	.got : { *(.got) *(.got.plt) } :data
+
 	. = .;
 
 	BAREBOX_RELOCATION_TABLE

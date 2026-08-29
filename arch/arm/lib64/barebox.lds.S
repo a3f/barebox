@@ -54,6 +54,9 @@ SECTIONS
 
 	.data : { *(.data*) } :data
 
+	. = ALIGN(8);
+	.got : { *(.got) *(.got.plt) } :data
+
 	_edata = .;
 
 	.image_end : { *(.__image_end) } :data
