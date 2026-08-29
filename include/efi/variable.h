@@ -29,6 +29,12 @@
 				EFI_VARIABLE_APPEND_WRITE | \
 				EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS)
 /*
+ * Name of the EFI variable holding the environment of a barebox EFI payload.
+ * It's stored under EFI_BAREBOX_VENDOR_GUID and holds an envfs image.
+ */
+#define EFI_BAREBOX_ENV_VAR_NAME	"barebox-env"
+
+/*
  * Length of a GUID string (strlen("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"))
  * not including trailing NUL
  */

@@ -20,6 +20,7 @@ obj-y += efi_variable.o
 obj-y += efi_var_mem.o
 obj-y += efi_var_file.o
 obj-y += defaultvars.o
+obj-y += env.o
 
 obj-$(CONFIG_BOOT) += bootesp.o
 obj-$(CONFIG_EFI_LOADER_BOOTMGR) += efibootmgr.o

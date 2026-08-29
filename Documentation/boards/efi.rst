@@ -234,6 +234,32 @@ In efivarfs each variable is represented by a file named <varname>-<guid>. Acces
 is currently readonly. Since the variables have binary content using :ref:`command_md` is often
 more suitable than :ref:`command_cat`.
 
+barebox environment
+-------------------
+
+A barebox EFI payload has no environment device to fall back to, so it keeps
+its environment in the ``barebox-env`` EFI variable under barebox' own vendor
+GUID. :ref:`command_saveenv` writes it there and it is read back on the next
+start, provided the firmware has a writable variable store.
+
+When the firmware is barebox itself, that variable does not exist and the
+payload starts with only its built-in default environment. The loader can hand
+its own environment over instead:
+
+.. code-block:: sh
+
+  efi.env.export=1
+
+Any barebox payload started afterwards then comes up with the environment the
+loader was running with. The variable is volatile, so it is not written to the
+variable file store on the ESP, but it does replace an environment a payload
+had saved there earlier. The environment needs to fit into the variable store,
+whose size is controlled by ``efi.vars.bufsize``.
+
+This is off by default: the environment is handed to whatever EFI binary runs
+next, which is not where configuration - or secrets - should end up
+unintentionally.
+
 EFI driver model and barebox
 ----------------------------
 
