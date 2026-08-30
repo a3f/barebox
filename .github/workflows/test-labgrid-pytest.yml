@@ -45,6 +45,11 @@ jobs:
             lgenv: test/arm/multi_v8_efi_defconfig.yaml
             defconfig: multi_v8_efi_defconfig
 
+          - ARCH: arm64
+            lgenv: test/arm/multi_v8_efi_defconfig.yaml
+            defconfig: multi_v8_efi_defconfig
+            variant: llvm
+
           - ARCH: mips
             lgenv: test/mips/qemu-malta64el_defconfig.yaml
             defconfig: qemu-malta64el_defconfig
