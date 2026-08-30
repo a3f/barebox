@@ -86,7 +86,10 @@ def count_dicts_in_command_output(barebox, cmd):
                 count += count_dicts(item)
         return count
 
-    stdout = "\n".join(barebox.run_check(cmd))
+    # Reassemble without adding newlines: JSON doesn't need them and a
+    # firmware console may have wrapped a single line of output into
+    # several, possibly in the middle of a string.
+    stdout = "".join(barebox.run_check(cmd))
     return count_dicts(json.loads(stdout))
 
 
