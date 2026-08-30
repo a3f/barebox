@@ -69,6 +69,10 @@ jobs:
             lgenv: 'test/riscv/qemu-virt64@rv64i_defconfig.yaml'
             defconfig: rv64i_defconfig
 
+          - ARCH: riscv
+            lgenv: 'test/riscv/edk2-virt64@rv64i_efi_defconfig.yaml'
+            defconfig: rv64i_efi_defconfig
+
           - ARCH: sandbox
             lgenv: 'test/sandbox/sandbox_defconfig.yaml'
             defconfig: sandbox_defconfig

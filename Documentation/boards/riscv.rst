@@ -62,6 +62,19 @@ EFI system partition and let the U-Boot distro boot pick it up::
 Enabling ``CONFIG_EFI_PAYLOAD_ESP_IMAGE`` generates such an
 ``images/barebox.esp`` GPT disk image with the ESP directly.
 
+EDK II for the QEMU Virt machine, packaged by Debian as
+``qemu-efi-riscv64``, can load ``barebox.efi`` straight from the QEMU
+command line::
+
+  qemu-system-riscv64 -M virt,acpi=off -m 1G -nographic \
+  	-drive if=pflash,format=raw,unit=0,readonly=on,file=/usr/share/qemu-efi-riscv64/RISCV_VIRT_CODE.fd \
+  	-drive if=pflash,format=raw,unit=1,snapshot=on,file=/usr/share/qemu-efi-riscv64/RISCV_VIRT_VARS.fd \
+  	-kernel barebox.efi
+
+``acpi=off`` makes EDK II install a devicetree configuration table
+instead of ACPI tables. This is the setup exercised by the
+``rv64i_efi_defconfig`` test in ``test/riscv/``.
+
 TinyEMU
 -------
 

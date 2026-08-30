@@ -1,0 +1,30 @@
+targets:
+  main:
+    drivers:
+      QEMUDriver:
+        qemu_bin: qemu-system-riscv64
+        machine: virt,acpi=off
+        cpu: rv64
+        memory: 1024M
+        kernel: barebox.efi
+        display: qemu-default
+        # EDK II for the RISC-V virt machine, as shipped by Debian's
+        # qemu-efi-riscv64 package. acpi=off above makes it hand us a
+        # devicetree instead of ACPI tables.
+        extra_args: >
+          -drive if=pflash,format=raw,unit=0,readonly=on,file=/usr/share/qemu-efi-riscv64/RISCV_VIRT_CODE.fd
+          -drive if=pflash,format=raw,unit=1,snapshot=on,file=/usr/share/qemu-efi-riscv64/RISCV_VIRT_VARS.fd
+      BareboxDriver:
+        prompt: 'barebox@(\x1b.+)?barebox EFI payload:[^ ]+ '
+        autoboot: 'stop autoboot'
+      BareboxTestStrategy: {}
+    features:
+      - virtio-mmio
+    devices:
+      wdog0: 'Parent: efi-wdt'
+      efivarfs0: 'Driver: efivarfs'
+      efifs0: 'Driver: efifs'
+images:
+  barebox.efi: !template "$LG_BUILDDIR/barebox.efi"
+imports:
+  -  ../strategy.py
