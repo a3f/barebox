@@ -4,70 +4,57 @@
 #include <asm/sections.h>
 #include <linux/sizes.h>
 #include <asm/ns16550.h>
-#include <pbl.h>
-#include <fdt.h>
-
-#if __riscv_xlen == 64
-#define IMAGE_LOAD_OFFSET 0x200000 /* Image load offset(2MB) from start of RAM */
-#else
-#define IMAGE_LOAD_OFFSET 0x400000 /* Image load offset(4MB) from start of RAM */
-#endif
-
-/* because we can depend on being loaded at an offset, we can just use
- * our load address as stack top
- */
-#define __barebox_riscv_head() \
-	__barebox_riscv_header("auipc sp, 0", IMAGE_LOAD_OFFSET, \
-			       RISCV_HEADER_VERSION, "RISCV", RISCV_IMAGE_MAGIC2)
-
 #include <asm/barebox-riscv.h>
+#include <pbl.h>
+#include <pbl/entry.h>
+#include <fdt.h>
 
 static void virt_ns16550_putc(void *base, int ch)
 {
-	early_ns16550_putc(ch, base, 0, readb, writeb);
+	early_ns16550_putc(ch, IOMEM(base), 0, readb, writeb);
 }
 
-static void virt_ns16550_init(void)
+static void virt_ns16550_setup(void *base)
 {
-	void __iomem *base = IOMEM(0x10000000);
-
-	early_ns16550_init(base, 3686400 / CONFIG_BAUDRATE, 0, writeb);
-	pbl_set_putc(virt_ns16550_putc, base);
+	early_ns16550_init(IOMEM(base), 3686400 / CONFIG_BAUDRATE, 0, writeb);
 }
+
+static struct pbl_console riscv_virtio_console = {
+	.setup = virt_ns16550_setup,
+	.arg = (void *)0x10000000,
+	.driver = &(struct pbl_console_driver) { virt_ns16550_putc }
+};
 
 static const struct fdt_device_id console_ids[] = {
-	{ .compatible = "riscv-virtio", .data = virt_ns16550_init },
+	{ .compatible = "riscv-virtio", .data = &riscv_virtio_console },
 	{ /* sentinel */ }
 };
 
-static void noinline __noreturn start_dt_2nd_nonnaked(unsigned long hartid,
-						      unsigned long _fdt)
+/* entry_data is the device tree the image was started with, if any */
+static void dt_2nd_bdinit(unsigned long entry_data)
 {
-	unsigned long membase, memsize, endmem, endfdt, barebox_size;
-	struct fdt_header *fdt = (void *)_fdt;
-	void (*pbl_uart_init)(void);
+	struct fdt_header *fdt = (void *)entry_data;
+	const struct pbl_console *console;
 
 	if (!fdt)
 		hang();
 
-	/*
-	 * We need to call this here, as a multiplatform build
-	 * depends on querying mode for riscv_vendor_id()
-	 */
-	riscv_set_flags(RISCV_S_MODE);
+	console = fdt_device_get_match_data(fdt, "/", console_ids);
+	if (console)
+		__pbl_board_info.console = *console;
 
-	relocate_to_current_adr();
-	setup_c();
+	pbl_get_stage()->board_data = fdt;
+}
 
-	pbl_uart_init = fdt_device_get_match_data(fdt, "/", console_ids);
-	if (pbl_uart_init) {
-		pbl_uart_init();
-		putchar('>');
-	}
+static void __noreturn dt_2nd_chainload(void *boarddata)
+{
+	unsigned long membase, memsize, endmem, endfdt, barebox_size;
+	unsigned long boarddata_ul = (unsigned long)boarddata;
+	struct fdt_header *fdt = boarddata;
 
 	fdt_find_mem(fdt, &membase, &memsize);
 	endmem = membase + memsize;
-	endfdt = _fdt + be32_to_cpu(fdt->totalsize);
+	endfdt = boarddata_ul + be32_to_cpu(fdt->totalsize);
 
 	/*
 	 * QEMU likes to place the FDT at the end of RAM, where barebox
@@ -80,13 +67,26 @@ static void noinline __noreturn start_dt_2nd_nonnaked(unsigned long hartid,
 	handoff_data_add_dt(fdt);
 
 	if (riscv_mem_barebox_image(membase, endmem, barebox_size, NULL) < endfdt &&
-	    _fdt < riscv_mem_stack_top(membase, endmem))
-		memsize = ALIGN_DOWN(_fdt - membase, SZ_1M);
+	    boarddata_ul < riscv_mem_stack_top(membase, endmem))
+		memsize = ALIGN_DOWN(boarddata_ul - membase, SZ_1M);
 
-	barebox_riscv_supervisor_entry(membase, memsize, hartid, NULL);
+	/* The head has recorded the mode and stashed the hart ID in tp already */
+	barebox_riscv_entry(membase, memsize, NULL, RISCV_S_MODE);
 }
 
-ENTRY_FUNCTION(start_dt_2nd, hartid, _fdt, a2)
-{
-	start_dt_2nd_nonnaked(hartid, _fdt);
-}
+/*
+ * Generic second stage entry point: the head in board-dt-2nd-head.S
+ * provides the kernel image header and branches into the supervisor mode
+ * PBL head, which records the device tree as entry data.
+ *
+ * Which UART is the console depends on the machine, so no console is
+ * described; the board init callback looks it up by root compatible.
+ */
+extern char __dt_2nd_head[];
+
+ENTRY_POINT_HEAD(start_dt_2nd, __dt_2nd_head)
+	.soc_type = SOC_TYPE_GENERIC_DT,
+	.second_stage.stacktop = PBL_STACKTOP_BEFORE_BAREBOX,
+	.second_stage.board_init = dt_2nd_bdinit,
+	.second_stage.soc_chainload = dt_2nd_chainload,
+ENTRY_POINT_END
