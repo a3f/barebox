@@ -586,7 +586,7 @@ as follows:
 		magic = <0xab67421f>;
 		backend-type = "raw";
 		backend = <&backend_state_sd>;
-		backend-stridesize = <0x40>;
+		backend-stridesize = <0x200>;
 
 		variable@0 {
 			reg = <0x0 0x1>;

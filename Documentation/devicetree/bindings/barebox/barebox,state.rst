@@ -78,6 +78,14 @@ You should calculate the ``backend-stridesize`` value very carefully based on
 the used ``backend-type`` and the size of the used backend (e.g. partition size
 for example). Refer :ref:`Backend Types <state_framework,backend_types>`.
 
+.. important:: On block devices the ``backend-stridesize`` must be a multiple
+   of the block size (usually 512 bytes) and the backend partition must be
+   block aligned. Otherwise multiple copies of the *state* variable set
+   share a block and an interrupted write can corrupt more than one copy,
+   which defeats the redundancy. barebox warns at startup if this is the
+   case. Byte-writable backends like EEPROM, SRAM or MRAM have no such
+   constraint.
+
 .. note:: It might be useful to add some spare space to the
    ``backend-stridesize`` to ensure the ability to extend the *state* variable
    set later on.
