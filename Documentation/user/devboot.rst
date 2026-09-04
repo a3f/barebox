@@ -170,7 +170,7 @@ kernel command line fragments:
   devboot_oftree=
   devboot_initrd=":afa-rsinit-arm64"
 
-  global linux.bootargs.dyn.rsinit="rsinit.bind=/lib/modules"
+  global linux.bootargs.devboot.rsinit="rsinit.bind=/lib/modules"
 
 With this script in place and ``global.user=afa``, ``global.hostname=rock3a``,
 running ``devboot mmc`` on the board expands to::
@@ -185,6 +185,14 @@ discards the FIT's device tree (falling back to the barebox-internal one
 when ``CONFIG_BOOTM_OFTREE_FALLBACK`` is enabled), and appends the
 ``afa-rsinit-arm64`` CPIO archive to whatever initrd the FIT already
 contains.
+
+Kernel command line fragments set by the script should use the
+``global.linux.bootargs.devboot.`` namespace. Unlike
+``global.linux.bootargs.dyn.``, which is cleared whenever a boot entry
+returns, it survives falling through to the next boot target, e.g. for
+``devboot system0 system1``. The ``devboot`` command removes the
+namespace after the boot command returns, so a subsequent plain
+``boot`` is unaffected by it.
 
 Setting up the variables
 ^^^^^^^^^^^^^^^^^^^^^^^^
