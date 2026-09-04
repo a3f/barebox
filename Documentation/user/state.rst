@@ -119,7 +119,9 @@ embedded *state* variable set. Refer to
    operating systems.
 
 .. note:: When calculating the ``backend-stridesize`` take the header overhead
-   into account. The header overhead is always 16 bytes.
+   into account. The header overhead is always 16 bytes. On block devices
+   the stride must additionally be a multiple of the block size, refer
+   :ref:`Direct Storage Backend Redundancy <state_framework,direct_redundancy>`.
 
 .. _state_framework,dtb:
 
@@ -337,6 +339,8 @@ In the case of an interruption and/or power loss resulting in an incomplete
 write to the backend, the system can fall back to a different *state* variable
 set copy (previous *state* variable set).
 
+.. _state_framework,direct_redundancy:
+
 Direct Storage Backend Redundancy
 #################################
 
@@ -365,6 +369,21 @@ size of a partition).
    The minimum size for the backend partition is then 44 * 3 = 132 bytes.
    It's a good idea though to increase stride size beyond the minimum to leave
    some free space for in-place addition of new variables in future.
+
+.. important:: The redundancy only helps if an interrupted write can damage
+   just the copy being written.
+   The stride size must therefore be a multiple of the block size and the
+   backend partition must start on a block boundary, otherwise two copies
+   share a block and a power loss during a write can corrupt both.
+   barebox warns at startup when this is the case.
+   Increasing the stride size on an already deployed device is deemed safe,
+   even across a power loss: the first copy always stays at the start of
+   the backend and is not rewritten during the migration, so it
+   remains readable while the other copies are rewritten at their new
+   positions on the next load. This requires the new stride size to be a
+   multiple of that atomically written block size, otherwise rewriting a copy
+   during the migration can damage the first copy.
+   Byte-writable backends like EEPROM, SRAM or MRAM have no such constraint.
 
 Circular Storage Backend Redundancy
 ###################################
