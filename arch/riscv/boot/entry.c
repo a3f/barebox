@@ -2,6 +2,7 @@
 #include <types.h>
 
 #include <asm/barebox-riscv.h>
+#include <pbl/entry.h>
 
 #include "entry.h"
 #include <debug_ll.h>
@@ -29,3 +30,15 @@ void __noreturn __naked barebox_riscv_entry(unsigned long membase,
 	barebox_pbl_start(membase, memsize, boarddata);
 }
 
+/*
+ * SoC chainload callback for boards whose stage already describes the
+ * memory to hand to barebox proper. The head has recorded the privilege
+ * mode in the scratch register, so it is passed on as is.
+ */
+void __noreturn pbl_stage_barebox_entry(void *boarddata)
+{
+	struct pbl_stage *stage = pbl_get_stage();
+
+	barebox_riscv_entry(stage->mem_start, stage->mem_minsz, boarddata,
+			    riscv_get_flags());
+}

@@ -5,6 +5,7 @@
 #include <asm/barebox.lds.h>
 #include <asm-generic/memory_layout.h>
 #include <asm-generic/pointer.h>
+#include <asm/asm-offsets.h>
 
 OUTPUT_ARCH(BAREBOX_OUTPUT_ARCH)
 OUTPUT_FORMAT(BAREBOX_OUTPUT_FORMAT)
@@ -18,6 +19,13 @@ SECTIONS
 	.text      :
 	{
 		_stext = .;
+		/*
+		 * Per-image headers branching into one of the common
+		 * heads below, kept apart from the prologue sections so
+		 * they win the image start regardless of link order.
+		 */
+		*(.text_image_header*)
+		*(.text_head_prologue*)
 		*(.text_head_entry*)
 		__bare_init_start = .;
 		*(.text_bare_init*)
@@ -28,8 +36,15 @@ SECTIONS
 	BAREBOX_BARE_INIT_SIZE
 	BAREBOX_PBL_SIZE
 
-	. = ALIGN(4);
+	. = ALIGN(ASM_SZPTR);
 	__start_rodata = .;
+	__pbl_board_info = .;
+	.rodata.pbl_board_info : {
+		*(.pbl_board_info_*)
+	}
+	ASSERT(. - __pbl_board_info <= PBI_SIZEOF, "Only one PBL per image allowed")
+
+	. = ALIGN(4);
 	.rodata : { *(.rodata*) }
 
 	. = ALIGN(ASM_SZPTR);

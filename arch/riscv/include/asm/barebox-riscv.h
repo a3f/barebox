@@ -36,6 +36,15 @@ void __noreturn __naked barebox_riscv_entry(unsigned long membase, unsigned long
 	barebox_riscv_entry(membase, memsize, boarddata, RISCV_S_MODE); \
 } while (0)
 
+/*
+ * PBL head for images entered in supervisor mode like a Linux kernel,
+ * with the hart ID in a0 and the device tree in a1.
+ */
+extern char __barebox_pbl_head_v1_supervisor[];
+
+/* enters barebox proper with the current PBL stage's membase/memsize */
+void __noreturn pbl_stage_barebox_entry(void *boarddata);
+
 static inline unsigned long riscv_mem_stack_top(unsigned long membase,
 						unsigned long endmem)
 {

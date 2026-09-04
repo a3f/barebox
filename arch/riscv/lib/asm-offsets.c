@@ -9,6 +9,8 @@
 #include <linux/kbuild.h>
 #include <linux/kernel.h>
 #include <asm/ptrace.h>
+#include <asm/system.h>
+#include <pbl/entry.h>
 
 #define STACK_ALIGN		16
 
@@ -56,5 +58,29 @@ int main(void)
 	 * We allocate a pt_regs on the stack. This ensures the alignment is sane.
 	 */
 	DEFINE(PT_SIZE_ON_STACK, ALIGN(sizeof(struct pt_regs), STACK_ALIGN));
+	BLANK();
+	COMMENT("struct pbl_board_info offsets");
+	OFFSET(PBI_LOCATE_PC,		pbl_board_info, assembly_locate_pc);
+	OFFSET(PBI_ROM_STAGE,		pbl_board_info, rom_stage);
+	OFFSET(PBI_FIRST_STAGE,		pbl_board_info, first_stage);
+	OFFSET(PBI_SECOND_STAGE,	pbl_board_info, second_stage);
+	DEFINE(PBI_SIZEOF,		sizeof(struct pbl_board_info));
+	BLANK();
+	COMMENT("struct pbl_stage offsets");
+	OFFSET(PBS_STACKTOP,		pbl_stage, stacktop);
+	OFFSET(PBS_MEM_START,		pbl_stage, mem_start);
+	OFFSET(PBS_MEM_MINSZ,		pbl_stage, mem_minsz);
+	OFFSET(PBS_MEM_MAXSZ,		pbl_stage, mem_maxsz);
+	OFFSET(PBS_CPU_INIT,		pbl_stage, prereloc_cpu_init);
+	OFFSET(PBS_SOC_INIT,		pbl_stage, soc_init);
+	OFFSET(PBS_BOARD_INIT,		pbl_stage, board_init);
+	OFFSET(PBS_SOC_CHAINLOAD,	pbl_stage, soc_chainload);
+	BLANK();
+	DEFINE(PBL_STAGE_ROM_ASM,	PBL_STAGE_ROM);
+	DEFINE(PBL_STAGE_OCRAM_ASM,	PBL_STAGE_OCRAM);
+	DEFINE(PBL_STAGE_DRAM_ASM,	PBL_STAGE_DRAM);
+	DEFINE(PBS_STACKTOP_BEFORE_BAREBOX,	PBL_STACKTOP_BEFORE_BAREBOX);
+	DEFINE(PBS_STACKTOP_AFTER_BAREBOX,	PBL_STACKTOP_AFTER_BAREBOX);
+	DEFINE(RISCV_S_MODE_ASM,	RISCV_S_MODE);
 	return 0;
 }
