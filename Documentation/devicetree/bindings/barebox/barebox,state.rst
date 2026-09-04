@@ -67,17 +67,16 @@ Optional Properties
 
 The ``backend-stridesize`` is still optional but required whenever the
 underlying backend doesn't provide an information how to pad an instance of a
-*state* variable set. This is valid for all underlying backends which support
-writes on a byte-by-byte manner or don't have eraseblocks (EEPROM, SRAM and NOR
-type flash backends).
+*state* variable set. This is valid for all underlying backends which don't
+have eraseblocks (EEPROM, SRAM, MRAM and block devices like eMMC and SD cards).
 The ``backend-stridesize`` value is used by the ``direct`` backend storage type
 to place the redundant *state* variable set copies side by side in the backend.
-And it's used by the ``circular`` backend storage type to place the *state*
-variable set copies side by side into the eraseblock.
+The ``circular`` backend storage type ignores it: it packs the *state*
+variable set copies into the eraseblock at the write granularity reported by
+the MTD device.
 You should calculate the ``backend-stridesize`` value very carefully based on
-the used ``backend-type``, the size of the used backend (e.g. partition size
-for example) and its eraseblock size. Refer
-:ref:`Backend Types <state_framework,backend_types>`.
+the used ``backend-type`` and the size of the used backend (e.g. partition size
+for example). Refer :ref:`Backend Types <state_framework,backend_types>`.
 
 .. note:: It might be useful to add some spare space to the
    ``backend-stridesize`` to ensure the ability to extend the *state* variable

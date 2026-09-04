@@ -373,11 +373,10 @@ Circular Storage Backend Redundancy
 
 Redundant copies of the *state* variable set are stored based on the memory's
 eraseblocks and this size is automatically detected at run-time.
-It needs a stride size as well, because a NOR type flash memory can be written
-on a byte-by-byte manner.
-In contrast to the ``direct`` storage backend redundancy, the
-stride size for the ``circular`` storage backend redundancy defines the
-side-by-side location of the *state* variable set copies.
+The stride size is not used. Since NOR type flash memory can be written on a
+byte-by-byte manner, the *state* variable set copies are packed back to back
+inside the eraseblock, each padded to the write granularity reported by the
+MTD device (at least 8 bytes).
 
 .. code-block:: text
 
@@ -388,7 +387,8 @@ side-by-side location of the *state* variable set copies.
     |<--------- eraseblock --------->|<--------- eraseblock --------->|<-
     |<------- redundant area ------->|<------- redundant area ------->|<-
 
-*<X>* defines the stride size, *C#1*, *C#2* the *state* variable set copies.
+*<X>* is the size of one copy rounded up to the write granularity, *C#1*, *C#2*
+the *state* variable set copies.
 
 Since these kinds of MTD devices are partitioned, it's a good practice to always
 reserve multiple eraseblocks for the barebox' *state* feature. Keep in mind:
