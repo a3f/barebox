@@ -40,9 +40,101 @@ Entry point
 ===========
 
 The PBL's entry point is the first of your code that's run. What happens
-there depends on the previously running code. If a previous stage has already
-initialized the DRAM, the only thing you need to do is to set up a stack and
-call the common PBL code with a memory region and your device tree blob::
+there depends on the previously running code. A board describes its entry
+point declaratively with ``ENTRY_POINT()``: a board info naming the SoC,
+the console and up to three *stages*, one per memory the PBL may find
+itself executing from. The common head selects the stage by program
+counter, sets up the stack, relocates, clears the BSS, brings the console
+up and runs the stage's callbacks. If a previous stage has already
+initialized the DRAM, the only thing you need to do is to describe the
+memory region and your device tree blob::
+
+  #include <pbl/entry.h>
+  #include <mach/mysoc/entry.h>
+
+  extern char __dtb_z_my_board_start[];
+
+  ENTRY_POINT(MYSOC, start_my_board)
+  	.console.arg = IOMEM(MY_UART_BASE),
+  	.second_stage.mem_start = 0x80000000,
+  	.second_stage.mem_minsz = SZ_256M,
+  	.second_stage.board_data = __dtb_z_my_board_start,
+  ENTRY_POINT_END
+
+Let's look at this line by line:
+
+``ENTRY_POINT(MYSOC, start_my_board)``
+   Defines the entry symbol ``start_my_board`` and opens the board info,
+   initialized from the SoC's image head ``PBL_SOC_MYSOC_HEAD`` and its
+   stage defaults ``PBL_SOC_MYSOC_DEFAULTS``, both from
+   ``<mach/mysoc/entry.h>``. The defaults encode the SoC's boot flow:
+   stack tops, lowlevel CPU init, console driver, chainloading and the
+   entry into barebox proper. The board only lists what differs; a field
+   it sets overrides the default. ``ENTRY_POINT_HEAD(name, head)`` is the
+   variant without SoC defaults; a board using it names its SoC with
+   ``.soc_type = SOC_TYPE_MYSOC`` itself, or one of the
+   ``SOC_TYPE_GENERIC_*`` pseudo types if the image is not built for a
+   particular SoC. barebox proper warns if it is left unset.
+
+``.console.arg = IOMEM(MY_UART_BASE)``
+   The console is described by a ``struct pbl_console_driver``, an argument
+   passed to it - the UART base address for the SoC drivers - and, if the
+   UART is not usable on entry yet, a setup callback. The SoC defaults
+   usually provide driver and setup, so the board just names its UART.
+   A board describing no console leaves the PBL console on its
+   ``DEBUG_LL`` fallback.
+
+``.second_stage``
+   The stages are ``rom_stage`` (executing in place from ROM),
+   ``first_stage`` (SRAM) and ``second_stage`` (DRAM). Each describes the
+   memory it runs from: ``mem_start`` and ``mem_minsz``, the minimum size
+   the board knows to be available, which barebox proper starts out with
+   and may extend by further banks later on, and ``mem_maxsz``, the
+   largest size the SoC's memory window can have, which the SoC defaults
+   set. On entry, the head picks the stage whose ``mem_start``/``mem_maxsz``
+   region - ``mem_minsz`` if no maximum is set - contains the program
+   counter, or the earliest stage with callbacks if none does. A stage
+   may ask to be relocated elsewhere with ``relocaddr`` and for a stack
+   with ``stacktop``, either an address or a ``PBL_STACKTOP_*`` value.
+
+   The callbacks of a stage run in this order: ``prereloc_cpu_init``
+   before relocation, bound by the rules of unrelocated code (register
+   access only, no globals) and marked ``__prereloc`` like everything
+   else running before relocation; ``soc_init``, relocated;
+   ``board_init``, which receives the boot register recorded on entry
+   as ``entry_data``; and ``soc_chainload``, which receives
+   ``board_data`` and does not return. The console is brought up as
+   early as possible: before ``soc_init`` if it needs no setup callback,
+   otherwise after it, and failing that after ``board_init``, which may
+   still fill in the console description. The SoC defaults provide the SoC
+   callbacks, so a board typically only sets ``board_init`` for setup
+   like DRAM initialization, and ``board_data`` for its device tree.
+
+``.second_stage.board_data = __dtb_z_my_board_start``
+   The device tree handed to barebox proper, see ``__dtb_z_*`` below.
+   Boards selecting their device tree at runtime call
+   ``handoff_data_add_dt()`` from the board init callback instead; a
+   device tree added that way takes precedence over ``board_data``.
+
+Entering barebox proper is the job of ``soc_chainload``:
+``pbl_stage_barebox_entry()`` uses the stage's ``mem_start``/``mem_minsz``
+and SoCs that can query their memory controller for the actual size
+provide their own. If the PBL first executes from SRAM because the whole
+image doesn't fit, ``first_stage.board_init`` sets DRAM up and
+``first_stage.soc_chainload`` loads the rest and chainloads it, so the
+DRAM copy is entered through ``second_stage``.
+
+Once the console is up, or after the board init through ``DEBUG_LL`` if
+there is none, the stage dispatch prints the number of the stage followed
+by ``>``, e.g. ``2>``, see :ref:`troubleshooting`.
+
+Unrelocated ENTRY_FUNCTION
+--------------------------
+
+Boards not using ``ENTRY_POINT()`` write the entry point as a C function
+that does the above by hand. If a previous stage has already initialized
+the DRAM, the only thing you need to do is to set up a stack and call the
+common PBL code with a memory region and your device tree blob::
 
   #include <asm/barebox-arm.h>
   #include <console.h>
@@ -127,7 +219,9 @@ Looking at other boards you might see some different patterns:
    stack beforehand. If either a barebox assembly entry point,
    ``ENTRY_FUNCTION_WITHSTACK`` or earlier firmware has set up the stack, there is
    no reason to use ``__naked``, just use ``ENTRY_FUNCTION_WITHSTACK`` with a zero
-   stack top.
+   stack top. Functions that run before the stack is set up are additionally
+   marked ``__unsafe_prestack``, which expands to nothing and documents the
+   constraint; ``ENTRY_POINT_HEAD()`` does this for the function it defines.
 
 ``noinline``
    Compiler code inlining is oblivious to stack manipulation in
@@ -328,6 +422,7 @@ New header format
 
 Your loader may require a specific header or format. If the header is meant
 to be executable, it should be written in assembly.
+
 If the C compiler for that platform supports ``__attribute__((naked))``, it
 can be written in inline assembly inside such a naked function. See for
 example ``__barebox_arm_head`` for ARM32 or ``__barebox_riscv_header`` for RISC-V.
@@ -337,17 +432,47 @@ and the entry point should be written in a dedicated assembly file.
 This is the case with ARM64, see for example ``__barebox_arm64_head`` and the
 ``ENTRY_PROC`` macro.
 
+The image head of an ``ENTRY_POINT()`` board sets up what its boot
+protocol requires, like the privilege mode on RISC-V, and branches to
+``pbl_head_start_v1()``, the stage dispatch, with the boot register it
+records as ``entry_data``; ``arch/riscv/boot/head.S`` has heads for
+images a previous stage starts in supervisor mode like a Linux kernel
+and for images entered in machine mode without a boot protocol. RISC-V
+implements ``pbl_head_start_v1()`` in assembly in the same file,
+overriding the weak C implementation in ``pbl/entry.c``. An
+architecture without an assembly implementation falls back to the C one,
+which is a naked function where the architecture selects
+``ARCH_HAS_NAKED``, but the compiler may still spill to the stack, so it is
+best entered with a stack the previous stage has already set up.
+
 Another way, which is often used for non-executable headers with extra
 meta-information like a checksum, is adding a new tool to ``scripts/``
 and have it run as part of the image build process. ``images/`` contains
 various examples.
+
+Entry point defaults
+====================
+
+The boards of a SoC share its boot flow, so it is described once in the
+``entry.h`` of its mach directory, which usually covers a whole SoC family:
+``include/mach/sifive/entry.h`` holds the SiFive SoCs.
+``PBL_SOC_<SOC>_DEFAULTS`` are the board info fields
+``ENTRY_POINT(<SOC>, ...)`` starts from and ``PBL_SOC_<SOC>_HEAD`` is the
+image head, one of the heads the architecture provides for the boot
+protocol, or a head of the SoC's own if its BootROM insists on a special
+header. Helpers written for the defaults carry the ``PBL_SOC_<SOC>_``
+prefix, so they don't get mistaken for the general lowlevel API. The
+defaults set ``.soc_type`` to the SoC's entry in ``enum soc_type`` in
+``include/pbl/soc-type.h``, which barebox proper can query with
+``barebox_soc_type()``. If the SoC's console UART has no
+``struct pbl_console_driver`` wrapping its putc yet, the SoC adds one.
 
 Memory controller setup
 =======================
 
 If you've an external DRAM controller, you will need to configure it.
 This may involve enabling clocks and PLLs. This should all happen
-in the PBL entry point.
+in the PBL entry point, i.e. the first stage's board init callback.
 
 Chainloading
 ============
@@ -360,6 +485,8 @@ One good way to go about it is to check whether the program counter
 is in DRAM or SRAM. If in DRAM, we can assume that the image was loaded
 in full and we can just go into the common PBL entry and extract barebox
 proper. If in SRAM, we'll need to load the remainder from the boot medium.
+This is the distinction between the first and second stage of a board
+info entry point.
 
 This loading requires the PBL to have a driver for the boot medium as
 well as its prerequisites like clocks, resets or pin multiplexers.
