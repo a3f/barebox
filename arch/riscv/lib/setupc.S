@@ -53,7 +53,7 @@ ENTRY(relocate_to_adr_full)
 ENDPROC(relocate_to_adr_full)
 
 ENTRY(relocate_to_adr)
-	lla	a3, __bss_start		/* skip piggy data */
+	lla	a3, __bss_stop		/* skip piggy data */
 1:
 	addi	sp, sp, -SZREG * 2
 	lla	a1, _text		/* a1: source address */

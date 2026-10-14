@@ -46,7 +46,7 @@ static void relocate_image(unsigned long offset,
 
 		switch (RISC_R_TYPE(rela->r_info)) {
 		case R_RISCV_NONE:
-			break;
+			continue;
 		case R_RISCV_RELATIVE:
 			*fixup = rela->r_addend + offset;
 			break;
@@ -63,6 +63,10 @@ static void relocate_image(unsigned long offset,
 			putc_ll('\n');
 			__hang();
 		}
+
+		/* Rebase the entry, so the image can be relocated again */
+		rela->r_addend += offset;
+		rela->r_offset += offset;
 	}
 
 }
