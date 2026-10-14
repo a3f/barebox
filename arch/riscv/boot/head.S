@@ -7,28 +7,17 @@
 .globl __pbl_board_info
 
 /*
- * __barebox_pbl_head_v1_supervisor - v1 PBL image head for images that
- * firmware enters like a Linux kernel, i.e. in supervisor mode with the
- * hart ID in a0 and the device tree in a1
- *
- * The privilege mode is part of the RISC-V boot protocol and code as
- * early as the relocation's cache maintenance asks for it, so the head
- * has to record it: it writes sscratch as riscv_set_flags() would, keeps
- * the hart ID in tp where riscv_hartid() expects it and passes the device
- * tree to pbl_head_start_v1() as entry_data. Both stay in registers, so
- * executing in place from read-only memory works.
- *
- * The header layout is the one __barebox_riscv_head() emits, so
- * is_barebox_riscv_head() and the image tools are unaffected.
+ * pbl_image_header - image header shared by the heads below, the one
+ * __barebox_riscv_head() emits, so is_barebox_riscv_head() and the image
+ * tools are unaffected. Execution continues at \setup.
  */
-.section .text_head_prologue_v1, "ax"
-ENTRY(__barebox_pbl_head_v1_supervisor)
+.macro	pbl_image_header setup
 	/* Relaxation and compressed instructions would shift the fields */
 	.option push
 	.option norelax
 	.option norvc
 	nop				/* code0 */
-	j	.Lsetup			/* code1 */
+	j	\setup			/* code1 */
 	.balign	8
 	.dword	0			/* Image load offset from start of RAM */
 	.dword	_barebox_image_size	/* Effective Image size */
@@ -41,8 +30,25 @@ ENTRY(__barebox_pbl_head_v1_supervisor)
 	.ascii	"RSCV"			/* magic 2 */
 	.word	0			/* reserved (PE-COFF offset) */
 	.option pop
+.endm
 
-.Lsetup:
+/*
+ * __barebox_pbl_head_v1_supervisor - v1 PBL image head for images that
+ * firmware enters like a Linux kernel, i.e. in supervisor mode with the
+ * hart ID in a0 and the device tree in a1
+ *
+ * The privilege mode is part of the RISC-V boot protocol and code as
+ * early as the relocation's cache maintenance asks for it, so the head
+ * has to record it: it writes sscratch as riscv_set_flags() would, keeps
+ * the hart ID in tp where riscv_hartid() expects it and passes the device
+ * tree to pbl_head_start_v1() as entry_data. Both stay in registers, so
+ * executing in place from read-only memory works.
+ */
+.section .text_head_prologue_v1_supervisor, "ax"
+ENTRY(__barebox_pbl_head_v1_supervisor)
+	pbl_image_header .Lsupervisor_setup
+
+.Lsupervisor_setup:
 	li	fp, 0
 
 	/* Supervisor mode handoff, see above */
@@ -52,6 +58,26 @@ ENTRY(__barebox_pbl_head_v1_supervisor)
 	mv	a0, a1			/* entry_data = device tree */
 	tail	pbl_head_start_v1
 ENDPROC(__barebox_pbl_head_v1_supervisor)
+
+/*
+ * __barebox_pbl_head_v1_machine - v1 PBL image head for images entered
+ * in machine mode without a boot protocol, e.g. out of reset
+ *
+ * It writes mscratch as riscv_set_flags() would and passes a0 on as
+ * entry_data. riscv_hartid() doesn't look at tp in machine mode, so it's
+ * left alone.
+ */
+.section .text_head_prologue_v1_machine, "ax"
+ENTRY(__barebox_pbl_head_v1_machine)
+	pbl_image_header .Lmachine_setup
+
+.Lmachine_setup:
+	li	fp, 0
+
+	li	t0, RISCV_M_MODE_ASM
+	csrw	mscratch, t0
+	tail	pbl_head_start_v1
+ENDPROC(__barebox_pbl_head_v1_machine)
 
 /*
  * pbl_head_start_v1 - RISC-V stage dispatch, overriding the weak C one
@@ -65,7 +91,10 @@ ENDPROC(__barebox_pbl_head_v1_supervisor)
  *   s2  = runtime offset, likewise
  *   s3  = struct pbl_stage *, kept across the prereloc_cpu_init() call
  *   t0-t6 = scratch
+ *
+ * It has a section of its own, so an image only links the head it uses.
  */
+.section .text.pbl_head_start_v1, "ax"
 ENTRY(pbl_head_start_v1)
 	mv	s1, a0
 

@@ -42,6 +42,9 @@ void __noreturn __naked barebox_riscv_entry(unsigned long membase, unsigned long
  */
 extern char __barebox_pbl_head_v1_supervisor[];
 
+/* PBL head for images entered in machine mode without a boot protocol */
+extern char __barebox_pbl_head_v1_machine[];
+
 /* enters barebox proper with the current PBL stage's membase/memsize */
 void __noreturn pbl_stage_barebox_entry(void *boarddata);
 
