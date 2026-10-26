@@ -79,6 +79,7 @@ ENTRY(__barebox_pbl_head_v1_machine)
 	tail	pbl_head_start_v1
 ENDPROC(__barebox_pbl_head_v1_machine)
 
+#ifdef CONFIG_PBL_HEAD_START_ASM
 /*
  * pbl_head_start_v1 - RISC-V stage dispatch, overriding the weak C one
  * in pbl/entry.c: determine the executing stage from struct
@@ -202,3 +203,4 @@ ENTRY(pbl_head_start_v1)
 	mv	a1, s1
 	tail	pbl_head_reloc_v1	/* (a0 = stage, a1 = entry_data) */
 ENDPROC(pbl_head_start_v1)
+#endif

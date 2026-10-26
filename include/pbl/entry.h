@@ -145,7 +145,7 @@ void setup_c(void);
  * pbl/entry.c has a weak C implementation, which is naked where the
  * architecture has naked functions, but may still spill to the stack.
  * Architectures override it with an assembly implementation in their
- * head file.
+ * head file, if CONFIG_PBL_HEAD_START_ASM is enabled.
  */
 void __noreturn pbl_head_start_v1(unsigned long entry_data);
 

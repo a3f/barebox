@@ -17,7 +17,7 @@
  * The naked attribute keeps the compiler from emitting a prologue, but it
  * remains free to spill, so doing this in C is fragile. This is therefore
  * weak and serves as reference and as fallback for architectures that
- * don't override it in their head file.
+ * don't override it in their head file or have PBL_HEAD_START_ASM disabled.
  */
 
 #include <linux/types.h>

@@ -440,7 +440,8 @@ images a previous stage starts in supervisor mode like a Linux kernel
 and for images entered in machine mode without a boot protocol. RISC-V
 implements ``pbl_head_start_v1()`` in assembly in the same file,
 overriding the weak C implementation in ``pbl/entry.c``. An
-architecture without an assembly implementation falls back to the C one,
+architecture without an assembly implementation, or with
+``CONFIG_PBL_HEAD_START_ASM`` disabled, falls back to the C one,
 which is a naked function where the architecture selects
 ``ARCH_HAS_NAKED``, but the compiler may still spill to the stack, so it is
 best entered with a stack the previous stage has already set up.

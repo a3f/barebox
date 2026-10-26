@@ -108,6 +108,22 @@ config ARCH_HAS_PBL_ENTRY
 	  The architecture provides a PBL image head consuming the board
 	  info entry point description and thus needs pbl/entry.c.
 
+config ARCH_HAS_PBL_HEAD_START_ASM
+	bool
+	help
+	  The architecture implements pbl_head_start_v1() in assembly.
+
+config PBL_HEAD_START_ASM
+	bool "Use the assembly PBL stage dispatch" if COMPILE_TEST
+	depends on ARCH_HAS_PBL_HEAD_START_ASM
+	default y
+	help
+	  Use the architecture's assembly pbl_head_start_v1() instead of
+	  the C implementation in pbl/entry.c, which runs before the stack
+	  is set up, but can't guarantee not to spill to it.
+
+	  Say N only to test the C implementation.
+
 config ARCH_HAS_MALLOC_SIZE
 	bool
 	help
